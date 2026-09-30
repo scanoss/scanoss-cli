@@ -50,6 +50,7 @@ import (
 	"github.com/scanoss/scanoss.go/pkg/sbom/depsource"
 	"github.com/scanoss/scanoss.go/pkg/sbom/scansource"
 	"github.com/scanoss/scanoss.go/pkg/scanoss"
+	"github.com/scanoss/scanoss.go/pkg/snippetmatch"
 	"github.com/scanoss/scanoss.go/pkg/wfp"
 )
 
@@ -94,6 +95,17 @@ type Options struct {
 	// OnProgress receives every layer's progress. Optional; nil reports nothing. The pipeline runs
 	// layers concurrently, so it must be safe for concurrent use.
 	OnProgress func(Progress)
+
+	// ClassifySnippets asks for each snippet match in the inventory to be scored by the local
+	// snippet classifier, which proposes whether the match is a false positive (its reported OSS
+	// and local line ranges do not correspond). The verdict lands on each match's
+	// FileEvidence.SnippetClassification; nothing is removed. It is opt-in because scoring fetches
+	// the matched OSS files over the network, so a bare scan pays nothing for it.
+	ClassifySnippets bool
+	// ClassifyThreshold overrides the classifier's decision threshold (P(false positive) at or
+	// above which a match is proposed as a false positive). 0 uses snippetmatch.DefaultThreshold
+	// (0.7), tuned to propose for human confirmation.
+	ClassifyThreshold float64
 }
 
 // Result is the outcome of Run: the gathered inventory, the files that could not be
@@ -336,11 +348,49 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 	inv.Add(declared.Components...)
 	inv.Dependencies = declared.Dependencies
 	enrichErr := Enricher{Client: opts.Client, Services: opts.Services, Reporter: r}.Enrich(ctx, &inv)
+
+	// Snippet classification runs last, over the assembled inventory: it needs the matched OSS
+	// files, which it fetches by hash. Opt-in, and non-fatal like enrichment — a match that could
+	// not be scored is simply left unannotated.
+	if opts.ClassifySnippets {
+		classifySnippets(ctx, opts, scanRoot, &inv, emit)
+	}
+
 	return Result{
 		Inventory:     inv,
 		ProcessErrors: procErrors,
 		EnrichError:   enrichErr,
 	}, nil
+}
+
+// classifySnippets scores the inventory's snippet matches in place, reporting progress under
+// LayerClassify. It is best-effort: a construction failure or a partly-failed run is logged, not
+// returned, because a scan whose matches could not all be scored is still a usable scan.
+func classifySnippets(ctx context.Context, opts Options, scanRoot string, inv *sbom.Inventory, emit func(Progress)) {
+	emit(Progress{Layer: LayerClassify, Status: StatusRunning, Total: 0})
+	// The fetch stage reports done/total as OSS files arrive; remember the total so completion
+	// can fill the bar (a StatusCompleted with Total 0 would leave it aborted).
+	var total int
+	annotator, err := snippetmatch.New(snippetmatch.Options{
+		Fetcher:   opts.Client.Contents,
+		ScanRoot:  scanRoot,
+		Threshold: opts.ClassifyThreshold,
+		Workers:   opts.Threads,
+		OnProgress: func(done, t int) {
+			total = t
+			emit(Progress{Layer: LayerClassify, Status: StatusRunning, Done: done, Total: t})
+		},
+	})
+	if err != nil {
+		logging.Warn("snippet classification could not start", "err", err)
+		emit(Progress{Layer: LayerClassify, Status: StatusFailed})
+		return
+	}
+	if err := annotator.Annotate(ctx, inv); err != nil {
+		// Partial failures are already logged per match inside Annotate; this names the tally.
+		logging.Warn("snippet classification incomplete", "err", err)
+	}
+	emit(Progress{Layer: LayerClassify, Status: StatusCompleted, Done: total, Total: total})
 }
 
 // Enricher is what the requested layers are gathered with: a client to ask, the layers to ask

@@ -84,6 +84,9 @@ type Client struct {
 	Components      ComponentsAPI
 	Dependencies    DependencyAPI
 
+	// Contents service (raw source retrieval by file hash). Wired in New.
+	Contents ContentsAPI
+
 	// Scan service (batch WFP scanning). Wired in New.
 	Scan ScanAPI
 }
@@ -131,6 +134,7 @@ func New(cfg Config) (*Client, error) {
 	c.Copyright = copyrightService{c}
 	c.Components = componentsService{c}
 	c.Dependencies = dependencyService{c}
+	c.Contents = contentsService{c}
 	c.Scan = scanService{c}
 	return c, nil
 }

@@ -188,6 +188,8 @@ func layerLabel(service string) string {
 		return "Geoprovenance"
 	case scanoss.ServiceDependencies.Name:
 		return "Resolving dependencies"
+	case scanpipeline.LayerClassify:
+		return "Classifying snippets"
 	default:
 		return service
 	}
@@ -370,6 +372,11 @@ func init() {
 	scanCmd.Flags().Bool("all-hidden", false, "Include hidden files and folders, version-control metadata included")
 	addSkipHeaderFlags(scanCmd)
 
+	// Snippet classification (path scan only: it needs the scanned files on disk). Off by default
+	// because scoring fetches the matched OSS files over the network. raw format only — SPDX and
+	// CycloneDX have nowhere to carry the verdict.
+	scanCmd.Flags().Bool("classify-snippets", false, "Score each snippet match with the local classifier and annotate whether it looks like a false positive (raw format only)")
+
 	// The BOM rule flags are declared on both, since either can apply them: `scan wfp` cannot
 	// fingerprint, but it still post-processes a result.
 	addBOMRuleFlags(scanCmd)
@@ -427,6 +434,10 @@ func runScan(cmd *cobra.Command, args []string) error {
 	allFolders, _ := cmd.Flags().GetBool("all-folders")
 	applyGitignore, _ := cmd.Flags().GetBool("gitignore")
 	allHidden, _ := cmd.Flags().GetBool("all-hidden")
+	classifySnippets, _ := cmd.Flags().GetBool("classify-snippets")
+	if classifySnippets && outputFormat != config.FormatRaw {
+		warnf("--classify-snippets only annotates the raw format; ignoring it for %q output", outputFormat)
+	}
 
 	// Settings drive file filtering and the BOM rules, which are applied SDK-side, post-scan,
 	// via WithBOM. --identify and --ignore contribute to the same BOM.
@@ -484,6 +495,7 @@ func runScan(cmd *cobra.Command, args []string) error {
 		WFPOptions:        fingerprintOptions(skipHeaders, skipHeadersLimit),
 		WFPWriter:         wfpWriterOrNil(wfpOut),
 		OnProgress:        prog.layer,
+		ClassifySnippets:  classifySnippets && outputFormat == config.FormatRaw,
 	})
 	prog.finish()
 	if err != nil {

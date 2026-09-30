@@ -291,6 +291,11 @@ type FileEvidence struct {
 	// by path and the components are not in any file's order, so a consumer rebuilding "the
 	// candidates of this file" ranks them by this field, not by where it found them.
 	MatchIndex *int `json:"match_index,omitempty"`
+
+	// SnippetClassification is the local snippet-classifier's verdict on whether this snippet
+	// match is a false positive (its reported ranges do not correspond). Populated only when
+	// classification was requested and the match could be scored; nil otherwise.
+	SnippetClassification *SnippetClassification `json:"snippet_classification,omitempty"`
 }
 
 // IsPrimary reports whether this evidence is its file's primary match (MatchIndex 0).
@@ -305,6 +310,15 @@ func lowerMatchIndex(a, b *int) bool {
 		return false
 	}
 	return b == nil || *a < *b
+}
+
+// SnippetClassification is the snippet-classifier's answer for one snippet match: whether the
+// reported OSS and local line ranges correspond, as a thresholded verdict plus the probability
+// behind it. It is a proposal for a human to confirm, not a filtering decision.
+type SnippetClassification struct {
+	Verdict      string  `json:"verdict"`       // "false_positive" | "real"
+	Probability  float64 `json:"probability"`   // P(false positive), 0..1
+	ModelVersion string  `json:"model_version"` // model that produced the score, e.g. "lr-d51f2e100211"
 }
 
 // Vulnerability is one known vulnerability affecting one or more components, in a
