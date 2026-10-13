@@ -39,7 +39,43 @@ const RawSchemaVersion = "2.0"
 type RawDocument struct {
 	SchemaVersion string      `json:"schema_version"`
 	Metadata      RawMetadata `json:"metadata"`
+	// Server is the batchScanner report's `server` block: the engine and Knowledge Base versions the
+	// scan ran against. It is a pointer with omitempty so a report that carries no `server` (any API
+	// that does not emit one) leaves the output byte-for-byte unchanged. Placed between the envelope
+	// and the promoted inventory keys, it mirrors the batch report's own `{..., server, components}`.
+	Server *RawServer `json:"server,omitempty"`
 	Inventory
+}
+
+// RawServer is the run/server metadata a batchScanner report carries in its `server` block. It is
+// provenance for the match results — it records which engine and Knowledge Base produced them — so
+// it travels on the raw document beside the components rather than inside the inventory, and is
+// omitted entirely when the scan report carried no such block.
+//
+// EngineVersion and KnowledgeBaseLatest await the scanoss.api-sdk release that models them; until
+// then they stay empty (and, being omitempty, absent from the output). The rest mirror what the
+// current SDK's ScanServer exposes.
+type RawServer struct {
+	// EngineVersion is the SCANOSS engine build the scan ran on, e.g. "6.0.1-crc64".
+	EngineVersion string `json:"engine_version,omitempty"`
+	// KnowledgeBase is the Knowledge Base version the scan matched against.
+	KnowledgeBase *RawKnowledgeBase `json:"knowledge_base,omitempty"`
+	// KnowledgeBaseLatest, when present, is the newest Knowledge Base the server holds. It appears
+	// only when it diverges from KnowledgeBase — i.e. the scan ran against an older KB than available.
+	KnowledgeBaseLatest *RawKnowledgeBase `json:"knowledge_base_latest,omitempty"`
+	// APIVersion is the batchScanner API version that produced the report.
+	APIVersion string `json:"api_version,omitempty"`
+	// Hostname is the host that ran the scan.
+	Hostname string `json:"hostname,omitempty"`
+	// ElapsedMs is the scan wall-clock time in milliseconds.
+	ElapsedMs int `json:"elapsed_ms,omitempty"`
+}
+
+// RawKnowledgeBase is a Knowledge Base version pair: the monthly snapshot and the daily delta
+// applied on top of it.
+type RawKnowledgeBase struct {
+	MonthlyVersion string `json:"monthly_version,omitempty"`
+	DailyVersion   string `json:"daily_version,omitempty"`
 }
 
 // RawMetadata identifies the tool and project that produced a raw document. Values are supplied by

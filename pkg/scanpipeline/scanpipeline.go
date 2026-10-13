@@ -106,6 +106,11 @@ type Options struct {
 type Result struct {
 	Inventory sbom.Inventory
 
+	// Server is the scan report's run/server metadata (engine and Knowledge Base versions), or nil
+	// when the report carried none or the inventory came from declared dependencies alone. It is
+	// provenance for the raw output; the caller carries it through to the raw document.
+	Server *sbom.RawServer
+
 	// ProcessErrors are the files that could not be fingerprinted, as pkg/wfp reported them.
 	// A scan of 3000 files that skipped 3 unreadable ones still produced a usable WFP, so these
 	// are not fatal — but which file failed and why is the caller's to judge, and a count alone
@@ -336,8 +341,14 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 	inv := scansource.Inventory(scanResult, scansource.WithIdentified(bomReport.IsIdentified))
 	inv.Add(declaredComps...)
 	enrichErr := Enricher{Client: opts.Client, Services: opts.Services, Reporter: r}.Enrich(ctx, &inv)
+	// scanResult is nil here only on the declared-dependencies-only path, which has no server block.
+	var server *sbom.RawServer
+	if scanResult != nil {
+		server = scansource.Server(scanResult.Server)
+	}
 	return Result{
 		Inventory:     inv,
+		Server:        server,
 		ProcessErrors: procErrors,
 		EnrichError:   enrichErr,
 	}, nil

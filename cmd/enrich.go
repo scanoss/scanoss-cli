@@ -133,5 +133,6 @@ func runEnrich(cmd *cobra.Command, args []string) error {
 		warnf("Enrichment incomplete: %v", enrichErr)
 	}
 
-	return emitInventory(cmd, inv, args[0])
+	// No scan here — the inventory is parsed from an existing SBOM, so there is no server block.
+	return emitInventory(cmd, inv, args[0], nil)
 }

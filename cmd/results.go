@@ -161,5 +161,5 @@ func runResults(cmd *cobra.Command, args []string) error {
 		warnf("Enrichment incomplete: %v", err)
 	}
 	// No source path here — the sbom module applies its default project name.
-	return emitInventory(cmd, inv, "")
+	return emitInventory(cmd, inv, "", scansource.Server(res.Result.Server))
 }

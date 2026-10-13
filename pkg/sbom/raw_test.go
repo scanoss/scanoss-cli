@@ -76,6 +76,48 @@ func TestRawDocument_LineRangesRoundTrip(t *testing.T) {
 	}
 }
 
+// TestRawDocument_Server pins the server block's wire shape and placement, and that it is omitted
+// when absent — the guarantee that a report without a `server` block leaves the output unchanged.
+func TestRawDocument_Server(t *testing.T) {
+	inv := Inventory{Components: []Component{{Purl: "pkg:github/scanoss/engine", Version: "5.4.1"}}}
+
+	doc := NewRawDocument(inv, RawMetadata{Tool: "scanoss"})
+	doc.Server = &RawServer{
+		EngineVersion:       "6.0.1-crc64",
+		KnowledgeBase:       &RawKnowledgeBase{MonthlyVersion: "26.04", DailyVersion: "25.03.19"},
+		KnowledgeBaseLatest: &RawKnowledgeBase{MonthlyVersion: "26.05"},
+	}
+	out, err := doc.Marshal()
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	for _, want := range []string{
+		`"engine_version": "6.0.1-crc64"`,
+		`"knowledge_base": {`,
+		`"monthly_version": "26.04"`,
+		`"daily_version": "25.03.19"`,
+		`"knowledge_base_latest": {`,
+		`"monthly_version": "26.05"`,
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("server output should carry %s, got:\n%s", want, out)
+		}
+	}
+	// server sits between metadata and the promoted components, mirroring the batch report.
+	if mi, si, ci := strings.Index(out, `"metadata"`), strings.Index(out, `"server"`), strings.Index(out, `"components"`); !(mi < si && si < ci) {
+		t.Errorf("server should sit between metadata and components (metadata=%d server=%d components=%d):\n%s", mi, si, ci, out)
+	}
+
+	// Absent server → the key is omitted entirely.
+	bare, err := NewRawDocument(inv, RawMetadata{Tool: "scanoss"}).Marshal()
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	if strings.Contains(bare, `"server"`) {
+		t.Errorf("a document with no server must omit the key, got:\n%s", bare)
+	}
+}
+
 // A scan that matched nothing emits an empty list, not null. A nil slice
 // marshals to null, which forces every consumer to special-case the field
 // before ranging over it — and strict JSON-schema validators reject it.
