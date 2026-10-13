@@ -493,7 +493,7 @@ func runScan(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	if err := emitInventory(cmd, result.Inventory, targetPath); err != nil {
+	if err := emitInventory(cmd, result.Inventory, targetPath, result.Server); err != nil {
 		return err
 	}
 	printErrorSummary(result.ProcessErrors)
@@ -597,7 +597,7 @@ func runScanWFP(cmd *cobra.Command, args []string) error {
 	if enrichErr != nil {
 		warnf("Enrichment incomplete: %v", enrichErr)
 	}
-	return emitInventory(cmd, inv, wfpPath)
+	return emitInventory(cmd, inv, wfpPath, scansource.Server(res.Result.Server))
 }
 
 // buildScanClient constructs the SDK client from the shared scan flags. Nothing per-call is
@@ -667,8 +667,9 @@ func fingerprintOptions(skipHeaders bool, limit int) []wfp.Option {
 }
 
 // emitInventory renders inv in the --format and writes it to the --output target. scanPath names
-// the SBOM project.
-func emitInventory(cmd *cobra.Command, inv sbom.Inventory, scanPath string) error {
+// the SBOM project. server, when non-nil, is the scan report's run/server metadata; it is carried
+// in the raw output only (see renderInventory) and may be nil for inputs that never came from a scan.
+func emitInventory(cmd *cobra.Command, inv sbom.Inventory, scanPath string, server *sbom.RawServer) error {
 	outputFile, _ := cmd.Flags().GetString("output")
 	outputFormat, _ := cmd.Flags().GetString("format")
 
@@ -682,7 +683,7 @@ func emitInventory(cmd *cobra.Command, inv sbom.Inventory, scanPath string) erro
 	if projectName == "." || projectName == "/" {
 		projectName = "" // let the sbom module apply its default
 	}
-	out, err := renderInventory(inv, outputFormat, projectName)
+	out, err := renderInventory(inv, outputFormat, projectName, server)
 	if err != nil {
 		return err
 	}
@@ -708,11 +709,16 @@ func scanLayers(cmd *cobra.Command) (Set, error) {
 // renderInventory renders a gathered inventory in the requested format. raw wraps the inventory
 // in the versioned envelope (sbom.RawDocument) as JSON; cyclonedx/spdx project it to an SBOM,
 // dropping what they cannot represent.
-func renderInventory(inv sbom.Inventory, format, projectName string) (string, error) {
+//
+// server is the scan report's run/server metadata. It is carried in raw output only: CycloneDX and
+// SPDX have no field for the engine/Knowledge Base versions, so it is dropped there — out of scope
+// for those formats. It may be nil (an input that never came from a scan, e.g. enrich).
+func renderInventory(inv sbom.Inventory, format, projectName string, server *sbom.RawServer) (string, error) {
 	if format == config.FormatRaw {
 		doc := sbom.NewRawDocument(inv, sbom.RawMetadata{
 			Tool: config.AppName, ToolVersion: config.AppVersion, Project: projectName,
 		})
+		doc.Server = server
 		raw, err := doc.Marshal()
 		if err != nil {
 			return "", fmt.Errorf("error encoding results: %w", err)

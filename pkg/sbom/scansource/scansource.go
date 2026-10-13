@@ -113,6 +113,37 @@ func Inventory(result *scanossapi.ScanResult, opts ...InventoryOption) sbom.Inve
 	return inv
 }
 
+// Server maps a scan result's `server` block onto the neutral sbom.RawServer carried by the raw
+// document. It returns nil when the report had no such block, so a scan against an API that emits
+// none leaves the output unchanged.
+//
+// engine_version and knowledge_base_latest are not mapped: no released scanoss.api-sdk models them
+// yet (its ScanServer carries only knowledge_base, api_version, hostname and elapsed_ms). When the
+// SDK gains them, wire them here — sbom.RawServer already has the fields.
+func Server(s *scanossapi.ScanServer) *sbom.RawServer {
+	if s == nil {
+		return nil
+	}
+	return &sbom.RawServer{
+		KnowledgeBase: knowledgeBase(s.KnowledgeBase),
+		APIVersion:    s.ApiVersion,
+		Hostname:      s.Hostname,
+		ElapsedMs:     s.ElapsedMs,
+	}
+}
+
+// knowledgeBase maps the SDK's KnowledgeBase onto the neutral pair, returning nil when absent so an
+// empty object is never emitted.
+func knowledgeBase(kb *scanossapi.KnowledgeBase) *sbom.RawKnowledgeBase {
+	if kb == nil {
+		return nil
+	}
+	return &sbom.RawKnowledgeBase{
+		MonthlyVersion: kb.MonthlyVersion,
+		DailyVersion:   kb.DailyVersion,
+	}
+}
+
 // orderComponents puts the components in the order a reader of the inventory would look for them:
 // first the ones the most files originate from, then the ones that match the most files, and
 // url_hash only to settle what is still tied.

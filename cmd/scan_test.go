@@ -62,7 +62,7 @@ func sampleInventory() sbom.Inventory {
 }
 
 func TestRenderInventory_Raw(t *testing.T) {
-	out, err := renderInventory(sampleInventory(), "raw", "proj")
+	out, err := renderInventory(sampleInventory(), "raw", "proj", nil)
 	if err != nil {
 		t.Fatalf("renderInventory: %v", err)
 	}
@@ -80,8 +80,49 @@ func TestRenderInventory_Raw(t *testing.T) {
 	}
 }
 
+// A non-nil server block reaches the raw output; a nil one leaves it absent, so a scan whose
+// report carried no `server` stays byte-identical to before this field existed.
+func TestRenderInventory_RawServer(t *testing.T) {
+	server := &sbom.RawServer{
+		KnowledgeBase: &sbom.RawKnowledgeBase{MonthlyVersion: "26.04", DailyVersion: "25.03.19"},
+		APIVersion:    "3.1.0",
+	}
+	out, err := renderInventory(sampleInventory(), "raw", "proj", server)
+	if err != nil {
+		t.Fatalf("renderInventory: %v", err)
+	}
+	for _, want := range []string{`"server"`, `"knowledge_base"`, `"monthly_version": "26.04"`, `"daily_version": "25.03.19"`, `"api_version": "3.1.0"`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("raw output should carry %s, got:\n%s", want, out)
+		}
+	}
+
+	bare, err := renderInventory(sampleInventory(), "raw", "proj", nil)
+	if err != nil {
+		t.Fatalf("renderInventory: %v", err)
+	}
+	if strings.Contains(bare, `"server"`) {
+		t.Errorf("a nil server must omit the server key, got:\n%s", bare)
+	}
+}
+
+// The server block is raw-only: the SBOM formats have no field for the engine/KB versions, so a
+// non-nil server neither errors nor leaks into their output.
+func TestRenderInventory_ServerDroppedBySBOMFormats(t *testing.T) {
+	server := &sbom.RawServer{KnowledgeBase: &sbom.RawKnowledgeBase{MonthlyVersion: "26.04"}}
+	for _, format := range []string{"spdx", "cyclonedx"} {
+		out, err := renderInventory(sampleInventory(), format, "proj", server)
+		if err != nil {
+			t.Fatalf("renderInventory(%s): %v", format, err)
+		}
+		if strings.Contains(out, "26.04") {
+			t.Errorf("%s output must not carry the server block, got:\n%s", format, out)
+		}
+	}
+}
+
 func TestRenderInventory_SPDXLite(t *testing.T) {
-	out, err := renderInventory(sampleInventory(), "spdx", "proj")
+	out, err := renderInventory(sampleInventory(), "spdx", "proj", nil)
 	if err != nil {
 		t.Fatalf("renderInventory: %v", err)
 	}
@@ -94,7 +135,7 @@ func TestRenderInventory_SPDXLite(t *testing.T) {
 }
 
 func TestRenderInventory_CycloneDX(t *testing.T) {
-	out, err := renderInventory(sampleInventory(), "cyclonedx", "proj")
+	out, err := renderInventory(sampleInventory(), "cyclonedx", "proj", nil)
 	if err != nil {
 		t.Fatalf("renderInventory: %v", err)
 	}
@@ -110,7 +151,7 @@ func TestRenderInventory_CycloneDX(t *testing.T) {
 }
 
 func TestRenderInventory_UnknownFormat(t *testing.T) {
-	if _, err := renderInventory(sampleInventory(), "xml", "proj"); err == nil {
+	if _, err := renderInventory(sampleInventory(), "xml", "proj", nil); err == nil {
 		t.Error("expected an error for an unsupported format")
 	}
 }

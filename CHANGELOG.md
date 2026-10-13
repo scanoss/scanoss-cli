@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`server` block in `raw` output** (`sbom.RawDocument.Server`): the batchScanner report's
+  run/server metadata — the Knowledge Base version the scan matched against (`knowledge_base`
+  with `monthly_version`/`daily_version`), plus `api_version`, `hostname` and `elapsed_ms`. It is
+  provenance for the match results, carried through the `scan`, `scan <path>` and `results` paths
+  and placed between `metadata` and `components`, mirroring the batch report's own shape. Additive
+  and `omitempty`: a scan whose report carries no `server` block leaves the output byte-for-byte
+  unchanged. `raw`-only — CycloneDX and SPDX have no field for the engine/KB versions.
+  `engine_version` and `knowledge_base_latest` fields are modeled on the document already and will
+  populate once a scanoss.api-sdk release surfaces them (the current SDK's `ScanServer` does not).
+
 - **`match_index` on each matched file's evidence** in `raw` output (`sbom.FileEvidence.MatchIndex`,
   with `IsPrimary()`): where the component stood among the candidates the scanner returned for that
   file, after the BOM rules — `0` is the component the file originates from. From batchScanner

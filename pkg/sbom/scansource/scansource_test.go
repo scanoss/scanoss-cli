@@ -490,6 +490,71 @@ func TestInventory_MatchIndexKeepsTheFilesOrder(t *testing.T) {
 	}
 }
 
+// Server maps the SDK's ScanServer onto the neutral sbom.RawServer, and returns nil for a report
+// with no server block so the raw output is left unchanged.
+func TestServer(t *testing.T) {
+	if got := Server(nil); got != nil {
+		t.Errorf("Server(nil) = %+v, want nil", got)
+	}
+
+	got := Server(&scanossapi.ScanServer{
+		ApiVersion:    "3.1.0",
+		Hostname:      "scanner-01",
+		ElapsedMs:     1234,
+		KnowledgeBase: &scanossapi.KnowledgeBase{MonthlyVersion: "26.04", DailyVersion: "25.03.19"},
+	})
+	if got == nil {
+		t.Fatal("Server returned nil for a populated block")
+	}
+	if got.APIVersion != "3.1.0" || got.Hostname != "scanner-01" || got.ElapsedMs != 1234 {
+		t.Errorf("server metadata not mapped: %+v", got)
+	}
+	if got.KnowledgeBase == nil || got.KnowledgeBase.MonthlyVersion != "26.04" || got.KnowledgeBase.DailyVersion != "25.03.19" {
+		t.Errorf("knowledge_base not mapped: %+v", got.KnowledgeBase)
+	}
+
+	// A server block with no knowledge_base maps to a nil pointer, not an empty object.
+	if got := Server(&scanossapi.ScanServer{ApiVersion: "3.1.0"}); got.KnowledgeBase != nil {
+		t.Errorf("absent knowledge_base should map to nil, got %+v", got.KnowledgeBase)
+	}
+}
+
+// A scan result's `server` block, as it arrives on the wire, deserializes into the SDK type and
+// maps through to the raw document — proving the end-to-end path a real API response takes.
+func TestServer_FromWire(t *testing.T) {
+	const body = `{
+	  "components": {},
+	  "files": [],
+	  "server": {
+	    "knowledge_base": {"monthly_version": "26.04", "daily_version": "25.03.19"},
+	    "api_version": "3.1.0",
+	    "hostname": "scanner-01",
+	    "elapsed_ms": 1234
+	  }
+	}`
+	var result scanossapi.ScanResult
+	if err := json.Unmarshal([]byte(body), &result); err != nil {
+		t.Fatalf("unmarshal scan result: %v", err)
+	}
+	srv := Server(result.Server)
+	if srv == nil || srv.KnowledgeBase == nil {
+		t.Fatalf("server/knowledge_base not carried from the wire: %+v", srv)
+	}
+	if srv.KnowledgeBase.MonthlyVersion != "26.04" || srv.APIVersion != "3.1.0" {
+		t.Errorf("server block not mapped from wire: %+v", srv)
+	}
+
+	doc := sbom.NewRawDocument(sbom.Inventory{}, sbom.RawMetadata{})
+	doc.Server = srv
+	out, err := doc.Marshal()
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	if !strings.Contains(out, `"monthly_version": "26.04"`) || !strings.Contains(out, `"api_version": "3.1.0"`) {
+		t.Errorf("wire server block did not reach the raw document:\n%s", out)
+	}
+}
+
 // The raw document is where a consumer reads the order back, so the primary's 0 must be written
 // rather than dropped as an empty value, and must survive being parsed again.
 func TestInventory_MatchIndexInRawDocument(t *testing.T) {
