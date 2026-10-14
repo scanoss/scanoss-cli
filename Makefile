@@ -2,7 +2,7 @@
 
 GO               ?= go
 GOLANGCI_LINT    ?= golangci-lint
-GOLANGCI_VERSION ?= v2.10.1
+GOLANGCI_VERSION ?= v2.14.0
 PKGS          ?= ./...
 BIN           ?= scanoss-cli
 GOFMT_FILES   := $(shell find . -name '*.go' -not -path './vendor/*')

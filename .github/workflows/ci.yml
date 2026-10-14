@@ -11,15 +11,28 @@ permissions:
 
 jobs:
   test:
-    name: Test Go Code
+    name: Test Go Code (${{ matrix.name }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        name: [minimum, toolchain]
+    env:
+      # Stops the toolchain directive from upgrading the minimum job.
+      GOTOOLCHAIN: local
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
 
+      - name: Read minimum Go version
+        id: minimum
+        if: matrix.name == 'minimum'
+        run: echo "version=$(awk '$1 == "go" {print $2}' go.mod)" >> "$GITHUB_OUTPUT"
+
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
+          # Empty on the toolchain job, so setup-go falls back to go-version-file.
+          go-version: ${{ steps.minimum.outputs.version }}
           go-version-file: go.mod
 
       - name: Run tests
@@ -136,3 +149,20 @@ jobs:
 
       - name: Run golangci-lint
         run: golangci-lint run --timeout=5m
+
+  govulncheck:
+    name: Vulnerability Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Run govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...

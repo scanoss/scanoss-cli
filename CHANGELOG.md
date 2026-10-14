@@ -5,126 +5,82 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Added
-
-- **`match_index` on each matched file's evidence** in `raw` output (`sbom.FileEvidence.MatchIndex`,
-  with `IsPrimary()`): where the component stood among the candidates the scanner returned for that
-  file, after the BOM rules — `0` is the component the file originates from. From batchScanner
-  v0.0.10 the scanner lists a file's matches origin first, and grouping the result by component
-  had lost that order: anyone rebuilding a file's candidates from `raw` got them by `url_hash`,
-  which put a fork or mirror first in ~12,000 files across the self-scans of known projects (curl
-  2,548, go 1,785, gstreamer 1,775, node 1,664). The field is additive and omitted on `declared`
-  evidence; consumers that do not read it are unaffected. When two catalog entries of one PURL and
-  version fold into one component and both matched a file, the better-placed one is kept. CycloneDX
-  and SPDX have no field for it (`evidence.occurrences` admits no properties), so it is `raw`-only.
-
-- **`--identify` / `--ignore`** on `scan` and `results`, and the matching `bom.identify`
-  (alias `bom.include`) and `bom.ignore` (alias `bom.exclude`) rules in `scanoss.json`.
-  Both are applied client-side, over the candidate matches the batch scanner returns for
-  each file: `ignore` drops the components it names, `identify` marks them
-  `"identified": true` and moves them to the front of their file's matches. Naming an
-  exact version is a stronger claim than naming the component alone. The flags accept a
-  SCANOSS component list, CycloneDX, SPDX, or this client's raw output.
-- **`--skip-headers` is on by default** on `scan` and `wfp`. A licence header is boilerplate
-  shared by every file that carries it, so fingerprinting it makes unrelated files look alike.
-  `--skip-headers=false`, or `skip_headers: false` in `scanoss.json`, restores the old
-  behaviour. **This changes the WFP every scan produces**: a fingerprint taken with the filter
-  on does not match one taken with it off.
-- **`--skip-headers` / `--skip-headers-limit`** on `scan` and `wfp`, and
-  `settings.file_snippet.skip_headers` / `skip_headers_limit` in `scanoss.json`. Drops each
-  file's leading licence header, documentation comments and imports from its fingerprint,
-  emitting a `start_line=` marker. Verified against the live API: filtering a GNU-licensed
-  source moved the reported match from `[4-414]` to `[21-414]` and its percentage from 77% to
-  75%, so the shared licence boilerplate no longer contributes to the match.
-- **`--ranking-threshold`** treats rank `999` as unranked, not as the worst possible rank. It is
-  `COMPONENT_DEFAULT_RANK`, the engine's sentinel for a component it has no ranking information
-  about, and the engine's own "accept everything" bound is that value plus one. Because 999
-  exceeds every threshold, filtering it would have dropped those components under *every*
-  setting: a live scan of rdkb-2024q4 returned 23 of its 552 components at 999, accounting for
-  2027 matched files that a threshold of 1 would otherwise have discarded for missing data
-  rather than for explaining a match poorly. Rank `0` (an absent field) was already exempt.
-- **`--ranking-threshold`** on `scan` and `results`, and
-  `settings.file_snippet.ranking_threshold` in `scanoss.json`: drops matches whose component
-  ranks worse than the threshold (`-1`..`10`; `-1` or `0` = off, out-of-range clamped with a
-  warning). Applied client-side over the ranks the batch scanner reports, so nothing is asked
-  of the server — `scanoss.py` sent this setting to the engine instead. Also
-  **`scanoss.WithRankingThreshold`** and **`postprocess.WithRankingThreshold`**.
-- **`scanoss.WithBOMReport`** hands back what the BOM selection rules concluded, and
-  **`scansource.WithIdentified`** writes it onto `sbom.FileEvidence.Identified` per matched
-  file, with `sbom.Component.Identified` summarising it. Per-file is the granularity a
-  `path`-scoped rule works at: it claims a component in the files it covers and not in the ones
-  outside. In CycloneDX the component-level flag rides as a `scanoss:identified` property; the
-  per-file detail is `raw`-only, and SPDX can represent neither.
-  `postprocess.Report` carries both answers, and `Report.IsIdentified(path, urlHash)` is the
-  shape `scansource.WithIdentified` takes — so the SBOM adapter needs no type in common with
-  the package that reached the verdict.
-- **`scanoss.WithFingerprintOptions`** and the `wfp.Option` set (`wfp.WithSkipHeaders`)
-  tune fingerprinting through `Scan.Folder`/`Scan.Files` and every `pkg/wfp` entry point.
+## [0.11.0] - 2026-10-14
 
 ### Changed
 
-- **Components are ordered by what they explain, not by `url_hash`** — in `raw`, CycloneDX and
-  SPDX alike: first by how many files they are the primary match of, then by how many files they
-  match, with `url_hash` only breaking ties. A self-scan now lists the project first and the forks
-  and mirrors that redistribute its files last.
-- **`bom.replace` re-points a file at its own candidate** when the replacement PURL is one of them
-  (the earliest in the file's order), instead of the catalog entry carrying that PURL with the
-  lowest `url_hash`, which could be another release matched by a different file.
-- **Model weight files are skipped by the default scanning and fingerprinting filters.**
-  `filter.Scanning` and `filter.Fingerprinting` now drop `.safetensors`, `.gguf`, `.ggml`,
-  `.bin`, `.onnx`, `.pt`, `.pth`, `.ckpt`, `.h5`, `.hdf5`, `.keras`, `.tflite`, `.pb`, `.npy`,
-  `.npz`, `.pkl`, `.joblib`, `.mlmodel`, `.msgpack`, `.ot`, `.caffemodel` and `.nemo`. Each
-  such file was read whole into memory to be fingerprinted, so a repository holding a few
-  hundred-megabyte weights drove memory into gigabytes, and their bytes never produced a
-  useful snippet match. `.bin` is included, so any other `.bin` file is skipped too. Callers
-  that need these files must collect them separately, or pass `--all-extensions`
-  (`BuiltinFileRules: false`) to drop the built-in file rules altogether.
-- **The library skips licence headers by default too**, matching the CLI. `pkg/wfp`
-  (`Folder`, `Files`, `Stream`, `StreamFolder`), `pkg/scanoss` (`Scan.Folder`, `Scan.Files`),
-  `pkg/scanpipeline` and the `libscanoss` C exports now drop each file's leading licence header,
-  comments and imports when no `wfp.Option` is passed, with no limit. **This changes the WFP
-  every library caller produces**: a fingerprint taken with the filter on does not match one
-  taken with it off, so a caller comparing against WFPs it stored earlier will see them differ.
-  To opt out, pass `wfp.WithoutSkipHeaders()` (through `scanoss.WithFingerprintOptions` or
-  `scanpipeline.Options.WFPOptions` when scanning). `wfp.WithSkipHeaders(limit)` keeps its
-  meaning, on with that limit, and of the two options the last one passed wins. The CLI is
-  unchanged: `--skip-headers=false` and `skip_headers: false` still turn the filter off.
+- **Direct dependencies updated to their latest releases**, including `scanoss.api-sdk` v0.31.0 and
+  `cyclonedx-go` v0.12.0.
+
+### Security
+
+- **Binaries, the Docker image and libscanoss are now built with Go 1.27.2.** The module now
+  requires Go 1.26 or later.
+
+## [0.10.0] - 2026-10-07
+
+### Added
+
+- **`match_index`** on each matched file in `raw` output: the component's place among the file's
+  candidates, `0` being the file's origin. Rebuilding a file's candidates from `raw` no longer puts
+  a fork or mirror first.
+
+### Changed
+
+- **Components are ordered by the files they explain**, primary matches first, in every output
+  format. A self-scan now lists the project first and its forks and mirrors last.
+- **`bom.replace` re-points a file at its own candidate** with the replacement PURL, rather than
+  any catalog entry with that PURL, which could be a different release.
+
+## [0.9.0] - 2026-09-28
+
+### Added
+
+- **`confidence` on each matched file's evidence** (`LOW`, `MEDIUM` or `HIGH`), the reliability
+  grade the scanner gives each match. It was previously dropped from the output.
+
+## [0.8.3] - 2026-09-26
+
+### Changed
+
+- **Model weight files are skipped by default** when scanning and fingerprinting (`.safetensors`,
+  `.gguf`, `.onnx`, `.pt`, `.bin` and similar). Any `.bin` file is now skipped; pass
+  `--all-extensions` to include them.
+
+## [0.8.2] - 2026-09-23
+
+### Changed
+
+- **Breaking: the library skips licence headers by default**, matching the CLI, so the WFPs library
+  callers produce change. Pass `wfp.WithoutSkipHeaders()` to keep the old fingerprints; the CLI is
+  unaffected.
+
+## [0.8.1] - 2026-09-17
+
+### Added
+
+- **`--identify` / `--ignore`** on `scan` and `results`, and `bom.identify` / `bom.ignore` in
+  `scanoss.json`: `ignore` drops the named components, `identify` marks them `"identified": true`
+  and moves them first. Both match a component's canonical PURL, not its aliases.
+- **`--skip-headers` / `--skip-headers-limit`** on `scan` and `wfp`, on by default: licence headers,
+  comments and imports are left out of the fingerprint. This changes every WFP;
+  `--skip-headers=false` restores the old ones.
+- **`--ranking-threshold`** on `scan` and `results` drops matches from components ranked worse than
+  the threshold. Unranked components are never dropped.
+- **`scanoss.WithBOMReport`, `scanoss.WithRankingThreshold` and `scanoss.WithFingerprintOptions`**
+  expose the same features to library callers.
 
 ### Fixed
 
-- **`results <id>` now applies the BOM rules**, via a new `--settings` flag: `Scan.Wait`
-  post-processes its result like a full scan does, so resuming an interrupted scan reaches
-  the same output rather than reporting components the project's settings dismissed.
-- **`bom.remove` protection honors both spellings** of the identify rule: a settings file
-  using `bom.identify` rather than `bom.include` used to lose its protection from removal.
+- **`results <id>` applies the BOM rules** through a new `--settings` flag, so resuming a scan gives
+  the same output as a full scan.
+- **`bom.remove` protection honors `bom.identify`** as well as `bom.include`.
 
 ### Notes
 
-- **`bom.identify` and `bom.ignore` match a component's canonical PURL, not its aliases.** One
-  upstream project mined from several registries yields catalog entries that each carry the
-  others' PURLs: scanning zephyr's `west` returns three components whose alias lists all name
-  `pkg:pypi/west`, `pkg:github/zephyrproject-rtos/west` and `pkg:conda/west`. Comparing against
-  aliases made one rule claim every candidate at once — which defeats `identify`, whose job is
-  to pick which candidate is right, and made `ignore` drop components the user never named.
-  This is what the engine does too (`asset_declared` reads `comp->purls[0]`). `bom.remove` and
-  `bom.replace` still match aliases, as they always have.
-- **The header filter counts newlines only**, diverging from `scanoss.py`, whose
-  `str.splitlines()` also breaks on `\f`, `\v`, `\x1c`-`\x1e`, `\x85`, U+2028 and U+2029. A form
-  feed — the GNU section separator — makes the reference implementation report an offset one
-  line too high per separator, in a coordinate system the WFP does not use (its minutiae are
-  numbered by `\n`), so it strips a line of real code. Offsets agree on 6527 of 6531 real source
-  files; the 4 that differ each hold one form feed above the first line of code. Worth
-  reporting upstream.
-
-- **`bom.identify` protects its components from every filter** — `bom.ignore`, `bom.remove`
-  and the ranking threshold. This diverges from the engine, which applies the threshold last
-  and lets it overwrite the identified flag (`url.c`): reproducing that would discard a
-  component the user stated was present because of a rule that names no component at all.
-- `settings.file_snippet` **overrides** the `--skip-headers` and `--ranking-threshold` flags,
-  the reverse of every other flag in this CLI. It is what `scanoss.py` does, and is
-  documented in `CLIENT_HELP.md`.
+- `bom.identify` protects its components from `bom.ignore`, `bom.remove` and the ranking threshold.
+- `settings.file_snippet` in `scanoss.json` overrides the `--skip-headers` and `--ranking-threshold`
+  flags, as in `scanoss.py`.
 
 ## [0.8.0] - 2026-08-10
 
@@ -426,6 +382,12 @@ Initial release of the SCANOSS Go CLI and SDK (`scanoss`).
   CycloneDX and SPDX (with `WithTool`/`WithAuthor`/`WithTimestamp` document-metadata options).
 - **C shared library** (`libscanoss`) with Node.js and Python bindings.
 
+[0.11.0]: https://github.com/scanoss/scanoss.go/compare/v0.10.0...v0.11.0
+[0.10.0]: https://github.com/scanoss/scanoss.go/compare/v0.9.0...v0.10.0
+[0.9.0]: https://github.com/scanoss/scanoss.go/compare/v0.8.3...v0.9.0
+[0.8.3]: https://github.com/scanoss/scanoss.go/compare/v0.8.2...v0.8.3
+[0.8.2]: https://github.com/scanoss/scanoss.go/compare/v0.8.1...v0.8.2
+[0.8.1]: https://github.com/scanoss/scanoss.go/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/scanoss/scanoss.go/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/scanoss/scanoss.go/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/scanoss/scanoss.go/compare/v0.5.0...v0.6.0
