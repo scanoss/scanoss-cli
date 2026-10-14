@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.11.0] - 2026-10-14
 
+### Changed
+
+- **Direct dependencies updated to their latest releases**, including `scanoss.api-sdk` v0.31.0 and
+  `cyclonedx-go` v0.12.0.
+
 ### Security
 
 - **Binaries, the Docker image and libscanoss are now built with Go 1.27.2.** The module now
