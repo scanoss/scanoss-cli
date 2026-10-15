@@ -17,6 +17,6 @@
   "author": "SCANOSS",
   "license": "MIT",
   "dependencies": {
-    "koffi": "^2.15.0"
+    "koffi": "^3.3.3"
   }
 }
