@@ -8,6 +8,7 @@
       "status": "unknown",
       "reason": "malformed",
       "detail": "toml: expected ']' to close table name",
+      "devKnown": false,
       "members": [],
       "edges": []
     }

@@ -51,6 +51,47 @@ type cargoManifest struct {
 		Members []string `toml:"members"`
 		Exclude []string `toml:"exclude"`
 	} `toml:"workspace"`
+	cargoTables
+	Target map[string]cargoTables `toml:"target"`
+}
+
+// cargoTables are the dependency tables of a manifest or of one of its
+// [target.*] sections, keyed by the name the crate uses for each dependency.
+type cargoTables struct {
+	Dependencies      map[string]any `toml:"dependencies"`
+	DevDependencies   map[string]any `toml:"dev-dependencies"`
+	BuildDependencies map[string]any `toml:"build-dependencies"`
+}
+
+// devOnly returns the packages the manifest needs only as dev dependencies.
+// Build dependencies run when users build the crate, so they are runtime.
+func (m cargoManifest) devOnly() map[string]bool {
+	dev, runtime := map[string]bool{}, map[string]bool{}
+	for _, t := range append([]cargoTables{m.cargoTables}, slices.Collect(maps.Values(m.Target))...) {
+		for _, deps := range []map[string]any{t.Dependencies, t.BuildDependencies} {
+			for name, spec := range deps {
+				runtime[cargoPackageName(name, spec)] = true
+			}
+		}
+		for name, spec := range t.DevDependencies {
+			dev[cargoPackageName(name, spec)] = true
+		}
+	}
+	for name := range runtime {
+		delete(dev, name)
+	}
+	return dev
+}
+
+// cargoPackageName returns the package a dependency names, which differs
+// from its key when it is renamed: foo = { package = "bar" }.
+func cargoPackageName(name string, spec any) string {
+	if t, ok := spec.(map[string]any); ok {
+		if p, ok := t["package"].(string); ok {
+			return p
+		}
+	}
+	return name
 }
 
 // parseCargoLock reads Cargo.lock. Packages without a source are the
@@ -70,7 +111,7 @@ func parseCargoLock(b *builder, data, manifest []byte, members map[string][]byte
 		return
 	}
 	pkgs := lock.Package
-	dirs := cargoDirs(b, manifest, members)
+	dirs, devOnly := cargoDirs(b, manifest, members)
 	idx := cargoIndex(pkgs)
 	// deps[i][j] is the package that dependency j of package i names, or -1.
 	deps := make([][]int, len(pkgs))
@@ -118,10 +159,17 @@ func parseCargoLock(b *builder, data, manifest []byte, members map[string][]byte
 			isRoot[i] = true
 		}
 	}
+	// A root's dev dependencies are known when every crate it stands for has
+	// a manifest.
+	known := map[*root]bool{}
 	for i, p := range pkgs {
 		var r *root
 		if isRoot[i] {
 			r = b.root(dirs[p.Name])
+			_, ok := devOnly[p.Name]
+			if k, seen := known[r]; !seen || k {
+				known[r] = ok
+			}
 		}
 		if r == nil && ids[i] == "" {
 			continue
@@ -139,19 +187,26 @@ func parseCargoLock(b *builder, data, manifest []byte, members map[string][]byte
 			if ids[to] == "" {
 				continue
 			}
+			dev := p.Source == "" && devOnly[p.Name][pkgs[to].Name]
 			if r != nil {
-				r.declare(ids[to])
+				r.declare(ids[to], dev)
 			}
-			b.edge(ids[i], ids[to])
+			if !dev {
+				b.edge(ids[i], ids[to])
+			}
 		}
+	}
+	for r, k := range known {
+		r.devKnown = k
 	}
 }
 
 // cargoDirs maps the crate each manifest declares to the manifest's
-// directory, relative to the lockfile's. A manifest that does not parse is
-// reported on every root and left out.
-func cargoDirs(b *builder, manifest []byte, members map[string][]byte) map[string]string {
-	dirs := map[string]string{}
+// directory, relative to the lockfile's, and to the packages it needs only as
+// dev dependencies. A manifest that does not parse is reported on every root
+// and left out.
+func cargoDirs(b *builder, manifest []byte, members map[string][]byte) (map[string]string, map[string]map[string]bool) {
+	dirs, devOnly := map[string]string{}, map[string]map[string]bool{}
 	add := func(name string, data []byte) {
 		var m cargoManifest
 		if err := toml.Unmarshal(data, &m); err != nil {
@@ -160,6 +215,7 @@ func cargoDirs(b *builder, manifest []byte, members map[string][]byte) map[strin
 		}
 		if m.Package.Name != "" {
 			dirs[m.Package.Name] = path.Dir(name)
+			devOnly[m.Package.Name] = m.devOnly()
 		}
 	}
 	if manifest != nil {
@@ -168,7 +224,7 @@ func cargoDirs(b *builder, manifest []byte, members map[string][]byte) map[strin
 	for _, name := range slices.Sorted(maps.Keys(members)) {
 		add(name, members[name])
 	}
-	return dirs
+	return dirs, devOnly
 }
 
 // cargoMembers reads the Cargo.toml of each workspace member that manifest

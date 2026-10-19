@@ -1,0 +1,13 @@
+source "https://rubygems.org"
+
+ruby "3.3.0"
+
+gem "rails", "~> 7.0"
+gem "json"
+
+group :development, :test do
+  gem "rspec"
+  gem "json"
+end
+
+gem "pry", groups: [:development, :test], require: false

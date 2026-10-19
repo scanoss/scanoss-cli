@@ -8,6 +8,7 @@
       "status": "unknown",
       "reason": "unsupported_version",
       "detail": "lockfileVersion \"3.9\"",
+      "devKnown": false,
       "members": [],
       "edges": []
     }

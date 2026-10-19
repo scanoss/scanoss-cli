@@ -33,10 +33,12 @@
       "lockfile": "pnpm-lock.yaml",
       "ecosystem": "npm",
       "status": "complete",
+      "devKnown": true,
       "members": [
         {
           "id": "pkg:npm/@test/runner@3.1.0",
-          "direct": true
+          "direct": true,
+          "dev": true
         }
       ],
       "edges": []
@@ -46,6 +48,7 @@
       "lockfile": "pnpm-lock.yaml",
       "ecosystem": "npm",
       "status": "complete",
+      "devKnown": true,
       "members": [
         {
           "id": "pkg:npm/@acme/lib",
@@ -84,6 +87,7 @@
       "lockfile": "pnpm-lock.yaml",
       "ecosystem": "npm",
       "status": "complete",
+      "devKnown": true,
       "members": [
         {
           "id": "pkg:npm/bottom@1.2.3",

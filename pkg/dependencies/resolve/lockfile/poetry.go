@@ -103,38 +103,55 @@ func pyprojectDirects(r *root, manifest []byte, byName map[string][]resolve.Node
 			Dependencies         []string            `toml:"dependencies"`
 			OptionalDependencies map[string][]string `toml:"optional-dependencies"`
 		} `toml:"project"`
+		DependencyGroups map[string][]any `toml:"dependency-groups"`
 	}
 	if err := toml.Unmarshal(manifest, &py); err != nil {
 		r.flag(resolve.ReasonManifestMalformed, err.Error())
 		return
 	}
-	declare := func(dep string, optional bool) {
+	r.devKnown = true
+	declare := func(dep string, optional, dev bool) {
 		ids, ok := byName[pep503(dep)]
 		if !ok && !optional {
 			r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("pyproject.toml requires %s", dep))
 		}
 		for _, id := range ids {
-			r.declare(id)
+			r.declare(id, dev)
 		}
 	}
+	// Every Poetry group but main, and every PEP 735 group, is for
+	// development; extras are installed by users.
 	poetry := py.Tool.Poetry
-	tables := []map[string]any{poetry.Dependencies, poetry.DevDependencies}
-	for _, g := range slices.Sorted(maps.Keys(poetry.Group)) {
-		tables = append(tables, poetry.Group[g].Dependencies)
+	type table struct {
+		deps map[string]any
+		dev  bool
 	}
-	for _, deps := range tables {
-		for _, dep := range slices.Sorted(maps.Keys(deps)) {
+	tables := []table{{poetry.Dependencies, false}, {poetry.DevDependencies, true}}
+	for _, g := range slices.Sorted(maps.Keys(poetry.Group)) {
+		tables = append(tables, table{poetry.Group[g].Dependencies, g != "main"})
+	}
+	for _, t := range tables {
+		for _, dep := range slices.Sorted(maps.Keys(t.deps)) {
 			if dep != "python" {
-				declare(dep, poetryOptional(deps[dep]))
+				declare(dep, poetryOptional(t.deps[dep]), t.dev)
 			}
 		}
 	}
 	for _, dep := range py.Project.Dependencies {
-		declare(dep, false)
+		declare(dep, false, false)
 	}
 	for _, extra := range slices.Sorted(maps.Keys(py.Project.OptionalDependencies)) {
 		for _, dep := range py.Project.OptionalDependencies[extra] {
-			declare(dep, true)
+			declare(dep, true, false)
+		}
+	}
+	for _, g := range slices.Sorted(maps.Keys(py.DependencyGroups)) {
+		for _, dep := range py.DependencyGroups[g] {
+			// A table such as {include-group = "test"} names another group,
+			// which is declared in its own right.
+			if s, ok := dep.(string); ok {
+				declare(s, false, true)
+			}
 		}
 	}
 }

@@ -29,6 +29,7 @@
       "status": "partial",
       "reason": "manifest_missing",
       "detail": "pyproject.toml not found",
+      "devKnown": false,
       "members": [
         {
           "id": "pkg:pypi/bottom@1.2.3",

@@ -19,6 +19,7 @@
       "status": "partial",
       "reason": "manifest_malformed",
       "detail": "b/Cargo.toml: toml: expected ']' to close table name",
+      "devKnown": false,
       "members": [
         {
           "id": "pkg:cargo/log@0.4.22",
@@ -34,6 +35,7 @@
       "status": "partial",
       "reason": "manifest_malformed",
       "detail": "b/Cargo.toml: toml: expected ']' to close table name",
+      "devKnown": true,
       "members": [
         {
           "id": "pkg:cargo/anyhow@1.0.86",

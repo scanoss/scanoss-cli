@@ -29,6 +29,7 @@
       "lockfile": "poetry.lock",
       "ecosystem": "pypi",
       "status": "complete",
+      "devKnown": true,
       "members": [
         {
           "id": "pkg:pypi/click@8.1.7",

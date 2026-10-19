@@ -27,6 +27,7 @@
       "lockfile": "poetry.lock",
       "ecosystem": "pypi",
       "status": "complete",
+      "devKnown": true,
       "members": [
         {
           "id": "pkg:pypi/bottom@1.2.3",
@@ -38,7 +39,8 @@
         },
         {
           "id": "pkg:pypi/pytest@8.1.1",
-          "direct": true
+          "direct": true,
+          "dev": true
         },
         {
           "id": "pkg:pypi/right@2.0.0",

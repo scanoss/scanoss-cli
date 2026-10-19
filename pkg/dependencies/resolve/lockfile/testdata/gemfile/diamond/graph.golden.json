@@ -32,6 +32,7 @@
       "lockfile": "Gemfile.lock",
       "ecosystem": "gem",
       "status": "complete",
+      "devKnown": false,
       "members": [
         {
           "id": "pkg:gem/bottom@1.2.3",

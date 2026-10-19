@@ -42,6 +42,7 @@
       "lockfile": "package-lock.json",
       "ecosystem": "npm",
       "status": "complete",
+      "devKnown": true,
       "members": [
         {
           "id": "pkg:npm/@scope/util@1.0.0",

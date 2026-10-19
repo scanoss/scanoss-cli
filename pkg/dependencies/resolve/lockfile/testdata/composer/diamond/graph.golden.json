@@ -27,6 +27,7 @@
       "lockfile": "composer.lock",
       "ecosystem": "composer",
       "status": "complete",
+      "devKnown": true,
       "members": [
         {
           "id": "pkg:composer/acme/bottom@1.2.3",
@@ -42,7 +43,8 @@
         },
         {
           "id": "pkg:composer/phpunit/phpunit@10.5.0",
-          "direct": true
+          "direct": true,
+          "dev": true
         }
       ],
       "edges": [

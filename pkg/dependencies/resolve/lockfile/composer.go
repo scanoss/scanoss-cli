@@ -130,9 +130,11 @@ func parseComposerLock(b *builder, data, manifest []byte, _ map[string][]byte) {
 		r.flag(resolve.ReasonManifestMalformed, err.Error())
 		return
 	}
+	r.devKnown = true
 	for _, name := range slices.Concat(cj.Require.names(), cj.RequireDev.names()) {
 		if id, ok := byName[strings.ToLower(name)]; ok {
-			r.declare(id)
+			_, runtime := cj.Require[name]
+			r.declare(id, !runtime)
 		} else {
 			r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("composer.json requires %s", name))
 		}

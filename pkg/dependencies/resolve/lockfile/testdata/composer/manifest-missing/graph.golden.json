@@ -29,6 +29,7 @@
       "status": "partial",
       "reason": "manifest_missing",
       "detail": "composer.json not found",
+      "devKnown": false,
       "members": [
         {
           "id": "pkg:composer/acme/bottom@1.2.3",

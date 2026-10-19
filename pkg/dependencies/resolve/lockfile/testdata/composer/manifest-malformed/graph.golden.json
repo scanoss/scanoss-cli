@@ -29,6 +29,7 @@
       "status": "partial",
       "reason": "manifest_malformed",
       "detail": "unexpected end of JSON input",
+      "devKnown": false,
       "members": [
         {
           "id": "pkg:composer/acme/bottom@1.2.3",
