@@ -1,0 +1,16 @@
+{
+  "nodes": [],
+  "roots": [
+    {
+      "manifest": "go.mod",
+      "lockfile": "go.mod",
+      "ecosystem": "golang",
+      "status": "unknown",
+      "reason": "malformed",
+      "detail": "require block is not closed",
+      "devKnown": false,
+      "members": [],
+      "edges": []
+    }
+  ]
+}

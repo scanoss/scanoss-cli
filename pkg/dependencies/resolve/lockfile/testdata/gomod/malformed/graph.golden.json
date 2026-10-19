@@ -1,0 +1,16 @@
+{
+  "nodes": [],
+  "roots": [
+    {
+      "manifest": "go.mod",
+      "lockfile": "go.mod",
+      "ecosystem": "golang",
+      "status": "unknown",
+      "reason": "malformed",
+      "detail": "line 5: \"require github.com/spf13/cobra\"",
+      "devKnown": false,
+      "members": [],
+      "edges": []
+    }
+  ]
+}

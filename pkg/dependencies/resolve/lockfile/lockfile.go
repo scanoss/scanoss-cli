@@ -105,6 +105,7 @@ var formats = map[string]format{
 	"packages.lock.json":  {resolve.EcosystemNuGet, "packages.lock.json", false, parseNuGetLock, sibling(isProjectFile)},
 	"gradle.lockfile":     {resolve.EcosystemMaven, "build.gradle", false, parseGradleLockfile, sibling(isGradleBuild)},
 	"composer.lock":       {resolve.EcosystemComposer, "composer.json", true, parseComposerLock, nil},
+	"go.mod":              {resolve.EcosystemGolang, "go.mod", false, parseGoMod, nil},
 }
 
 // Supported reports whether path's base name is a lockfile this package

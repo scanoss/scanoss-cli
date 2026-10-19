@@ -77,6 +77,7 @@ const (
 	EcosystemComposer Ecosystem = "composer"
 	EcosystemNuGet    Ecosystem = "nuget"
 	EcosystemMaven    Ecosystem = "maven"
+	EcosystemGolang   Ecosystem = "golang"
 )
 
 // Status says how much of a root's graph is known.
