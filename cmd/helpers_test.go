@@ -26,6 +26,7 @@ package cmd
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -118,6 +119,39 @@ func TestApplyCollectFlagsOnlyRemovesRules(t *testing.T) {
 	if len(d.SkipDirs) != 0 || len(d.SkipDirExts) != 0 {
 		t.Errorf("--all-folders must clear the profile's directory rules, got SkipDirs=%v SkipDirExts=%v",
 			d.SkipDirs, d.SkipDirExts)
+	}
+}
+
+// The dependency stage reads lockfiles the built-in extension list would drop (.lock, .yaml),
+// so its collection runs with that list off and selects files by name afterwards. Without this
+// a scan found package-lock.json but never Cargo.lock, pnpm-lock.yaml, poetry.lock or
+// composer.lock.
+func TestDependencyCollectOptionsKeepLockfiles(t *testing.T) {
+	root := t.TempDir()
+	for _, name := range []string{"Cargo.lock", "pnpm-lock.yaml", "poetry.lock", "composer.lock", "package-lock.json", "logo.png"} {
+		if err := os.WriteFile(filepath.Join(root, name), []byte("x\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	res, err := filter.Collect(root, dependencyCollectOptions(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, f := range res.Files {
+		got = append(got, filepath.Base(f))
+	}
+	slices.Sort(got)
+	for _, want := range []string{"Cargo.lock", "composer.lock", "package-lock.json", "pnpm-lock.yaml", "poetry.lock"} {
+		if !slices.Contains(got, want) {
+			t.Errorf("%s was not collected for the dependency stage, got %v", want, got)
+		}
+	}
+	// The profile's other decisions are untouched: it still prunes nothing by .gitignore and
+	// keeps its own directory lists.
+	o := dependencyCollectOptions(nil)
+	if o.GitIgnore || o.BuiltinFolderRules || len(o.SkipDirs) == 0 || !o.KeepManifests {
+		t.Errorf("dependencyCollectOptions changed more than the file rules: %+v", o)
 	}
 }
 

@@ -450,7 +450,7 @@ func runScan(cmd *cobra.Command, args []string) error {
 	collectOpts := filter.Scanning(scanSettings)
 	applyCollectFlags(&collectOpts, minSize, maxSize, allExtensions, allFolders, applyGitignore, allHidden)
 
-	depOpts := filter.Dependencies(scanSettings)
+	depOpts := dependencyCollectOptions(scanSettings)
 	applyCollectFlags(&depOpts, minSize, maxSize, allExtensions, allFolders, applyGitignore, allHidden)
 
 	// The WFP copy streams to its destination while the scan generates it, so the file is

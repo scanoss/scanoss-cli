@@ -153,6 +153,16 @@ func validateSizeBounds(min, max int64) error {
 	return nil
 }
 
+// dependencyCollectOptions is the Dependencies profile as the dependency stage collects with
+// it: the built-in file rules off, because that list drops .lock and .yaml and would hide
+// Cargo.lock, pnpm-lock.yaml, poetry.lock and composer.lock. The stage selects its files by
+// name afterwards (sbom/depsource.Select), so the extension list has nothing to decide for it.
+func dependencyCollectOptions(s *settings.Settings) filter.Options {
+	o := filter.Dependencies(s)
+	o.BuiltinFileRules = false
+	return o
+}
+
 // applyCollectFlags layers the collection flags onto o, whichever profile it came from.
 // Every stage that collects files honours the same flags, so they are applied in one
 // place rather than restated per stage — and a stage's own profile decisions survive,
