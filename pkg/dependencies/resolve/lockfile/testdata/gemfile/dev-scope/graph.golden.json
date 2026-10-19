@@ -1,0 +1,86 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:gem/json@2.7.2",
+      "purl": "pkg:gem/json",
+      "version": "2.7.2"
+    },
+    {
+      "id": "pkg:gem/pry@0.14.2",
+      "purl": "pkg:gem/pry",
+      "version": "0.14.2"
+    },
+    {
+      "id": "pkg:gem/rails@7.0.4",
+      "purl": "pkg:gem/rails",
+      "version": "7.0.4"
+    },
+    {
+      "id": "pkg:gem/rspec-core@3.13.0",
+      "purl": "pkg:gem/rspec-core",
+      "version": "3.13.0"
+    },
+    {
+      "id": "pkg:gem/rspec@3.13.0",
+      "purl": "pkg:gem/rspec",
+      "version": "3.13.0"
+    },
+    {
+      "id": "pkg:gem/shared@1.0.0",
+      "purl": "pkg:gem/shared",
+      "version": "1.0.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "Gemfile",
+      "lockfile": "Gemfile.lock",
+      "ecosystem": "gem",
+      "status": "complete",
+      "devKnown": true,
+      "members": [
+        {
+          "id": "pkg:gem/json@2.7.2",
+          "direct": true
+        },
+        {
+          "id": "pkg:gem/pry@0.14.2",
+          "direct": true,
+          "dev": true
+        },
+        {
+          "id": "pkg:gem/rails@7.0.4",
+          "direct": true
+        },
+        {
+          "id": "pkg:gem/rspec-core@3.13.0",
+          "direct": false,
+          "dev": true
+        },
+        {
+          "id": "pkg:gem/rspec@3.13.0",
+          "direct": true,
+          "dev": true
+        },
+        {
+          "id": "pkg:gem/shared@1.0.0",
+          "direct": false
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:gem/rails@7.0.4",
+          "to": "pkg:gem/shared@1.0.0"
+        },
+        {
+          "from": "pkg:gem/rspec@3.13.0",
+          "to": "pkg:gem/rspec-core@3.13.0"
+        },
+        {
+          "from": "pkg:gem/rspec@3.13.0",
+          "to": "pkg:gem/shared@1.0.0"
+        }
+      ]
+    }
+  ]
+}

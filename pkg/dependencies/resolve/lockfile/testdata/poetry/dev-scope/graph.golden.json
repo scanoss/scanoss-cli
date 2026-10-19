@@ -1,0 +1,114 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:pypi/both@1.0.0",
+      "purl": "pkg:pypi/both",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pkg:pypi/click@8.1.7",
+      "purl": "pkg:pypi/click",
+      "version": "8.1.7"
+    },
+    {
+      "id": "pkg:pypi/left@1.0.0",
+      "purl": "pkg:pypi/left",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pkg:pypi/pluggy@1.5.0",
+      "purl": "pkg:pypi/pluggy",
+      "version": "1.5.0"
+    },
+    {
+      "id": "pkg:pypi/pytest@8.1.1",
+      "purl": "pkg:pypi/pytest",
+      "version": "8.1.1"
+    },
+    {
+      "id": "pkg:pypi/ruff@0.4.0",
+      "purl": "pkg:pypi/ruff",
+      "version": "0.4.0"
+    },
+    {
+      "id": "pkg:pypi/shared@1.0.0",
+      "purl": "pkg:pypi/shared",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pkg:pypi/sphinx@7.3.0",
+      "purl": "pkg:pypi/sphinx",
+      "version": "7.3.0"
+    },
+    {
+      "id": "pkg:pypi/ujson@5.10.0",
+      "purl": "pkg:pypi/ujson",
+      "version": "5.10.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "pyproject.toml",
+      "lockfile": "poetry.lock",
+      "ecosystem": "pypi",
+      "status": "complete",
+      "devKnown": true,
+      "members": [
+        {
+          "id": "pkg:pypi/both@1.0.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:pypi/click@8.1.7",
+          "direct": true
+        },
+        {
+          "id": "pkg:pypi/left@1.0.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:pypi/pluggy@1.5.0",
+          "direct": false,
+          "dev": true
+        },
+        {
+          "id": "pkg:pypi/pytest@8.1.1",
+          "direct": true,
+          "dev": true
+        },
+        {
+          "id": "pkg:pypi/ruff@0.4.0",
+          "direct": true,
+          "dev": true
+        },
+        {
+          "id": "pkg:pypi/shared@1.0.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/sphinx@7.3.0",
+          "direct": true,
+          "dev": true
+        },
+        {
+          "id": "pkg:pypi/ujson@5.10.0",
+          "direct": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:pypi/left@1.0.0",
+          "to": "pkg:pypi/shared@1.0.0"
+        },
+        {
+          "from": "pkg:pypi/pytest@8.1.1",
+          "to": "pkg:pypi/pluggy@1.5.0"
+        },
+        {
+          "from": "pkg:pypi/pytest@8.1.1",
+          "to": "pkg:pypi/shared@1.0.0"
+        }
+      ]
+    }
+  ]
+}

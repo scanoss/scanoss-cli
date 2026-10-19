@@ -17,7 +17,7 @@
       "lockfile": "poetry.lock",
       "ecosystem": "pypi",
       "status": "complete",
-      "devKnown": false,
+      "devKnown": true,
       "members": [
         {
           "id": "pkg:pypi/chicken@1.0.0",

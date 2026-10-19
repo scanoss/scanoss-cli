@@ -14,7 +14,7 @@
       "status": "partial",
       "reason": "unresolved_dependency",
       "detail": "plugin requires ghost",
-      "devKnown": false,
+      "devKnown": true,
       "members": [
         {
           "id": "pkg:pypi/plugin@1.0.0",

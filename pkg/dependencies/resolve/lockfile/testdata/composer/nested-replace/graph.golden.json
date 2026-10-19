@@ -32,7 +32,7 @@
       "lockfile": "composer.lock",
       "ecosystem": "composer",
       "status": "complete",
-      "devKnown": false,
+      "devKnown": true,
       "members": [
         {
           "id": "pkg:composer/laravel/framework@v10.48.4",

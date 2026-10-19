@@ -19,7 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   member is dev when the root reaches it only through its dev dependencies, so it can be left
   out of an SBOM. `DevKnown` is false when the manifests do not say which direct dependencies
   are dev, and then no member is dev. `package-lock.json`, `yarn.lock` and `pnpm-lock.yaml`
-  read `devDependencies`.
+  read `devDependencies`, `Cargo.lock` the member manifests' `[dev-dependencies]`,
+  `Gemfile.lock` the `development` and `test` groups of the `Gemfile`, which it now reads,
+  `poetry.lock` the dev groups of `pyproject.toml`, and `composer.lock` `require-dev`.
 - **`pkg/dependencies/resolve/lockfile`** builds that graph from `package-lock.json` (v2 and v3,
   including nested `node_modules` versions and workspaces), `yarn.lock` (v1 with `package.json`,
   and berry with workspaces), `pnpm-lock.yaml` (5.x, 6.x and 9.x), `Cargo.lock` (with a root

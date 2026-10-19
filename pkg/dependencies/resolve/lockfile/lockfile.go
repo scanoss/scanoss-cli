@@ -93,7 +93,7 @@ var formats = map[string]format{
 	"yarn.lock":         {resolve.EcosystemNPM, "package.json", true, parseYarnLock, nil},
 	"pnpm-lock.yaml":    {resolve.EcosystemNPM, "package.json", false, parsePnpmLock, nil},
 	"Cargo.lock":        {resolve.EcosystemCargo, "Cargo.toml", true, parseCargoLock, cargoMembers},
-	"Gemfile.lock":      {resolve.EcosystemGem, "Gemfile", false, parseGemfileLock, nil},
+	"Gemfile.lock":      {resolve.EcosystemGem, "Gemfile", true, parseGemfileLock, nil},
 	"poetry.lock":       {resolve.EcosystemPyPI, "pyproject.toml", true, parsePoetryLock, nil},
 	"composer.lock":     {resolve.EcosystemComposer, "composer.json", true, parseComposerLock, nil},
 }

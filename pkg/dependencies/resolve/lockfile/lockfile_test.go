@@ -155,6 +155,9 @@ func TestParseUnsupported(t *testing.T) {
 	if m, ok := ManifestFor("sub/yarn.lock"); !ok || m != "package.json" {
 		t.Errorf("ManifestFor(sub/yarn.lock) = %q, %v; want package.json", m, ok)
 	}
+	if m, ok := ManifestFor("Gemfile.lock"); !ok || m != "Gemfile" {
+		t.Errorf("ManifestFor(Gemfile.lock) = %q, %v; want Gemfile: it says which gems are dev", m, ok)
+	}
 	if m, ok := ManifestFor("Cargo.lock"); !ok || m != "Cargo.toml" {
 		t.Errorf("ManifestFor(Cargo.lock) = %q, %v; want Cargo.toml: it names the workspace members", m, ok)
 	}

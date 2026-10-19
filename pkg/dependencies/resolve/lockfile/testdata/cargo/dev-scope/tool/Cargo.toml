@@ -1,0 +1,9 @@
+[package]
+name = "tool"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+app = { path = "../app" }
+app-old = { package = "app", version = "9" }
+criterion = "0.5"

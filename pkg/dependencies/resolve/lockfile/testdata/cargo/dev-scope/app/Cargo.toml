@@ -1,0 +1,17 @@
+[package]
+name = "app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+left = "1"
+
+[build-dependencies]
+cc-build = { package = "cc", version = "1" }
+
+[dev-dependencies]
+bench = { package = "criterion", version = "0.5" }
+cc = "1"
+
+[target.'cfg(unix)'.dev-dependencies]
+mockall = "0.12"

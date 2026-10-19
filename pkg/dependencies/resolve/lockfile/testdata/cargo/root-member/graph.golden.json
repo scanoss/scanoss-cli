@@ -23,7 +23,7 @@
       "lockfile": "Cargo.lock",
       "ecosystem": "cargo",
       "status": "complete",
-      "devKnown": false,
+      "devKnown": true,
       "members": [
         {
           "id": "pkg:cargo/anyhow@1.0.86",
@@ -50,7 +50,7 @@
       "lockfile": "Cargo.lock",
       "ecosystem": "cargo",
       "status": "complete",
-      "devKnown": false,
+      "devKnown": true,
       "members": [
         {
           "id": "pkg:cargo/log@0.4.22",

@@ -1,0 +1,24 @@
+[project]
+name = "app"
+version = "0.1.0"
+dependencies = ["both>=1"]
+
+[project.optional-dependencies]
+fast = ["ujson>=5"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+left = "^1.0"
+
+[tool.poetry.group.main.dependencies]
+click = "^8.1"
+
+[tool.poetry.dev-dependencies]
+both = "^1.0"
+
+[tool.poetry.group.test.dependencies]
+pytest = "^8.0"
+
+[dependency-groups]
+docs = ["Sphinx>=7"]
+lint = ["ruff", { include-group = "docs" }]

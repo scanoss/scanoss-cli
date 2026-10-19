@@ -1,0 +1,173 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:cargo/app@0.1.0",
+      "purl": "pkg:cargo/app",
+      "version": "0.1.0",
+      "local": true
+    },
+    {
+      "id": "pkg:cargo/app@9.9.9",
+      "purl": "pkg:cargo/app",
+      "version": "9.9.9"
+    },
+    {
+      "id": "pkg:cargo/cc@1.0.0",
+      "purl": "pkg:cargo/cc",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pkg:cargo/criterion@0.5.1",
+      "purl": "pkg:cargo/criterion",
+      "version": "0.5.1"
+    },
+    {
+      "id": "pkg:cargo/left@1.0.0",
+      "purl": "pkg:cargo/left",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pkg:cargo/mockall@0.12.0",
+      "purl": "pkg:cargo/mockall",
+      "version": "0.12.0"
+    },
+    {
+      "id": "pkg:cargo/plotters@0.3.0",
+      "purl": "pkg:cargo/plotters",
+      "version": "0.3.0"
+    },
+    {
+      "id": "pkg:cargo/shared@1.0.0",
+      "purl": "pkg:cargo/shared",
+      "version": "1.0.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "Cargo.toml",
+      "lockfile": "Cargo.lock",
+      "ecosystem": "cargo",
+      "status": "complete",
+      "devKnown": false,
+      "members": [],
+      "edges": []
+    },
+    {
+      "manifest": "app/Cargo.toml",
+      "lockfile": "Cargo.lock",
+      "ecosystem": "cargo",
+      "status": "complete",
+      "devKnown": true,
+      "members": [
+        {
+          "id": "pkg:cargo/cc@1.0.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:cargo/criterion@0.5.1",
+          "direct": true,
+          "dev": true
+        },
+        {
+          "id": "pkg:cargo/left@1.0.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:cargo/mockall@0.12.0",
+          "direct": true,
+          "dev": true
+        },
+        {
+          "id": "pkg:cargo/plotters@0.3.0",
+          "direct": false,
+          "dev": true
+        },
+        {
+          "id": "pkg:cargo/shared@1.0.0",
+          "direct": false
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:cargo/criterion@0.5.1",
+          "to": "pkg:cargo/plotters@0.3.0"
+        },
+        {
+          "from": "pkg:cargo/criterion@0.5.1",
+          "to": "pkg:cargo/shared@1.0.0"
+        },
+        {
+          "from": "pkg:cargo/left@1.0.0",
+          "to": "pkg:cargo/shared@1.0.0"
+        }
+      ]
+    },
+    {
+      "manifest": "tool/Cargo.toml",
+      "lockfile": "Cargo.lock",
+      "ecosystem": "cargo",
+      "status": "complete",
+      "devKnown": true,
+      "members": [
+        {
+          "id": "pkg:cargo/app@0.1.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:cargo/app@9.9.9",
+          "direct": true
+        },
+        {
+          "id": "pkg:cargo/cc@1.0.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:cargo/criterion@0.5.1",
+          "direct": true
+        },
+        {
+          "id": "pkg:cargo/left@1.0.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:cargo/mockall@0.12.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:cargo/plotters@0.3.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:cargo/shared@1.0.0",
+          "direct": false
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:cargo/app@0.1.0",
+          "to": "pkg:cargo/cc@1.0.0"
+        },
+        {
+          "from": "pkg:cargo/app@0.1.0",
+          "to": "pkg:cargo/left@1.0.0"
+        },
+        {
+          "from": "pkg:cargo/app@9.9.9",
+          "to": "pkg:cargo/mockall@0.12.0"
+        },
+        {
+          "from": "pkg:cargo/criterion@0.5.1",
+          "to": "pkg:cargo/plotters@0.3.0"
+        },
+        {
+          "from": "pkg:cargo/criterion@0.5.1",
+          "to": "pkg:cargo/shared@1.0.0"
+        },
+        {
+          "from": "pkg:cargo/left@1.0.0",
+          "to": "pkg:cargo/shared@1.0.0"
+        }
+      ]
+    }
+  ]
+}

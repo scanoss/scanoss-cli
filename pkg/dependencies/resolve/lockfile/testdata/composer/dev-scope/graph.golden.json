@@ -1,0 +1,76 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:composer/acme/both@1.0.0",
+      "purl": "pkg:composer/acme/both",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pkg:composer/acme/left@1.0.0",
+      "purl": "pkg:composer/acme/left",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pkg:composer/acme/shared@1.0.0",
+      "purl": "pkg:composer/acme/shared",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pkg:composer/phpunit/phpunit@10.5.0",
+      "purl": "pkg:composer/phpunit/phpunit",
+      "version": "10.5.0"
+    },
+    {
+      "id": "pkg:composer/sebastian/diff@5.1.0",
+      "purl": "pkg:composer/sebastian/diff",
+      "version": "5.1.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "composer.json",
+      "lockfile": "composer.lock",
+      "ecosystem": "composer",
+      "status": "complete",
+      "devKnown": true,
+      "members": [
+        {
+          "id": "pkg:composer/acme/both@1.0.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:composer/acme/left@1.0.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:composer/acme/shared@1.0.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:composer/phpunit/phpunit@10.5.0",
+          "direct": true,
+          "dev": true
+        },
+        {
+          "id": "pkg:composer/sebastian/diff@5.1.0",
+          "direct": false,
+          "dev": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:composer/acme/left@1.0.0",
+          "to": "pkg:composer/acme/shared@1.0.0"
+        },
+        {
+          "from": "pkg:composer/phpunit/phpunit@10.5.0",
+          "to": "pkg:composer/acme/shared@1.0.0"
+        },
+        {
+          "from": "pkg:composer/phpunit/phpunit@10.5.0",
+          "to": "pkg:composer/sebastian/diff@5.1.0"
+        }
+      ]
+    }
+  ]
+}

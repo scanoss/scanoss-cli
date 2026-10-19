@@ -17,7 +17,7 @@
       "lockfile": "composer.lock",
       "ecosystem": "composer",
       "status": "complete",
-      "devKnown": false,
+      "devKnown": true,
       "members": [
         {
           "id": "pkg:composer/farm/chicken@1.0.0",

@@ -24,7 +24,7 @@
       "lockfile": "composer.lock",
       "ecosystem": "composer",
       "status": "complete",
-      "devKnown": false,
+      "devKnown": true,
       "members": [
         {
           "id": "pkg:composer/acme/app-core@dev-main",

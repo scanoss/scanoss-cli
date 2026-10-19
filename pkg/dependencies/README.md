@@ -294,10 +294,15 @@ and edges kept, and a bad lockfile is reported on its root, never as a panic.
 | `yarn.lock` (v1) | lockfile and `package.json` | project | `devDependencies` in `package.json`; unknown without it |
 | `yarn.lock` (berry) | lockfile, and `package.json` when present | every workspace | the root workspace's `devDependencies` in `package.json`; unknown for other workspaces |
 | `pnpm-lock.yaml` (5.x, 6.x, 9.x) | lockfile only | every importer | each importer's `devDependencies` |
-| `Cargo.lock` | lockfile, `Cargo.toml` and workspace member manifests | `Cargo.toml` and each workspace member; a path crate that something depends on is a local node | unknown |
-| `Gemfile.lock` | lockfile only | `Gemfile`; `PATH` gems are local nodes | unknown |
-| `poetry.lock` | lockfile and `pyproject.toml` | project; path dependencies are local nodes | unknown |
-| `composer.lock` | lockfile and `composer.json` | project; path repository packages are local nodes | unknown |
+| `Cargo.lock` | lockfile, `Cargo.toml` and workspace member manifests | `Cargo.toml` and each workspace member; a path crate that something depends on is a local node | `[dev-dependencies]`, including per target, that are not also normal or build dependencies; unknown for a root without its manifest |
+| `Gemfile.lock` | lockfile and `Gemfile` | `Gemfile`; `PATH` gems are local nodes | gems declared only in the `development` and `test` groups; unknown without a `Gemfile` |
+| `poetry.lock` | lockfile and `pyproject.toml` | project; path dependencies are local nodes | `dev-dependencies`, every Poetry group but `main`, and `[dependency-groups]`; unknown without `pyproject.toml` |
+| `composer.lock` | lockfile and `composer.json` | project; path repository packages are local nodes | `require-dev`; unknown without `composer.json` |
+
+The `Gemfile` is Ruby, so only `gem` lines, `group` blocks and `group:` or
+`groups:` options are read. A gem declared in any other way counts as runtime,
+and a `Gemfile` whose blocks do not balance leaves the root's dev dependencies
+unknown.
 
 ## Error Handling
 

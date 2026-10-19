@@ -37,7 +37,7 @@
       "lockfile": "poetry.lock",
       "ecosystem": "pypi",
       "status": "complete",
-      "devKnown": false,
+      "devKnown": true,
       "members": [
         {
           "id": "pkg:pypi/charset-normalizer@3.3.2",
