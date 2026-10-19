@@ -359,14 +359,17 @@ never included: a package the manifest reaches only through its `devDependencies
 `[dev-dependencies]`, `require-dev`, the `development`/`test` groups, Poetry's dev groups) is
 left out, and so are the edges into it. A package that is both a dev dependency and reachable at
 runtime stays. When the manifests do not say which dependencies are dev (`dev_known: false`),
-every package is kept.
+every package is kept. A lockfile that cannot be read gives an `unknown` root with no packages;
+its manifest is not read as a flat list instead.
 
 - `raw` adds a `dependencies` list with one root per manifest a lockfile resolved: `manifest`,
   `lockfile`, `ecosystem`, `status` (`complete`, `partial` or `unknown`), `reason` and `detail`
-  when it is not complete, `dev_known`, and its `edges` (`from` depends on `to`, both the
-  component's `purl@version`). Which components a root reaches is on their evidence: a manifest
-  path with `match_type` `declared` means the manifest declares the package, `transitive` means
-  its lockfile pulls it in. A component that is the project's own package (a workspace member, a
+  when it is not complete, `dev_known`, `direct` (the `purl@version` of each package the
+  manifest declares, as this root's lockfile resolved it), and its `edges` (`from` depends on
+  `to`). A manifest resolved by two lockfiles is two roots, each with its own versions. Which
+  components a root reaches is also on their evidence: a manifest path with `match_type`
+  `declared` means the manifest declares the package, `transitive` means its lockfile pulls it
+  in. A component that is the project's own package (a workspace member, a
   path dependency) is marked `"local": true`. `schema_version` is `2.1`; `2.0` readers can ignore
   the additions.
 - `cyclonedx` names the project in `metadata.component` (with a `bom-ref`) and adds one

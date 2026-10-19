@@ -38,9 +38,10 @@ const (
 )
 
 // DependencyRoot is one manifest whose dependency graph was resolved from a lockfile, with dev
-// members already left out. The components it reaches are the ones whose evidence names its
-// Manifest: match type "declared" for the ones the manifest declares, "transitive" for the ones
-// its lockfile pulls in. Edges run between component refs (see Component.Ref).
+// members already left out. Direct lists the components the manifest declares as this root's
+// lockfile resolved them; a manifest resolved by two lockfiles is two roots, each with its own
+// versions, which evidence alone cannot tell apart since it names only the manifest. Edges run
+// between component refs (see Component.Ref).
 type DependencyRoot struct {
 	Manifest  string           `json:"manifest"` // slash path of the manifest, relative to the project
 	Lockfile  string           `json:"lockfile"` // slash path of the lockfile it was resolved from
@@ -49,6 +50,7 @@ type DependencyRoot struct {
 	Reason    string           `json:"reason,omitempty"`
 	Detail    string           `json:"detail,omitempty"`
 	DevKnown  bool             `json:"dev_known"` // the manifests said which dependencies are dev; false means every member is kept as runtime
+	Direct    []string         `json:"direct"`    // refs of the components the manifest declares, sorted
 	Edges     []DependencyEdge `json:"edges"`     // From depends on To; both ends are component refs
 }
 
@@ -73,16 +75,17 @@ func (r DependencyRoot) Ref() string {
 	return r.Manifest + "@" + r.Lockfile
 }
 
-// DirectMembers returns the refs of the components root declares, in inventory order: the
-// ones carrying "declared" evidence for its manifest.
+// DirectMembers returns the refs of the components root declares, in the root's order. A ref
+// that is not a component is dropped, as dependsOn drops such an edge end.
 func (inv Inventory) DirectMembers(root DependencyRoot) []string {
-	refs := []string{}
+	present := make(map[string]bool, len(inv.Components))
 	for _, c := range inv.Components {
-		for _, e := range c.Evidence {
-			if e.MatchType == "declared" && e.Path == root.Manifest {
-				refs = append(refs, c.Ref())
-				break
-			}
+		present[c.Ref()] = true
+	}
+	refs := []string{}
+	for _, ref := range root.Direct {
+		if present[ref] {
+			refs = append(refs, ref)
 		}
 	}
 	return refs

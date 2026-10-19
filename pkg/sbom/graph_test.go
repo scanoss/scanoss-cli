@@ -55,7 +55,7 @@ func graphInventory() Inventory {
 		},
 		Dependencies: []DependencyRoot{
 			{Manifest: "broken/package.json", Lockfile: "broken/package-lock.json", Ecosystem: "npm", Status: GraphUnknown, Reason: "malformed", Edges: []DependencyEdge{}},
-			{Manifest: "package.json", Lockfile: "package-lock.json", Ecosystem: "npm", Status: GraphComplete, DevKnown: true, Edges: []DependencyEdge{
+			{Manifest: "package.json", Lockfile: "package-lock.json", Ecosystem: "npm", Status: GraphComplete, DevKnown: true, Direct: []string{"pkg:npm/a@1.0.0", "pkg:npm/tool"}, Edges: []DependencyEdge{
 				{From: "pkg:npm/a@1.0.0", To: "pkg:npm/b@1.0.0"},
 				{From: "pkg:npm/a@1.0.0", To: "pkg:npm/c@1.0.0"},
 				{From: "pkg:npm/b@1.0.0", To: "pkg:npm/c@1.0.0"},

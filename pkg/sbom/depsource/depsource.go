@@ -58,9 +58,10 @@ func Select(files []string) []string {
 }
 
 // Inventory reads the dependency files of the project at root. Each supported lockfile is
-// resolved into a graph and the graphs are merged; a root whose status is not unknown covers its
-// manifest and its lockfile, so neither is parsed flat again. Every other selected manifest is
-// parsed flat, which is also the fallback for the files of a lockfile that could not be read.
+// resolved into a graph and the graphs are merged; every root covers its manifest and its
+// lockfile, so neither is parsed flat again. An unknown root covers them too: it says the
+// lockfile was there and could not be read, and a flat parse would bring back the range entries
+// and dev dependencies the graph exists to replace. Every other selected manifest is parsed flat.
 //
 // failed is keyed by path and holds the lockfiles that could not be read and the manifests that
 // could not be parsed. It is nil when nothing failed. Unknown roots are not failures: they are
@@ -84,10 +85,8 @@ func Inventory(root string, files []string) (sbom.Inventory, map[string]error) {
 
 	covered := map[string]bool{}
 	for _, r := range graph.Roots {
-		if r.Status != resolve.StatusUnknown {
-			covered[r.Manifest] = true
-			covered[r.Lockfile] = true
-		}
+		covered[r.Manifest] = true
+		covered[r.Lockfile] = true
 	}
 	parser := dependencies.NewDependencyParser()
 	var flat []string
@@ -124,6 +123,7 @@ func Graph(g resolve.Graph) sbom.Inventory {
 	var comps []sbom.Component
 	for _, r := range g.Roots {
 		dev := map[resolve.NodeID]bool{}
+		direct := []string{}
 		for _, m := range r.Members {
 			if m.Dev {
 				dev[m.ID] = true
@@ -133,6 +133,7 @@ func Graph(g resolve.Graph) sbom.Inventory {
 			matchType := "transitive"
 			if m.Direct {
 				matchType = "declared"
+				direct = append(direct, ref(n))
 			}
 			comps = append(comps, sbom.Component{
 				Purl:     n.PURL,
@@ -157,6 +158,7 @@ func Graph(g resolve.Graph) sbom.Inventory {
 			Reason:    string(r.Reason),
 			Detail:    r.Detail,
 			DevKnown:  r.DevKnown,
+			Direct:    direct,
 			Edges:     edges,
 		})
 	}

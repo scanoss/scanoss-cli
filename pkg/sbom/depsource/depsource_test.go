@@ -34,6 +34,7 @@ import (
 
 	cdx "github.com/CycloneDX/cyclonedx-go"
 	spdxjson "github.com/spdx/tools-golang/json"
+	"github.com/spdx/tools-golang/spdx/v2/v2_3"
 	"github.com/spdx/tools-golang/spdxlib"
 
 	"github.com/scanoss/scanoss.go/pkg/dependencies/parsers"
@@ -248,10 +249,10 @@ func TestInventory(t *testing.T) {
 	}
 
 	inv, failed := Inventory(root, selected)
-	// The malformed lockfile is reported on its root, not as a failure; the flat parser then
-	// reads it and fails on the same content.
-	if len(failed) != 1 || failed[filepath.Join(root, "broken", "package-lock.json")] == nil {
-		t.Errorf("failed = %v, want only the malformed lockfile's flat parse", failed)
+	// The malformed lockfile is reported on its root, not as a failure, and its root covers
+	// both files, so the flat parser never reads them.
+	if failed != nil {
+		t.Errorf("failed = %v, want nil", failed)
 	}
 
 	var roots []string
@@ -271,7 +272,10 @@ func TestInventory(t *testing.T) {
 	}
 
 	got := refs(inv.Components)
-	for _, absent := range []string{"pkg:npm/left@^1.0.0", "pkg:npm/jest@^29.0.0"} {
+	for _, absent := range []string{
+		"pkg:npm/left@^1.0.0", "pkg:npm/jest@^29.0.0", // covered by a resolved root
+		"pkg:npm/express@^4.0.0", // covered by the unknown root: an unreadable lockfile lists no members
+	} {
 		if slices.Contains(got, absent) {
 			t.Errorf("%s must not appear: a manifest its lockfile covers is not parsed flat (got %q)", absent, got)
 		}
@@ -281,7 +285,6 @@ func TestInventory(t *testing.T) {
 		"pkg:npm/jest@29.0.0",                            // dev in the main root, runtime in the workspace member
 		"pkg:cargo/serde@1.0.200", "pkg:cargo/lib@0.1.0", // Cargo, including the local crate
 		"pkg:maven/org.apache.commons/commons-lang3@3.12.0", // flat fallback, no lockfile
-		"pkg:npm/express@^4.0.0",                            // flat fallback, lockfile unreadable
 	} {
 		if !slices.Contains(got, present) {
 			t.Errorf("%s missing from %q", present, got)
@@ -296,9 +299,6 @@ func TestInventory(t *testing.T) {
 	core := find(t, inv, "pkg:npm/jest-core@29.0.0")
 	if want := []sbom.FileEvidence{{Path: "packages/tool/package.json", MatchType: "transitive"}}; !reflect.DeepEqual(core.Evidence, want) {
 		t.Errorf("jest-core evidence = %+v", core.Evidence)
-	}
-	if express := find(t, inv, "pkg:npm/express@^4.0.0"); express.Evidence[0].Path != "broken/package.json" {
-		t.Errorf("flat fallback evidence = %+v", express.Evidence)
 	}
 }
 
@@ -481,5 +481,81 @@ func TestGraphRendersSPDX(t *testing.T) {
 	}
 	if strings.Contains(out, "jest") {
 		t.Error("dev packages must not appear anywhere in the document")
+	}
+}
+
+// One package.json resolved by both package-lock.json and yarn.lock is two roots, and each must
+// depend on the version its own lockfile resolved: evidence names only the manifest, so keying
+// direct members by it made both roots depend on both versions.
+func TestTwoLockfilesForOneManifest(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "package.json"), `{"name":"app","dependencies":{"left":"^1.0.0"}}`)
+	writeFile(t, filepath.Join(root, "package-lock.json"), `{"name":"app","lockfileVersion":3,"packages":{
+"":{"name":"app","dependencies":{"left":"^1.0.0"}},
+"node_modules/left":{"version":"1.0.1"}}}`)
+	writeFile(t, filepath.Join(root, "yarn.lock"), "left@^1.0.0:\n  version \"1.0.2\"\n")
+	files := []string{filepath.Join(root, "package.json"), filepath.Join(root, "package-lock.json"), filepath.Join(root, "yarn.lock")}
+	inv, failed := Inventory(root, Select(files))
+	if failed != nil {
+		t.Fatalf("failed = %v", failed)
+	}
+	want := map[string][]string{
+		"package.json@package-lock.json": {"pkg:npm/left@1.0.1"},
+		"package.json@yarn.lock":         {"pkg:npm/left@1.0.2"},
+	}
+
+	out, err := sbom.Generate(inv, sbom.FormatCycloneDX, sbom.WithProjectName("proj"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var bom cdx.BOM
+	if err := cdx.NewBOMDecoder(strings.NewReader(out), cdx.BOMFileFormatJSON).Decode(&bom); err != nil {
+		t.Fatal(err)
+	}
+	for _, d := range *bom.Dependencies {
+		wantTargets, isRoot := want[d.Ref]
+		if !isRoot {
+			continue
+		}
+		var got []string
+		if d.Dependencies != nil {
+			got = *d.Dependencies
+		}
+		if !slices.Equal(got, wantTargets) {
+			t.Errorf("CycloneDX %s dependsOn %q, want %q", d.Ref, got, wantTargets)
+		}
+		delete(want, d.Ref)
+	}
+	if len(want) != 0 {
+		t.Errorf("CycloneDX has no dependencies entry for %v", want)
+	}
+
+	out, err = sbom.Generate(inv, sbom.FormatSPDX, sbom.WithProjectName("proj"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc, err := spdxjson.Read(strings.NewReader(out))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pkgs := map[string]*v2_3.Package{}
+	for _, p := range doc.Packages {
+		pkgs[string(p.PackageSPDXIdentifier)] = p
+	}
+	versions := map[string][]string{}
+	for _, r := range doc.Relationships {
+		from, to := pkgs[string(r.RefA.ElementRefID)], pkgs[string(r.RefB.ElementRefID)]
+		if r.Relationship != "DEPENDS_ON" || from == nil || to == nil || from.PackageName != "package.json" {
+			continue
+		}
+		versions[string(r.RefA.ElementRefID)] = append(versions[string(r.RefA.ElementRefID)], to.PackageName+"@"+to.PackageVersion)
+	}
+	var got []string
+	for _, v := range versions {
+		got = append(got, strings.Join(v, ","))
+	}
+	slices.Sort(got)
+	if wantSPDX := []string{"left@1.0.1", "left@1.0.2"}; !slices.Equal(got, wantSPDX) {
+		t.Errorf("SPDX DEPENDS_ON per root package.json = %q, want one root on each version %q", got, wantSPDX)
 	}
 }
