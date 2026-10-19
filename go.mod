@@ -9,6 +9,7 @@ require (
 	github.com/github/go-spdx/v2 v2.7.1
 	github.com/go-git/go-git/v5 v5.19.3
 	github.com/google/uuid v1.6.0
+	github.com/pelletier/go-toml/v2 v2.4.3
 	github.com/scanoss/scanoss.api-sdk v0.31.0
 	github.com/spdx/tools-golang v0.5.7
 	github.com/spf13/cobra v1.10.2
@@ -33,7 +34,6 @@ require (
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/mattn/go-runewidth v0.0.30 // indirect
 	github.com/oapi-codegen/runtime v1.4.2 // indirect
-	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
 	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
 	github.com/spf13/afero v1.15.0 // indirect

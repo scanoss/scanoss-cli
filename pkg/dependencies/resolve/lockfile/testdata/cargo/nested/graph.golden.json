@@ -1,0 +1,47 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:cargo/bitflags@1.3.2",
+      "purl": "pkg:cargo/bitflags",
+      "version": "1.3.2"
+    },
+    {
+      "id": "pkg:cargo/bitflags@2.5.0",
+      "purl": "pkg:cargo/bitflags",
+      "version": "2.5.0"
+    },
+    {
+      "id": "pkg:cargo/tool@1.0.0",
+      "purl": "pkg:cargo/tool",
+      "version": "1.0.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "Cargo.toml",
+      "lockfile": "Cargo.lock",
+      "ecosystem": "cargo",
+      "status": "complete",
+      "members": [
+        {
+          "id": "pkg:cargo/bitflags@1.3.2",
+          "direct": true
+        },
+        {
+          "id": "pkg:cargo/bitflags@2.5.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:cargo/tool@1.0.0",
+          "direct": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:cargo/tool@1.0.0",
+          "to": "pkg:cargo/bitflags@2.5.0"
+        }
+      ]
+    }
+  ]
+}

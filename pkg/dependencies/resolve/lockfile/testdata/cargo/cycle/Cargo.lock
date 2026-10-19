@@ -1,0 +1,24 @@
+version = 3
+
+[[package]]
+name = "app"
+version = "0.1.0"
+dependencies = [
+ "chicken",
+]
+
+[[package]]
+name = "chicken"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "egg",
+]
+
+[[package]]
+name = "egg"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "chicken",
+]

@@ -1,0 +1,44 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:cargo/dual@1.0.0",
+      "purl": "pkg:cargo/dual",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pkg:cargo/dual@2.0.0",
+      "purl": "pkg:cargo/dual",
+      "version": "2.0.0"
+    },
+    {
+      "id": "pkg:cargo/plugin@1.0.0",
+      "purl": "pkg:cargo/plugin",
+      "version": "1.0.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "Cargo.toml",
+      "lockfile": "Cargo.lock",
+      "ecosystem": "cargo",
+      "status": "partial",
+      "reason": "unresolved_dependency",
+      "detail": "app requires \"ghost\"",
+      "members": [
+        {
+          "id": "pkg:cargo/dual@1.0.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:cargo/dual@2.0.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:cargo/plugin@1.0.0",
+          "direct": true
+        }
+      ],
+      "edges": []
+    }
+  ]
+}
