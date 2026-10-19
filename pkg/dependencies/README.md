@@ -246,6 +246,43 @@ pkg:nuget/Newtonsoft.Json@13.0.1
 - **packages.config**: Parses legacy package elements
 - Both extract package ID and version
 
+## Dependency Graphs
+
+The parsers above return a flat list of PURLs per file. To know which package
+pulled in which, use `resolve/lockfile`, which builds a `resolve.Graph` from a
+lockfile without running any package manager:
+
+```go
+g, err := lockfile.ParseFS(os.DirFS(projectDir), "web/package-lock.json", lockfile.DefaultLimits())
+if err != nil {
+    return err // lockfile unreadable, or lockfile.ErrUnsupported
+}
+for _, root := range g.Roots {
+    fmt.Println(root.Manifest, root.Status, root.Reason) // web/package.json complete
+    for _, m := range root.Members {
+        fmt.Println(m.ID, m.Direct) // pkg:npm/express@4.19.2 true
+    }
+}
+```
+
+- **Nodes** are `purl@version`, shared by every root.
+- **Roots** are manifests: the project and, where the lockfile records them,
+  each workspace. A root lists its members and its node-to-node edges.
+  `Member.Direct` marks the packages the manifest declares.
+- **Status** is `complete`, `partial` (usable but missing something) or
+  `unknown` (no members), with a `Reason` such as `manifest_missing` or
+  `malformed`.
+
+Lockfiles are treated as untrusted: `Limits` caps the bytes read and the nodes
+and edges kept, and a bad lockfile is reported on its root, never as a panic.
+
+| Lockfile | Reads | Roots |
+|----------|-------|-------|
+| `package-lock.json` (v2, v3) | lockfile only | project and workspace folders |
+| `yarn.lock` (v1) | lockfile and `package.json` | project |
+| `yarn.lock` (berry) | lockfile only | every workspace |
+| `pnpm-lock.yaml` (5.x, 6.x, 9.x) | lockfile only | every importer |
+
 ## Error Handling
 
 The parser handles errors gracefully:

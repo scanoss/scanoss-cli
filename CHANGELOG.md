@@ -5,6 +5,19 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`pkg/dependencies/resolve`**, a dependency graph with edges: nodes are `purl@version`, and
+  each manifest is a root with its members, its edges and a status (`complete`, `partial` or
+  `unknown`) with a reason. `Member.Direct` tells declared packages from those only in the
+  lockfile.
+- **`pkg/dependencies/resolve/lockfile`** builds that graph from `package-lock.json` (v2 and v3,
+  including nested `node_modules` versions and workspaces), `yarn.lock` (v1 with `package.json`,
+  and berry with workspaces) and `pnpm-lock.yaml` (5.x, 6.x and 9.x). It runs no process, and
+  caps the bytes, nodes and edges it accepts from a lockfile.
+
 ## [0.11.0] - 2026-10-14
 
 ### Changed
