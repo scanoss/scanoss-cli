@@ -28,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   per workspace member when the member manifests are available), `Gemfile.lock`, `poetry.lock`
   (with `pyproject.toml`) and `composer.lock` (with `composer.json`). It runs no process, and
   caps the bytes, nodes and edges it accepts from a lockfile.
+- **`dependencies --extract-local --graph`** prints the dependency graph resolved from every
+  lockfile under the path, merged into one JSON document, so the resolver can be tried on a
+  real project.
 
 ### Changed
 

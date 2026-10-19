@@ -24,15 +24,20 @@
 package cmd
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
+	"slices"
 
 	"github.com/spf13/cobra"
 
 	"github.com/scanoss/scanoss.go/pkg/dependencies"
 	"github.com/scanoss/scanoss.go/pkg/dependencies/parsers"
+	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
+	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/lockfile"
 	"github.com/scanoss/scanoss.go/pkg/filter"
 	"github.com/scanoss/scanoss.go/pkg/scanoss"
 )
@@ -55,6 +60,10 @@ var dependenciesCmd = &cobra.Command{
      - Ruby:         Gemfile, Gemfile.lock
      - .NET:         *.csproj, packages.config
 
+   With --graph it prints the dependency graph resolved from the lockfiles
+   instead: package-lock.json, yarn.lock, pnpm-lock.yaml, Cargo.lock,
+   Gemfile.lock, poetry.lock and composer.lock.
+
 2. API MODE (--purl):
    Queries the SCANOSS API for component dependencies (direct or transitive).
 
@@ -68,6 +77,9 @@ Examples:
 
   # Extract local dependencies and save to file
   scanoss-cli dependencies ./my-project --extract-local --output deps.json
+
+  # Print the dependency graph resolved from the project's lockfiles
+  scanoss-cli dependencies ./my-project --extract-local --graph
 
   # Scan project dependencies and query API for direct dependencies
   scanoss-cli dependencies ./my-project
@@ -91,6 +103,7 @@ func init() {
 
 	// Local extraction mode
 	dependenciesCmd.Flags().Bool("extract-local", false, "Extract local dependencies from manifest files")
+	dependenciesCmd.Flags().Bool("graph", false, "With --extract-local, print the dependency graph resolved from lockfiles")
 	dependenciesCmd.Flags().String("settings", "", "Path to settings file (scanoss.json/settings.json)")
 
 	// API mode flags
@@ -110,6 +123,7 @@ func init() {
 
 func runDependencies(cmd *cobra.Command, args []string) error {
 	extractLocal, _ := cmd.Flags().GetBool("extract-local")
+	graph, _ := cmd.Flags().GetBool("graph")
 	settingsFlag, _ := cmd.Flags().GetString("settings")
 	outputFile, _ := cmd.Flags().GetString("output")
 	purl, _ := cmd.Flags().GetString("purl")
@@ -124,11 +138,17 @@ func runDependencies(cmd *cobra.Command, args []string) error {
 	if !extractLocal && purl == "" && len(args) == 0 {
 		return usageError(cmd, "a path, --purl or --extract-local is required")
 	}
+	if graph && !extractLocal {
+		return usageError(cmd, "--graph requires --extract-local")
+	}
 
 	// Mode 1: Local extraction only
 	if extractLocal {
 		if len(args) == 0 {
 			return fmt.Errorf("path argument is required with --extract-local")
+		}
+		if graph {
+			return runLocalGraph(args[0], outputFile, settingsFlag)
 		}
 		return runLocalExtraction(args[0], outputFile, settingsFlag)
 	}
@@ -243,6 +263,72 @@ func runLocalExtraction(targetPath, outputFile, settingsFlag string) error {
 	fmt.Fprintf(os.Stderr, "\n")
 
 	return outputJSON(result, outputFile)
+}
+
+// runLocalGraph prints the dependency graph of every lockfile under targetPath,
+// merged into one.
+func runLocalGraph(targetPath, outputFile, settingsFlag string) error {
+	root, err := filepath.Abs(targetPath)
+	if err != nil {
+		return err
+	}
+	if _, err := os.Stat(root); err != nil {
+		return fmt.Errorf("path does not exist: %s", targetPath)
+	}
+	s, err := resolveSettings(settingsFlag, root)
+	if err != nil {
+		return fmt.Errorf("error loading settings: %w", err)
+	}
+	opts := filter.Dependencies(s)
+	// The built-in extension list drops .lock and .yaml, which would hide
+	// Cargo.lock, pnpm-lock.yaml, poetry.lock and composer.lock. Lockfiles are
+	// selected by name below instead.
+	opts.BuiltinFileRules = false
+	res, err := filter.Collect(root, opts)
+	if err != nil {
+		return fmt.Errorf("failed to collect files: %w", err)
+	}
+
+	fsys := os.DirFS(root)
+	var graphs []resolve.Graph
+	for _, file := range res.Files {
+		if !lockfile.Supported(file) {
+			continue
+		}
+		rel, err := filepath.Rel(root, file)
+		if err != nil {
+			return err
+		}
+		g, err := lockfile.ParseFS(fsys, filepath.ToSlash(rel), lockfile.DefaultLimits())
+		if err != nil {
+			warnf("failed to parse %s: %v", file, err)
+			continue
+		}
+		graphs = append(graphs, g)
+	}
+	infof("Lockfiles resolved: %d", len(graphs))
+	return outputJSON(mergeGraphs(graphs), outputFile)
+}
+
+// mergeGraphs joins graphs into one, keeping each node once and the order
+// resolve.Graph documents.
+func mergeGraphs(graphs []resolve.Graph) resolve.Graph {
+	out := resolve.Graph{Nodes: []resolve.Node{}, Roots: []resolve.Root{}}
+	seen := map[resolve.NodeID]bool{}
+	for _, g := range graphs {
+		for _, n := range g.Nodes {
+			if !seen[n.ID] {
+				seen[n.ID] = true
+				out.Nodes = append(out.Nodes, n)
+			}
+		}
+		out.Roots = append(out.Roots, g.Roots...)
+	}
+	slices.SortFunc(out.Nodes, func(a, b resolve.Node) int { return cmp.Compare(a.ID, b.ID) })
+	slices.SortFunc(out.Roots, func(a, b resolve.Root) int {
+		return cmp.Or(cmp.Compare(a.Manifest, b.Manifest), cmp.Compare(a.Lockfile, b.Lockfile))
+	})
+	return out
 }
 
 // runScanMode extracts local dependencies and queries the SCANOSS API
