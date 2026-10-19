@@ -125,22 +125,41 @@ func newBuilder(lockfile string, f format, lim Limits) *builder {
 	}
 }
 
-// node adds the package namespace/name at version and returns its ID. It
-// returns false when the entry is incomplete or the node limit is reached.
+// node adds the registry package namespace/name at version and returns its
+// ID. It returns false when the entry is incomplete or the node limit is
+// reached.
 func (b *builder) node(namespace, name, version string) (resolve.NodeID, bool) {
-	if name == "" || version == "" {
+	return b.add(namespace, name, version, false)
+}
+
+// local adds the project's own package namespace/name, as node does. A local
+// package may lack a version; its ID is then its versionless Package URL.
+func (b *builder) local(namespace, name, version string) (resolve.NodeID, bool) {
+	return b.add(namespace, name, version, true)
+}
+
+func (b *builder) add(namespace, name, version string, local bool) (resolve.NodeID, bool) {
+	if name == "" || (version == "" && !local) {
 		b.flag(resolve.ReasonInvalidEntry, fmt.Sprintf("entry %q at version %q lacks a name or version", name, version))
 		return "", false
 	}
-	id := resolve.NodeID(parsers.BuildPURL(string(b.ecosystem), namespace, name, version, nil))
-	if _, ok := b.nodes[id]; ok {
+	purl := parsers.BuildPURL(string(b.ecosystem), namespace, name, "", nil)
+	id := resolve.NodeID(purl)
+	if version != "" {
+		id = resolve.NodeID(parsers.BuildPURL(string(b.ecosystem), namespace, name, version, nil))
+	}
+	if n, ok := b.nodes[id]; ok {
+		if n.Local != local {
+			b.flag(resolve.ReasonInvalidEntry, fmt.Sprintf("%s is both a local and a registry package", id))
+			return "", false
+		}
 		return id, true
 	}
 	if len(b.nodes) >= b.lim.MaxNodes {
 		b.flag(resolve.ReasonNodeLimit, fmt.Sprintf("more than %d nodes", b.lim.MaxNodes))
 		return "", false
 	}
-	b.nodes[id] = resolve.Node{ID: id, PURL: parsers.BuildPURL(string(b.ecosystem), namespace, name, "", nil), Version: version}
+	b.nodes[id] = resolve.Node{ID: id, PURL: purl, Version: version, Local: local}
 	return id, true
 }
 

@@ -26,6 +26,7 @@ package lockfile
 import (
 	"fmt"
 	"maps"
+	"path"
 	"slices"
 	"strings"
 
@@ -145,6 +146,60 @@ func parsePnpmLock(b *builder, data, _ []byte, _ map[string][]byte) {
 		return id, ok
 	}
 
+	importers := lock.Importers
+	if len(importers) == 0 {
+		importers = map[string]pnpmImporter{".": lock.pnpmImporter}
+	}
+	// link returns the importer at rel, a "link:" path relative to the
+	// importer dir that depends on it, as a local node. Its dependencies are resolved
+	// once every package is a node.
+	locals := map[string]resolve.NodeID{}
+	var linked []string
+	link := func(dir, name, rel string) (resolve.NodeID, bool) {
+		to := path.Join(dir, rel)
+		if id, ok := locals[to]; ok {
+			return id, true
+		}
+		if _, ok := importers[to]; !ok {
+			return "", false
+		}
+		ns, n := parsers.GetScopedPackage(name)
+		id, ok := b.local(ns, n, "")
+		if ok {
+			locals[to] = id
+			linked = append(linked, to)
+		}
+		return id, ok
+	}
+	// deps resolves the dependencies of the importer or package at dir. It
+	// returns the nodes they point to and, as "name version", the required
+	// ones that point nowhere; a link that is not an importer is neither.
+	deps := func(dir string, optional map[string]string, groups ...map[string]string) (found []resolve.NodeID, missing []string) {
+		for _, deps := range groups {
+			for _, name := range slices.Sorted(maps.Keys(deps)) {
+				version := deps[name]
+				if rel, ok := strings.CutPrefix(version, "link:"); ok {
+					if id, ok := link(dir, name, rel); ok {
+						found = append(found, id)
+					}
+				} else if id, ok := lookup(name, version); ok {
+					found = append(found, id)
+				} else if _, ok := optional[name]; !ok {
+					missing = append(missing, name+" "+version)
+				}
+			}
+		}
+		return found, missing
+	}
+	edges := func(from resolve.NodeID, what string, found []resolve.NodeID, missing []string) {
+		for _, to := range found {
+			b.edge(from, to)
+		}
+		for _, m := range missing {
+			b.flagNode(from, resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %s", what, m))
+		}
+	}
+
 	keys := slices.Sorted(maps.Keys(pkgs))
 	for _, key := range keys {
 		name, version := style.split(key)
@@ -154,43 +209,33 @@ func parsePnpmLock(b *builder, data, _ []byte, _ map[string][]byte) {
 		}
 	}
 	for _, key := range keys {
-		from, ok := ids[key]
-		if !ok {
-			continue
+		if from, ok := ids[key]; ok {
+			p := pkgs[key]
+			found, missing := deps(".", p.OptionalDependencies, p.Dependencies, p.OptionalDependencies)
+			edges(from, key, found, missing)
 		}
-		p := pkgs[key]
-		for _, deps := range []map[string]string{p.Dependencies, p.OptionalDependencies} {
-			for _, name := range slices.Sorted(maps.Keys(deps)) {
-				if strings.HasPrefix(deps[name], "link:") {
-					continue
-				}
-				if to, ok := lookup(name, deps[name]); ok {
-					b.edge(from, to)
-				} else if _, optional := p.OptionalDependencies[name]; !optional {
-					b.flagNode(from, resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %s %s", key, name, deps[name]))
-				}
-			}
-		}
-	}
-
-	importers := lock.Importers
-	if len(importers) == 0 {
-		importers = map[string]pnpmImporter{".": lock.pnpmImporter}
 	}
 	for _, dir := range slices.Sorted(maps.Keys(importers)) {
 		r, imp := b.root(dir), importers[dir]
-		for _, deps := range []map[string]pnpmRef{imp.Dependencies, imp.DevDependencies, imp.OptionalDependencies} {
-			for _, name := range slices.Sorted(maps.Keys(deps)) {
-				version := string(deps[name])
-				if strings.HasPrefix(version, "link:") {
-					continue
-				}
-				if id, ok := lookup(name, version); ok {
-					r.declare(id)
-				} else if _, optional := imp.OptionalDependencies[name]; !optional {
-					r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("importer %q requires %s %s", dir, name, version))
-				}
-			}
+		found, missing := deps(dir, refs(imp.OptionalDependencies), refs(imp.Dependencies), refs(imp.DevDependencies), refs(imp.OptionalDependencies))
+		for _, id := range found {
+			r.declare(id)
+		}
+		for _, m := range missing {
+			r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("importer %q requires %s", dir, m))
 		}
 	}
+	for i := 0; i < len(linked); i++ {
+		imp := importers[linked[i]]
+		found, missing := deps(linked[i], refs(imp.OptionalDependencies), refs(imp.Dependencies), refs(imp.OptionalDependencies))
+		edges(locals[linked[i]], fmt.Sprintf("importer %q", linked[i]), found, missing)
+	}
+}
+
+func refs(m map[string]pnpmRef) map[string]string {
+	out := make(map[string]string, len(m))
+	for k, v := range m {
+		out[k] = string(v)
+	}
+	return out
 }

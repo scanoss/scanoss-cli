@@ -34,8 +34,10 @@
 // with the workspace directory for formats that record workspaces
 // (package-lock.json, yarn.lock, pnpm-lock.yaml). Cargo.lock does not record
 // where its workspace members live, so their roots come from the member
-// manifests in Input.Members. Lockfile entries that no root reaches become
-// non-direct members of the root beside the lockfile.
+// manifests in Input.Members. A workspace or link that something depends on
+// is also a local node, with its own dependencies as edges. Lockfile entries
+// that no root reaches become non-direct members of the root beside the
+// lockfile.
 package lockfile
 
 import (

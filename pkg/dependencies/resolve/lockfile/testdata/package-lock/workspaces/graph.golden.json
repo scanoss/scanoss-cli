@@ -1,6 +1,12 @@
 {
   "nodes": [
     {
+      "id": "pkg:npm/@acme/lib@1.0.0",
+      "purl": "pkg:npm/@acme/lib",
+      "version": "1.0.0",
+      "local": true
+    },
+    {
       "id": "pkg:npm/lint@1.0.0",
       "purl": "pkg:npm/lint",
       "version": "1.0.0"
@@ -24,6 +30,17 @@
       "id": "pkg:npm/real-name@4.0.0",
       "purl": "pkg:npm/real-name",
       "version": "4.0.0"
+    },
+    {
+      "id": "pkg:npm/tiny@1.0.0",
+      "purl": "pkg:npm/tiny",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pkg:npm/util",
+      "purl": "pkg:npm/util",
+      "version": "",
+      "local": true
     }
   ],
   "roots": [
@@ -60,15 +77,44 @@
       "status": "complete",
       "members": [
         {
+          "id": "pkg:npm/@acme/lib@1.0.0",
+          "direct": true
+        },
+        {
           "id": "pkg:npm/ms@1.0.0",
           "direct": true
         },
         {
+          "id": "pkg:npm/ms@2.1.3",
+          "direct": false
+        },
+        {
           "id": "pkg:npm/real-name@4.0.0",
           "direct": true
+        },
+        {
+          "id": "pkg:npm/tiny@1.0.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:npm/util",
+          "direct": false
         }
       ],
-      "edges": []
+      "edges": [
+        {
+          "from": "pkg:npm/@acme/lib@1.0.0",
+          "to": "pkg:npm/ms@2.1.3"
+        },
+        {
+          "from": "pkg:npm/@acme/lib@1.0.0",
+          "to": "pkg:npm/util"
+        },
+        {
+          "from": "pkg:npm/util",
+          "to": "pkg:npm/tiny@1.0.0"
+        }
+      ]
     },
     {
       "manifest": "packages/lib/package.json",
@@ -78,6 +124,32 @@
       "members": [
         {
           "id": "pkg:npm/ms@2.1.3",
+          "direct": true
+        },
+        {
+          "id": "pkg:npm/tiny@1.0.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:npm/util",
+          "direct": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:npm/util",
+          "to": "pkg:npm/tiny@1.0.0"
+        }
+      ]
+    },
+    {
+      "manifest": "packages/util/package.json",
+      "lockfile": "package-lock.json",
+      "ecosystem": "npm",
+      "status": "complete",
+      "members": [
+        {
+          "id": "pkg:npm/tiny@1.0.0",
           "direct": true
         }
       ],

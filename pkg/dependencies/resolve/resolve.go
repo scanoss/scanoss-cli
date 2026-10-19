@@ -28,10 +28,19 @@
 // A node is one package at one version, identified by its versioned Package
 // URL ("pkg:npm/express@4.19.2"). Nodes are shared by every root.
 //
+// A local node is one of the project's own packages, such as a workspace
+// member or a path or link dependency, rather than one fetched from a registry
+// or git. It appears only when something depends on it, and its edges are its
+// own dependencies, so every root that reaches it reaches them too. A local
+// package may have no version; its ID is then its versionless Package URL.
+// Consumers that want third-party packages skip local nodes.
+//
 // A root stands for one manifest: package.json, Cargo.toml, a workspace
-// member's manifest and so on. Its members are the nodes it reaches, plus the
-// nodes the lockfile lists under it that nothing reaches. Its edges run from
-// node to node; the manifest itself is never an edge end. Member.Direct is the
+// member's manifest and so on. A local package that has a manifest is both a
+// root, for its own dependencies, and a local node, for the roots that depend
+// on it. A root's members are the nodes it reaches, plus the nodes the
+// lockfile lists under it that nothing reaches. Its edges run from node to
+// node; the manifest itself is never an edge end. Member.Direct is the
 // only signal that the manifest declares a package: a member that is not
 // direct and has no incoming edge is unattributed.
 //
@@ -41,7 +50,8 @@
 // same lockfile always gives the same graph.
 package resolve
 
-// NodeID is a versioned Package URL, such as "pkg:npm/express@4.19.2".
+// NodeID is a versioned Package URL, such as "pkg:npm/express@4.19.2", or
+// the versionless one of a local package that has no version.
 type NodeID string
 
 // Ecosystem names the package ecosystem of a root. Its values match the
@@ -104,8 +114,11 @@ type Graph struct {
 // Node is one package at one version.
 type Node struct {
 	ID      NodeID `json:"id"`
-	PURL    string `json:"purl"` // versionless
-	Version string `json:"version"`
+	PURL    string `json:"purl"`    // versionless
+	Version string `json:"version"` // empty only for a local package without one
+	// Local marks the project's own package (a workspace member, a path or
+	// link dependency), not one fetched from a registry or git.
+	Local bool `json:"local,omitempty"`
 }
 
 // Root is the graph of one manifest, as resolved by one lockfile.
