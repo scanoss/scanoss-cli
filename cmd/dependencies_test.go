@@ -50,6 +50,7 @@ func TestDependenciesGraphFindsEveryLockfile(t *testing.T) {
 	copyFixture(t, filepath.Join(tree, "ruby"), "gemfile/diamond")
 	copyFixture(t, filepath.Join(tree, "py"), "poetry/diamond")
 	copyFixture(t, filepath.Join(tree, "php"), "composer/diamond")
+	copyFixture(t, filepath.Join(tree, "shrink"), "npm-shrinkwrap/dev-scope")
 	copyFixture(t, filepath.Join(tree, "node_modules", "dep"), "package-lock/diamond")
 	unreadable := filepath.Join(tree, "broken", "Gemfile.lock")
 	if err := os.MkdirAll(filepath.Dir(unreadable), 0o755); err != nil {
@@ -89,6 +90,8 @@ func TestDependenciesGraphFindsEveryLockfile(t *testing.T) {
 		"rust/Cargo.toml complete",
 		"rust/crates/app/Cargo.toml complete",
 		"rust/crates/lib/Cargo.toml complete",
+		"shrink/package.json complete",
+		"shrink/packages/tool/package.json complete",
 		"web/package.json complete",
 	}
 	if !slices.Equal(got, want) {

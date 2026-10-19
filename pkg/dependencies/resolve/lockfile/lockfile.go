@@ -32,9 +32,9 @@
 //
 // Each format names its roots after the manifest beside the lockfile, joined
 // with the workspace directory for formats that record workspaces
-// (package-lock.json, yarn.lock, pnpm-lock.yaml). Cargo.lock does not record
-// where its workspace members live, so their roots come from the member
-// manifests in Input.Members. A workspace, path or link package that
+// (package-lock.json, npm-shrinkwrap.json, yarn.lock, pnpm-lock.yaml).
+// Cargo.lock does not record where its workspace members live, so their
+// roots come from the member manifests in Input.Members. A workspace, path or link package that
 // something depends on is a local node, with its own dependencies as edges.
 // Lockfile entries that no root reaches become non-direct members of the
 // root beside the lockfile.
@@ -89,13 +89,14 @@ type format struct {
 }
 
 var formats = map[string]format{
-	"package-lock.json": {resolve.EcosystemNPM, "package.json", false, parsePackageLock, nil},
-	"yarn.lock":         {resolve.EcosystemNPM, "package.json", true, parseYarnLock, nil},
-	"pnpm-lock.yaml":    {resolve.EcosystemNPM, "package.json", false, parsePnpmLock, nil},
-	"Cargo.lock":        {resolve.EcosystemCargo, "Cargo.toml", true, parseCargoLock, cargoMembers},
-	"Gemfile.lock":      {resolve.EcosystemGem, "Gemfile", true, parseGemfileLock, nil},
-	"poetry.lock":       {resolve.EcosystemPyPI, "pyproject.toml", true, parsePoetryLock, nil},
-	"composer.lock":     {resolve.EcosystemComposer, "composer.json", true, parseComposerLock, nil},
+	"package-lock.json":   {resolve.EcosystemNPM, "package.json", false, parsePackageLock, nil},
+	"npm-shrinkwrap.json": {resolve.EcosystemNPM, "package.json", false, parsePackageLock, nil},
+	"yarn.lock":           {resolve.EcosystemNPM, "package.json", true, parseYarnLock, nil},
+	"pnpm-lock.yaml":      {resolve.EcosystemNPM, "package.json", false, parsePnpmLock, nil},
+	"Cargo.lock":          {resolve.EcosystemCargo, "Cargo.toml", true, parseCargoLock, cargoMembers},
+	"Gemfile.lock":        {resolve.EcosystemGem, "Gemfile", true, parseGemfileLock, nil},
+	"poetry.lock":         {resolve.EcosystemPyPI, "pyproject.toml", true, parsePoetryLock, nil},
+	"composer.lock":       {resolve.EcosystemComposer, "composer.json", true, parseComposerLock, nil},
 }
 
 // Supported reports whether path's base name is a lockfile this package

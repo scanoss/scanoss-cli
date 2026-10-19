@@ -28,3 +28,14 @@ import "testing"
 func TestPackageLockGolden(t *testing.T) { runGolden(t, "package-lock") }
 
 func FuzzPackageLock(f *testing.F) { fuzzFormat(f, "package-lock") }
+
+// npm-shrinkwrap.json is a package-lock.json that npm publishes with the
+// package, so it reads the same way.
+func TestNpmShrinkwrapGolden(t *testing.T) {
+	if !Supported("sub/npm-shrinkwrap.json") {
+		t.Fatal("npm-shrinkwrap.json is not supported")
+	}
+	runGolden(t, "npm-shrinkwrap")
+}
+
+func FuzzNpmShrinkwrap(f *testing.F) { fuzzFormat(f, "npm-shrinkwrap") }
