@@ -1,0 +1,27 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:pypi/left@1.0.0",
+      "purl": "pkg:pypi/left",
+      "version": "1.0.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "pyproject.toml",
+      "lockfile": "uv.lock",
+      "ecosystem": "pypi",
+      "status": "partial",
+      "reason": "unresolved_dependency",
+      "detail": "app requires missing",
+      "devKnown": true,
+      "members": [
+        {
+          "id": "pkg:pypi/left@1.0.0",
+          "direct": true
+        }
+      ],
+      "edges": []
+    }
+  ]
+}

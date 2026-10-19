@@ -1,0 +1,27 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:nuget/Left@1.0.0",
+      "purl": "pkg:nuget/Left",
+      "version": "1.0.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "App.csproj",
+      "lockfile": "packages.lock.json",
+      "ecosystem": "nuget",
+      "status": "partial",
+      "reason": "unresolved_dependency",
+      "detail": "Left requires Missing in net8.0",
+      "devKnown": false,
+      "members": [
+        {
+          "id": "pkg:nuget/Left@1.0.0",
+          "direct": true
+        }
+      ],
+      "edges": []
+    }
+  ]
+}

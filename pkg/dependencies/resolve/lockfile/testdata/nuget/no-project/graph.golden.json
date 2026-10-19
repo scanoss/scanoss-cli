@@ -1,0 +1,25 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:nuget/Serilog@4.0.0",
+      "purl": "pkg:nuget/Serilog",
+      "version": "4.0.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "packages.lock.json",
+      "lockfile": "packages.lock.json",
+      "ecosystem": "nuget",
+      "status": "complete",
+      "devKnown": false,
+      "members": [
+        {
+          "id": "pkg:nuget/Serilog@4.0.0",
+          "direct": true
+        }
+      ],
+      "edges": []
+    }
+  ]
+}

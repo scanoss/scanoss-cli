@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net8.0": {
+      "Left": {
+        "type": "Direct",
+        "requested": "[1.0.0, )",
+        "resolved": "1.0.0",
+        "contentHash": "t3QCxKJe8bnE78FESF9pO7xtRhnC/wohGN6bVOq0Md7oIc8ivA203esIsgPKIRzAhiWq6mZkrNc/9R+q8HuiZA==",
+        "dependencies": {
+          "Missing": "2.0.0"
+        }
+      }
+    }
+  }
+}

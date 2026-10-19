@@ -1,0 +1,16 @@
+{
+  "nodes": [],
+  "roots": [
+    {
+      "manifest": "pyproject.toml",
+      "lockfile": "uv.lock",
+      "ecosystem": "pypi",
+      "status": "unknown",
+      "reason": "malformed",
+      "detail": "toml: inline table is incomplete",
+      "devKnown": false,
+      "members": [],
+      "edges": []
+    }
+  ]
+}

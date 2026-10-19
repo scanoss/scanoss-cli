@@ -1,0 +1,43 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:pypi/ping@1.0.0",
+      "purl": "pkg:pypi/ping",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pkg:pypi/pong@1.0.0",
+      "purl": "pkg:pypi/pong",
+      "version": "1.0.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "pyproject.toml",
+      "lockfile": "uv.lock",
+      "ecosystem": "pypi",
+      "status": "complete",
+      "devKnown": true,
+      "members": [
+        {
+          "id": "pkg:pypi/ping@1.0.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:pypi/pong@1.0.0",
+          "direct": false
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:pypi/ping@1.0.0",
+          "to": "pkg:pypi/pong@1.0.0"
+        },
+        {
+          "from": "pkg:pypi/pong@1.0.0",
+          "to": "pkg:pypi/ping@1.0.0"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "nodes": [],
+  "roots": [
+    {
+      "manifest": "App.csproj",
+      "lockfile": "packages.lock.json",
+      "ecosystem": "nuget",
+      "status": "unknown",
+      "reason": "unsupported_version",
+      "detail": "version 3",
+      "devKnown": false,
+      "members": [],
+      "edges": []
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "name": "app",
+  "lockfileVersion": 3,
+  "requires": true,
+  "packages": {
+    "": {
+      "name": "app",
+      "workspaces": [
+        "packages/tool"
+      ],
+      "dependencies": {
+        "left": "^1.0.0"
+      },
+      "devDependencies": {
+        "jest": "^29.0.0"
+      }
+    },
+    "node_modules/jest": {
+      "version": "29.0.0",
+      "dependencies": {
+        "jest-core": "^29.0.0",
+        "shared": "^1.0.0"
+      }
+    },
+    "node_modules/jest-core": {
+      "version": "29.0.0",
+      "dev": true
+    },
+    "node_modules/left": {
+      "version": "1.0.0",
+      "dependencies": {
+        "shared": "^1.0.0"
+      }
+    },
+    "node_modules/shared": {
+      "version": "1.0.0",
+      "dev": true
+    },
+    "node_modules/tool": {
+      "resolved": "packages/tool",
+      "link": true
+    },
+    "packages/tool": {
+      "version": "1.0.0",
+      "dependencies": {
+        "jest": "^29.0.0"
+      }
+    }
+  }
+}

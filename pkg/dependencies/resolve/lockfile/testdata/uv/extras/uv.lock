@@ -1,0 +1,65 @@
+version = 1
+revision = 3
+requires-python = ">=3.11"
+
+[[package]]
+name = "app"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "httpx", extra = ["http2"] },
+]
+
+[package.optional-dependencies]
+cli = [
+    { name = "click" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx" },
+]
+
+[[package]]
+name = "click"
+version = "8.3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e5/click-8.3.0.tar.gz", hash = "sha256:f7255a0444a06b8acad55de6454f5458497ab9d9609e4e7fc1a299eeb9c043f1", size = 1185 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e5/click-8.3.0-py3-none-any.whl", hash = "sha256:0ff4c7494d5695d09f54bd498d0f9052858b0b7b89382fb9730dbb48eee53068", size = 945 },
+]
+
+[[package]]
+name = "h2"
+version = "4.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "hpack" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f9/h2-4.3.0.tar.gz", hash = "sha256:c51e6a7f380cdcb1519a9e6a284b8112abe480d23aef55a2d7b05d1b9970754c", size = 1074 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f9/h2-4.3.0-py3-none-any.whl", hash = "sha256:a0bcb96377262bf229ea75c58e1bdcb337dd69e2490146860645f9e6ae4647e7", size = 858 },
+]
+
+[[package]]
+name = "hpack"
+version = "4.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/3c/hpack-4.1.0.tar.gz", hash = "sha256:356bb5dc178c831b5671231dcc26877c781f7e251c7409569d913e02fefa02ef", size = 1185 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3c/hpack-4.1.0-py3-none-any.whl", hash = "sha256:15c81187a0d5c5b2d09f256606b82aa2e060ba1299fa360bdac76e3167dbc9af", size = 945 },
+]
+
+[[package]]
+name = "httpx"
+version = "0.28.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/44/httpx-0.28.1.tar.gz", hash = "sha256:332d21b4cee8b3d2b7a63c175037192b345626806fbd62af872ebad2f778c6a1", size = 1185 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/44/httpx-0.28.1-py3-none-any.whl", hash = "sha256:f6280e9da728b0b8b08528e5c22abd7a26cc6124c847976f932f69a831b4387f", size = 945 },
+]
+
+[package.optional-dependencies]
+http2 = [
+    { name = "h2" },
+]

@@ -1,0 +1,90 @@
+version = 1
+revision = 3
+requires-python = ">=3.11"
+
+[[package]]
+name = "app"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "rich" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+lint = [
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "rich" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest" }]
+lint = [{ name = "ruff" }]
+
+[[package]]
+name = "iniconfig"
+version = "2.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/42/iniconfig-2.1.0.tar.gz", hash = "sha256:ed1b692bd56357c8bee60f2dcd8889f3f5a903b5b5491e03a86bc5dfef4be169", size = 1333 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/42/iniconfig-2.1.0-py3-none-any.whl", hash = "sha256:5f3ef3a25c98682b82abce5fc87db2f334b43fcb7bf5a8996a9a06ef1bde9200", size = 1061 },
+]
+
+[[package]]
+name = "markdown-it-py"
+version = "4.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/55/markdown_it_py-4.0.0.tar.gz", hash = "sha256:44a78b19d43494091d8f77a11f9694e2eb485be6c8c1fbb3820f54415e4c3425", size = 1518 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f4/markdown_it_py-4.0.0-py3-none-any.whl", hash = "sha256:eeee4f9c7c83939da15982f79976b4bf0945f992b15501f3b4f7edee84a11555", size = 1206 },
+]
+
+[[package]]
+name = "pygments"
+version = "2.19.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/28/pygments-2.19.2.tar.gz", hash = "sha256:568ace6b4089e8f7be7fe316b7ebe088bc149f2e8f53dc15ee650dca9ddb9617", size = 1296 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/28/pygments-2.19.2-py3-none-any.whl", hash = "sha256:5d780e1f044afa0b9ccfaa6353c49b91a8ca97a790ac3c1b268b1ffb147760dc", size = 1032 },
+]
+
+[[package]]
+name = "pytest"
+version = "8.4.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "iniconfig" },
+    { name = "pygments" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2b/pytest-8.4.2.tar.gz", hash = "sha256:ad1bab8943cdc1363fb38a1a20e0ead110e41aab8ad179c901ce3edf46c9f6e7", size = 1222 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2b/pytest-8.4.2-py3-none-any.whl", hash = "sha256:392158eb612dd750e437ca1cd966f3c5f2821d8988550ffd7a58529a277f8bfe", size = 974 },
+]
+
+[[package]]
+name = "rich"
+version = "14.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "markdown-it-py" },
+    { name = "pygments" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/7b/rich-14.1.0.tar.gz", hash = "sha256:dd639d7d902a2cf5d0b5151ef8e8978da60a3e2e9e52cee482bf62f0c39f3c11", size = 1148 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7b/rich-14.1.0-py3-none-any.whl", hash = "sha256:f23853821a5f84167cb43808ada3d4d3888d1043db42d672eb116340f459cbe1", size = 916 },
+]
+
+[[package]]
+name = "ruff"
+version = "0.13.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ac/ruff-0.13.0.tar.gz", hash = "sha256:438b159b15a1775a72751ec6232e549cef5ff5d6133504e0b305ef153c0915e4", size = 1148 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ac/ruff-0.13.0-py3-none-any.whl", hash = "sha256:8ef25acbe53103aab6b77dd7012bf7b86aa33cb19252b759bc541bccba1af443", size = 916 },
+]

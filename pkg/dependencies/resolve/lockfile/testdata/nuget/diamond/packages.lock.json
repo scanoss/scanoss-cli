@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net8.0": {
+      "Left": {
+        "type": "Direct",
+        "requested": "[1.0.0, )",
+        "resolved": "1.0.0",
+        "contentHash": "/OJPNZaIigRO9ntNSaJZ921pwa+ZnoqwNj15X7PtkfydokMRfzYpv3FH5G9u1AWPMghLcophnWptZFe4eTQxPA==",
+        "dependencies": {
+          "Bottom": "1.2.3"
+        }
+      },
+      "Right": {
+        "type": "Direct",
+        "requested": "[2.0.0, )",
+        "resolved": "2.0.0",
+        "contentHash": "fzz+7C/6M4S1rdLnvYyQuq0fmw0zBbFqTMsB2TXQWlfH7yr2vc34lB9KXUU25+KmMyitPkEXXh+szkS2GQOTjA==",
+        "dependencies": {
+          "Bottom": "1.2.3"
+        }
+      },
+      "Bottom": {
+        "type": "Transitive",
+        "resolved": "1.2.3",
+        "contentHash": "zYf/c8HtkmXyg01g0ynbXf1PyQLSzpbJWSxt/kA7ApIjysJmecQFcq9l1rrzeFp7sz6/NhFxG9OHGE5zY23Beg=="
+      }
+    }
+  }
+}
