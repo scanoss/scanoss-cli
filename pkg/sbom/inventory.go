@@ -37,11 +37,17 @@ import (
 // Components list, tagged by Component.Scope, so enrichment decorates the union origin-agnostic.
 // Per-component layers (licenses, cryptography, geoprovenance) attach inline on each component;
 // vulnerabilities are a flat top-level list joined to components by base PURL. Build it directly,
-// or via the scansource adapters from a scan result. Add components through Add to keep one entry
-// per component when more than one origin reports the same one.
+// or via the scansource and depsource adapters from a scan result or a project's dependency
+// files. Add components through Add to keep one entry per component when more than one origin
+// reports the same one.
+//
+// Dependencies is the dependency graph the lockfiles resolved, one root per manifest, with dev
+// members already left out. Which components a root reaches, and whether directly, is on the
+// components' evidence (see FileEvidence.MatchType); the root carries its edges.
 type Inventory struct {
-	Components      []Component     `json:"components"`
-	Vulnerabilities []Vulnerability `json:"vulnerabilities,omitempty"`
+	Components      []Component      `json:"components"`
+	Vulnerabilities []Vulnerability  `json:"vulnerabilities,omitempty"`
+	Dependencies    []DependencyRoot `json:"dependencies,omitempty"`
 }
 
 // Add appends comps, folding any that shares an identity (Purl and Version) with a component
@@ -81,22 +87,24 @@ func componentKey(c Component) string { return c.Purl + "@" + c.Version }
 // declared as a whole, not just the scope tag: a declared entry carries nothing
 // but its identity and its manifest occurrence, so when a detected src arrives
 // its metadata (name, vendor, url, licenses, …) replaces dst's empty fields.
-// Evidence from both origins is kept either way, and so is Identified.
+// Evidence from both origins is kept either way, and so are Identified and Local.
 func mergeComponent(dst *Component, src Component) {
-	// Identified is a statement about the component, not about either origin's view of it: a
-	// user who declared it present declared it once. It survives whichever way the merge goes,
+	// Identified and Local are statements about the component, not about either origin's view
+	// of it: a user who declared it present declared it once, and a project's own package stays
+	// its own when the scan also matches it. Both survive whichever way the merge goes,
 	// including the wholesale replacement below.
 	identified := dst.Identified || src.Identified
+	local := dst.Local || src.Local
 
 	if effectiveScope(*dst) == ScopeDeclared && effectiveScope(src) == ScopeDetected {
 		src.Evidence = addEvidence(dst.Evidence, src.Evidence...)
 		*dst = src
 		dst.Scope = ScopeDetected // src's zero scope must not render as ""
-		dst.Identified = identified
-		return
+	} else {
+		dst.Evidence = addEvidence(dst.Evidence, src.Evidence...)
 	}
-	dst.Evidence = addEvidence(dst.Evidence, src.Evidence...)
 	dst.Identified = identified
+	dst.Local = local
 }
 
 // effectiveScope resolves the zero value to what the field documents it to mean.
@@ -145,6 +153,7 @@ type Component struct {
 	Purl             string            `json:"purl"`                        // canonical PURL (identity), e.g. "pkg:github/scanoss/engine"
 	Scope            ComponentScope    `json:"scope,omitempty"`             // detected (from the scan) | declared (from a manifest); "" == detected
 	Identified       bool              `json:"identified,omitempty"`        // a bom.identify rule claimed this component for at least one of its files (see FileEvidence.Identified for which)
+	Local            bool              `json:"local,omitempty"`             // the project's own package (a workspace member, a path or link dependency), not a third-party one
 	AliasPurls       []string          `json:"alias_purls,omitempty"`       // additional PURLs identifying the same component (beyond Purl)
 	Vendor           string            `json:"vendor,omitempty"`            // supplier / namespace
 	Name             string            `json:"name,omitempty"`              // component name
@@ -257,13 +266,14 @@ type LineRange struct {
 
 // FileEvidence is one occurrence of a component in the scanned project (a CycloneDX
 // evidence.occurrence): a scanned file that matched (match_type "file"/"snippet", with — for
-// snippets — where and how strongly it matched inside the OSS component), or the manifest that
-// declared it (match_type "declared", with only the path set).
+// snippets — where and how strongly it matched inside the OSS component), the manifest that
+// declared it (match_type "declared", with only the path set), or the manifest whose lockfile
+// pulls it in through another dependency (match_type "transitive", path set the same way).
 type FileEvidence struct {
-	Path            string      `json:"path"`                        // occurrence location: scanned file path, or the manifest path for a declared dependency
+	Path            string      `json:"path"`                        // occurrence location: scanned file path, or the manifest path for a declared or transitive dependency
 	SourceHash      string      `json:"source_hash,omitempty"`       // hash of the scanned input file (from the WFP)
 	FileHash        string      `json:"file_hash,omitempty"`         // hash of the matched file (== source_hash for a file match; the OSS file's for a snippet)
-	MatchType       string      `json:"match_type,omitempty"`        // "file" (whole file) | "snippet" | "declared" (from a manifest)
+	MatchType       string      `json:"match_type,omitempty"`        // "file" (whole file) | "snippet" | "declared" (the manifest declares it) | "transitive" (the manifest's lockfile pulls it in)
 	Identified      bool        `json:"identified,omitempty"`        // a bom.identify rule claimed this component for this file
 	MatchPercentage int         `json:"match_percentage,omitempty"`  // match confidence (snippet only)
 	Confidence      string      `json:"confidence,omitempty"`        // attribution reliability grade: LOW, MEDIUM or HIGH

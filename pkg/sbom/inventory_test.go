@@ -380,3 +380,23 @@ func TestInventoryAddKeepsTheBetterMatchIndex(t *testing.T) {
 		}
 	}
 }
+
+// Local is a statement about the component, not about the origin that reported it: a workspace
+// package the scan also matched is still the project's own. It survives the merge in either
+// order, including the declared-to-detected replacement.
+func TestInventoryAddKeepsLocal(t *testing.T) {
+	local := Component{Purl: "pkg:npm/tool", Version: "1.0.0", Scope: ScopeDeclared, Local: true}
+	detected := Component{Purl: "pkg:npm/tool", Version: "1.0.0", Scope: ScopeDetected, Name: "tool"}
+	for name, order := range map[string][]Component{
+		"local first":    {local, detected},
+		"detected first": {detected, local},
+	} {
+		t.Run(name, func(t *testing.T) {
+			var inv Inventory
+			inv.Add(order...)
+			if len(inv.Components) != 1 || !inv.Components[0].Local {
+				t.Errorf("merged component = %+v, want one local component", inv.Components)
+			}
+		})
+	}
+}

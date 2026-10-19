@@ -28,8 +28,12 @@ import (
 	"fmt"
 )
 
-// RawSchemaVersion is the version of the raw inventory document. Bump on a breaking shape change.
-const RawSchemaVersion = "2.0"
+// RawSchemaVersion is the version of the raw inventory document. Bump the major on a breaking
+// shape change and the minor on an additive one, so a reader can tell which documents it has to
+// handle differently from which merely carry more than it knows about.
+//
+// 2.1 added the `dependencies` roots, `local` on a component and the `transitive` match type.
+const RawSchemaVersion = "2.1"
 
 // RawDocument is the raw output format: an Inventory wrapped in a versioned envelope. The embedded
 // Inventory promotes its `components`/`vulnerabilities` keys to the top level, so the JSON is

@@ -87,20 +87,12 @@ func buildCycloneDX(inv Inventory, o options) (string, error) {
 	return buf.String(), nil
 }
 
-// cdxPurl returns the component PURL with its version appended when one is known.
-func cdxPurl(comp Component) string {
-	if comp.Version != "" && comp.Version != noAssertion {
-		return comp.Purl + "@" + comp.Version
-	}
-	return comp.Purl
-}
-
 func cycloneDXComponent(comp Component) cdx.Component {
 	version := comp.Version
 	if version == "" {
 		version = noAssertion
 	}
-	purl := cdxPurl(comp)
+	purl := comp.Ref()
 
 	c := cdx.Component{
 		BOMRef:     purl,
@@ -265,7 +257,7 @@ func cycloneDXVulnerabilities(inv Inventory) []cdx.Vulnerability {
 	// advisory to every version of that component — reporting vulnerabilities a release does not have.
 	refsByPurl := make(map[string][]string, len(inv.Components)*2)
 	for _, c := range inv.Components {
-		ref := cdxPurl(c)
+		ref := c.Ref()
 		refsByPurl[ref] = append(refsByPurl[ref], ref)
 		if ref != c.Purl {
 			refsByPurl[c.Purl] = append(refsByPurl[c.Purl], ref)
