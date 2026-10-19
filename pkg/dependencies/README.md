@@ -283,7 +283,9 @@ for _, root := range g.Roots {
   `dev: true` in `package-lock.json` are not used.
 - **Status** is `complete`, `partial` (usable but missing something) or
   `unknown` (no members), with a `Reason` such as `manifest_missing` or
-  `malformed`.
+  `malformed`. `edges_unknown` marks a lockfile that pins every package but
+  records no edges: its members are right, and a member that is not direct
+  has no incoming edge.
 
 Lockfiles are treated as untrusted: `Limits` caps the bytes read and the nodes
 and edges kept, and a bad lockfile is reported on its root, never as a panic.
@@ -300,6 +302,9 @@ and edges kept, and a bad lockfile is reported on its root, never as a panic.
 | `uv.lock` (version 1) | lockfile only | the project and each workspace member, at its `pyproject.toml`; editable, directory and path packages are local nodes | each root's `dev-dependencies` groups; extras are runtime |
 | `packages.lock.json` (NuGet v1, v2) | lockfile, and the name of the project file beside it | the `.csproj`, `.fsproj` or `.vbproj` beside it, or the lockfile when there is not exactly one; every target framework is merged, and `Project` entries are local nodes | unknown: the lockfile does not record them |
 | `composer.lock` | lockfile and `composer.json` | project; path repository packages are local nodes | `require-dev`; unknown without `composer.json` |
+| `gradle.lockfile` | lockfile, and whether `build.gradle.kts` is beside it | `build.gradle`, or `build.gradle.kts` when it is the only build file; no direct members and no edges (`edges_unknown`) | unknown |
+| `Pipfile.lock` | lockfile and `Pipfile` | `Pipfile`, with `[packages]` and `[dev-packages]` as directs; no edges (`edges_unknown`); path packages are local nodes and VCS packages are left out | `[dev-packages]`; unknown without a `Pipfile` |
+| `go.mod` | `go.mod` only | `go.mod`, with requirements not marked `// indirect` as directs; no edges (`edges_unknown`); `replace` rewrites a module, and a directory replacement is a local node | unknown: Go has no dev dependencies |
 
 The `Gemfile` is Ruby, so only `gem` lines, `group` blocks and `group:` or
 `groups:` options are read. A gem declared in any other way counts as runtime,

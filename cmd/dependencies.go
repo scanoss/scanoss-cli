@@ -63,7 +63,8 @@ var dependenciesCmd = &cobra.Command{
    With --graph it prints the dependency graph resolved from the lockfiles
    instead: package-lock.json, npm-shrinkwrap.json, yarn.lock,
    pnpm-lock.yaml, Cargo.lock, Gemfile.lock, poetry.lock, uv.lock,
-   composer.lock and packages.lock.json.
+   Pipfile.lock, composer.lock, packages.lock.json, gradle.lockfile and
+   go.mod.
 
 2. API MODE (--purl):
    Queries the SCANOSS API for component dependencies (direct or transitive).
