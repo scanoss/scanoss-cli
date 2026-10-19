@@ -39,6 +39,7 @@ import (
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/lockfile"
 	"github.com/scanoss/scanoss.go/pkg/filter"
+	"github.com/scanoss/scanoss.go/pkg/sbom/depsource"
 	"github.com/scanoss/scanoss.go/pkg/scanoss"
 )
 
@@ -64,6 +65,12 @@ var dependenciesCmd = &cobra.Command{
    instead: package-lock.json, yarn.lock, pnpm-lock.yaml, Cargo.lock,
    Gemfile.lock, poetry.lock and composer.lock.
 
+   With --format it renders the dependencies as an inventory instead, in the
+   same raw, CycloneDX or SPDX shape "scan --include deps" writes: lockfiles
+   (package-lock.json, yarn.lock, pnpm-lock.yaml, Cargo.lock, Gemfile.lock,
+   poetry.lock, composer.lock) are resolved into a dependency graph, without
+   their dev dependencies, and manifests no lockfile covers are listed flat.
+
 2. API MODE (--purl):
    Queries the SCANOSS API for component dependencies (direct or transitive).
 
@@ -80,6 +87,9 @@ Examples:
 
   # Print the dependency graph resolved from the project's lockfiles
   scanoss-cli dependencies ./my-project --extract-local --graph
+
+  # Render the dependency graph resolved from the project's lockfiles as CycloneDX
+  scanoss-cli dependencies ./my-project --extract-local --format cyclonedx
 
   # Scan project dependencies and query API for direct dependencies
   scanoss-cli dependencies ./my-project
@@ -104,6 +114,7 @@ func init() {
 	// Local extraction mode
 	dependenciesCmd.Flags().Bool("extract-local", false, "Extract local dependencies from manifest files")
 	dependenciesCmd.Flags().Bool("graph", false, "With --extract-local, print the dependency graph resolved from lockfiles")
+	dependenciesCmd.Flags().StringP("format", "f", "", "With --extract-local, render the dependencies as an inventory: raw, cyclonedx or spdx")
 	dependenciesCmd.Flags().String("settings", "", "Path to settings file (scanoss.json/settings.json)")
 
 	// API mode flags
@@ -124,6 +135,7 @@ func init() {
 func runDependencies(cmd *cobra.Command, args []string) error {
 	extractLocal, _ := cmd.Flags().GetBool("extract-local")
 	graph, _ := cmd.Flags().GetBool("graph")
+	format, _ := cmd.Flags().GetString("format")
 	settingsFlag, _ := cmd.Flags().GetString("settings")
 	outputFile, _ := cmd.Flags().GetString("output")
 	purl, _ := cmd.Flags().GetString("purl")
@@ -141,6 +153,17 @@ func runDependencies(cmd *cobra.Command, args []string) error {
 	if graph && !extractLocal {
 		return usageError(cmd, "--graph requires --extract-local")
 	}
+	if graph && format != "" {
+		return usageError(cmd, "--graph and --format cannot be combined")
+	}
+	if format != "" && !extractLocal {
+		return usageError(cmd, "--format requires --extract-local")
+	}
+	if format != "" {
+		if err := validateOutputFormat(cmd); err != nil {
+			return err
+		}
+	}
 
 	// Mode 1: Local extraction only
 	if extractLocal {
@@ -149,6 +172,9 @@ func runDependencies(cmd *cobra.Command, args []string) error {
 		}
 		if graph {
 			return runLocalGraph(args[0], outputFile, settingsFlag)
+		}
+		if format != "" {
+			return runLocalInventory(cmd, args[0], settingsFlag)
 		}
 		return runLocalExtraction(args[0], outputFile, settingsFlag)
 	}
@@ -329,6 +355,38 @@ func mergeGraphs(graphs []resolve.Graph) resolve.Graph {
 		return cmp.Or(cmp.Compare(a.Manifest, b.Manifest), cmp.Compare(a.Lockfile, b.Lockfile))
 	})
 	return out
+}
+
+// runLocalInventory renders the dependency files under targetPath as an inventory in the
+// --format asked for, through the same adapter and writers as "scan --include deps", with no
+// API call: the lockfiles are resolved into a graph and the manifests no lockfile covers are
+// parsed flat.
+func runLocalInventory(cmd *cobra.Command, targetPath, settingsFlag string) error {
+	root, err := filepath.Abs(targetPath)
+	if err != nil {
+		return err
+	}
+	if _, err := os.Stat(root); err != nil {
+		return fmt.Errorf("path does not exist: %s", targetPath)
+	}
+	s, err := resolveSettings(settingsFlag, root)
+	if err != nil {
+		return fmt.Errorf("error loading settings: %w", err)
+	}
+	res, err := filter.Collect(root, dependencyCollectOptions(s))
+	if err != nil {
+		return fmt.Errorf("failed to collect files: %w", err)
+	}
+	files := depsource.Select(res.Files)
+	infof("Dependency files found: %d", len(files))
+
+	inv, failed := depsource.Inventory(root, files)
+	for path, readErr := range failed {
+		warnf("failed to read %s: %v", path, readErr)
+	}
+	infof("Lockfile roots resolved: %d", len(inv.Dependencies))
+	infof("Total dependencies found: %d", len(inv.Components))
+	return emitInventory(cmd, inv, root)
 }
 
 // runScanMode extracts local dependencies and queries the SCANOSS API
