@@ -85,7 +85,7 @@ func parseCargoLock(b *builder, data, manifest []byte, members map[string][]byte
 			r = b.root(dirs[p.Name])
 		}
 		for _, dep := range p.Dependencies {
-			match := idx[strings.Join(strings.Fields(dep), " ")]
+			match := cargoLookup(idx, lock.Package, dep)
 			ok := len(match) == 1
 			switch {
 			case !ok && local:
@@ -169,6 +169,27 @@ func cargoMembers(fsys fs.FS, dir string, manifest []byte, budget int64, maxFile
 		}
 	}
 	return out
+}
+
+// cargoLookup returns the packages a dependency string names. Cargo adds the
+// source only to the registry or git copy when a path package shares its name
+// and version, so a reference that also fits exactly one local package means
+// that one.
+func cargoLookup(idx map[string][]int, pkgs []cargoPackage, dep string) []int {
+	match := idx[strings.Join(strings.Fields(dep), " ")]
+	if len(match) < 2 {
+		return match
+	}
+	var local []int
+	for _, i := range match {
+		if pkgs[i].Source == "" {
+			local = append(local, i)
+		}
+	}
+	if len(local) == 1 {
+		return local
+	}
+	return match
 }
 
 // cargoIndex maps every way Cargo can name a package ("name", "name
