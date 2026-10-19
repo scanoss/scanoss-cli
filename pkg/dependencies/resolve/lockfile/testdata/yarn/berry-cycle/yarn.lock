@@ -1,0 +1,27 @@
+__metadata:
+  version: 6
+  cacheKey: 8
+
+"app@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "app@workspace:."
+  dependencies:
+    chicken: ^1.0.0
+  languageName: unknown
+  linkType: soft
+
+"chicken@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "chicken@npm:1.0.0"
+  dependencies:
+    egg: ^1.0.0
+  languageName: node
+  linkType: hard
+
+"egg@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "egg@npm:1.0.0"
+  dependencies:
+    chicken: ^1.0.0
+  languageName: node
+  linkType: hard

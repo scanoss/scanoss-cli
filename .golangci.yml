@@ -6,6 +6,20 @@ run:
 linters:
   # Standard set: errcheck, govet, ineffassign, staticcheck, unused.
   default: standard
+  enable:
+    - depguard
+  settings:
+    depguard:
+      rules:
+        # Lockfiles are untrusted input: parsing one must never run a process.
+        lockfile-parsers:
+          files:
+            - "**/pkg/dependencies/resolve/lockfile/**"
+          deny:
+            - pkg: os/exec
+              desc: lockfile parsers read untrusted input and must not run processes
+            - pkg: syscall
+              desc: lockfile parsers read untrusted input and must not run processes
   exclusions:
     # Do not apply linters to test files.
     paths:

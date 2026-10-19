@@ -1,0 +1,26 @@
+lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    dependencies:
+      plugin:
+        specifier: ^1.0.0
+        version: 1.0.0
+    optionalDependencies:
+      fsevents:
+        specifier: ^2.0.0
+        version: 2.3.3
+
+packages:
+
+  plugin@1.0.0:
+    resolution: {integrity: sha512-aaa}
+
+snapshots:
+
+  plugin@1.0.0:
+    dependencies:
+      ghost: 1.0.0
+    optionalDependencies:
+      native: 1.0.0

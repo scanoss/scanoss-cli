@@ -1,0 +1,5 @@
+{
+  "name": "app",
+  "dependencies": { "left": "^1.0.0", "right": "^2.0.0" },
+  "devDependencies": { "@test/runner": "^3.0.0" }
+}

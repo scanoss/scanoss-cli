@@ -1,0 +1,51 @@
+lockfileVersion: '6.0'
+
+importers:
+
+  .:
+    devDependencies:
+      '@test/runner':
+        specifier: ^3.0.0
+        version: 3.1.0
+
+  packages/app:
+    dependencies:
+      '@acme/lib':
+        specifier: workspace:*
+        version: link:../lib
+      left:
+        specifier: ^1.0.0
+        version: 1.0.0(react@18.2.0)
+
+  packages/lib:
+    dependencies:
+      bottom:
+        specifier: ^1.0.0
+        version: 1.2.3
+    optionalDependencies:
+      fsevents:
+        specifier: ^2.0.0
+        version: 2.3.3
+
+packages:
+
+  /@test/runner@3.1.0:
+    resolution: {integrity: sha512-aaa}
+    dev: true
+
+  /bottom@1.2.3:
+    resolution: {integrity: sha512-bbb}
+    dev: false
+
+  /left@1.0.0(react@18.2.0):
+    resolution: {integrity: sha512-ccc}
+    peerDependencies:
+      react: '*'
+    dependencies:
+      bottom: 1.2.3
+      react: 18.2.0
+    dev: false
+
+  /react@18.2.0:
+    resolution: {integrity: sha512-ddd}
+    dev: false

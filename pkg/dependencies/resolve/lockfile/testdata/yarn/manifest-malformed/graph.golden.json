@@ -1,0 +1,62 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:npm/@test/runner@3.1.0",
+      "purl": "pkg:npm/@test/runner",
+      "version": "3.1.0"
+    },
+    {
+      "id": "pkg:npm/bottom@1.2.3",
+      "purl": "pkg:npm/bottom",
+      "version": "1.2.3"
+    },
+    {
+      "id": "pkg:npm/left@1.0.0",
+      "purl": "pkg:npm/left",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pkg:npm/right@2.0.0",
+      "purl": "pkg:npm/right",
+      "version": "2.0.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "package.json",
+      "lockfile": "yarn.lock",
+      "ecosystem": "npm",
+      "status": "partial",
+      "reason": "manifest_malformed",
+      "detail": "unexpected end of JSON input",
+      "members": [
+        {
+          "id": "pkg:npm/@test/runner@3.1.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:npm/bottom@1.2.3",
+          "direct": false
+        },
+        {
+          "id": "pkg:npm/left@1.0.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:npm/right@2.0.0",
+          "direct": false
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:npm/left@1.0.0",
+          "to": "pkg:npm/bottom@1.2.3"
+        },
+        {
+          "from": "pkg:npm/right@2.0.0",
+          "to": "pkg:npm/bottom@1.2.3"
+        }
+      ]
+    }
+  ]
+}

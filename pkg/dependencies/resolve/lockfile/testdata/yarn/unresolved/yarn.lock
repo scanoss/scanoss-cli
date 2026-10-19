@@ -1,0 +1,7 @@
+# yarn lockfile v1
+
+
+plugin@^1.0.0:
+  version "1.0.0"
+  dependencies:
+    ghost "^1.0.0"

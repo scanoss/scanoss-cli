@@ -1,0 +1,4 @@
+{
+  "dependencies": { "lib": "^1.0.0", "tool": "^1.0.0", "renamed": "npm:lib@^2.0.0" },
+  "optionalDependencies": { "not-installed": "^1.0.0" }
+}
