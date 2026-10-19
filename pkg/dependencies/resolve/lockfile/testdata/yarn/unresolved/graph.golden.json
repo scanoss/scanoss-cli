@@ -1,0 +1,26 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:npm/plugin@1.0.0",
+      "purl": "pkg:npm/plugin",
+      "version": "1.0.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "package.json",
+      "lockfile": "yarn.lock",
+      "ecosystem": "npm",
+      "status": "partial",
+      "reason": "unresolved_dependency",
+      "detail": "package.json requires absent@^2.0.0",
+      "members": [
+        {
+          "id": "pkg:npm/plugin@1.0.0",
+          "direct": true
+        }
+      ],
+      "edges": []
+    }
+  ]
+}

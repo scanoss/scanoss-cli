@@ -1,0 +1,12 @@
+# yarn lockfile v1
+
+
+chicken@^1.0.0:
+  version "1.0.0"
+  dependencies:
+    egg "^1.0.0"
+
+egg@^1.0.0:
+  version "1.0.0"
+  dependencies:
+    chicken "^1.0.0"

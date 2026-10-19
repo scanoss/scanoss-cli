@@ -1,0 +1,15 @@
+{
+  "nodes": [],
+  "roots": [
+    {
+      "manifest": "package.json",
+      "lockfile": "yarn.lock",
+      "ecosystem": "npm",
+      "status": "unknown",
+      "reason": "malformed",
+      "detail": "yaml: line 4: did not find expected ',' or ']'",
+      "members": [],
+      "edges": []
+    }
+  ]
+}

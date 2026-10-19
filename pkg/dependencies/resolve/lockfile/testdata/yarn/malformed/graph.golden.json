@@ -1,0 +1,15 @@
+{
+  "nodes": [],
+  "roots": [
+    {
+      "manifest": "package.json",
+      "lockfile": "yarn.lock",
+      "ecosystem": "npm",
+      "status": "unknown",
+      "reason": "malformed",
+      "detail": "line 3: entry header does not end with a colon",
+      "members": [],
+      "edges": []
+    }
+  ]
+}

@@ -135,6 +135,9 @@ func TestParseUnsupported(t *testing.T) {
 	if m, ok := ManifestFor("package-lock.json"); ok {
 		t.Errorf("ManifestFor(package-lock.json) = %q, want none: the lockfile records its own roots", m)
 	}
+	if m, ok := ManifestFor("sub/yarn.lock"); !ok || m != "package.json" {
+		t.Errorf("ManifestFor(sub/yarn.lock) = %q, %v; want package.json", m, ok)
+	}
 }
 
 func TestParseFS(t *testing.T) {
@@ -146,9 +149,13 @@ func TestParseFS(t *testing.T) {
 		status   resolve.Status
 		reason   resolve.Reason
 		members  int
+		direct   int
 	}{
-		{"web/package-lock.json", DefaultLimits(), "web/package.json", resolve.StatusComplete, "", 4},
-		{"web/package-lock.json", Limits{MaxBytes: 64, MaxNodes: 10, MaxEdges: 10}, "web/package.json", resolve.StatusUnknown, resolve.ReasonTooLarge, 0},
+		{"web/package-lock.json", DefaultLimits(), "web/package.json", resolve.StatusComplete, "", 4, 3},
+		{"web/package-lock.json", Limits{MaxBytes: 64, MaxNodes: 10, MaxEdges: 10}, "web/package.json", resolve.StatusUnknown, resolve.ReasonTooLarge, 0, 0},
+		{"app/yarn.lock", DefaultLimits(), "app/package.json", resolve.StatusComplete, "", 4, 3},
+		{"app/yarn.lock", Limits{MaxBytes: 300, MaxNodes: 10, MaxEdges: 10}, "app/package.json", resolve.StatusUnknown, resolve.ReasonTooLarge, 0, 0},
+		{"nomanifest/yarn.lock", DefaultLimits(), "nomanifest/package.json", resolve.StatusPartial, resolve.ReasonManifestMissing, 4, 0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.path, func(t *testing.T) {
@@ -163,8 +170,15 @@ func TestParseFS(t *testing.T) {
 			if r.Manifest != tt.manifest || r.Lockfile != tt.path {
 				t.Errorf("root names %q from %q, want %q from %q", r.Manifest, r.Lockfile, tt.manifest, tt.path)
 			}
-			if r.Status != tt.status || r.Reason != tt.reason || len(r.Members) != tt.members {
-				t.Errorf("got %s/%s with %d members, want %s/%s with %d", r.Status, r.Reason, len(r.Members), tt.status, tt.reason, tt.members)
+			direct := 0
+			for _, m := range r.Members {
+				if m.Direct {
+					direct++
+				}
+			}
+			if r.Status != tt.status || r.Reason != tt.reason || len(r.Members) != tt.members || direct != tt.direct {
+				t.Errorf("got %s/%s with %d members, %d direct; want %s/%s with %d, %d direct",
+					r.Status, r.Reason, len(r.Members), direct, tt.status, tt.reason, tt.members, tt.direct)
 			}
 		})
 	}
