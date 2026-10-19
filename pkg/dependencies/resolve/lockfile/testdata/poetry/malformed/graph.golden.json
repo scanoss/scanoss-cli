@@ -1,0 +1,15 @@
+{
+  "nodes": [],
+  "roots": [
+    {
+      "manifest": "pyproject.toml",
+      "lockfile": "poetry.lock",
+      "ecosystem": "pypi",
+      "status": "unknown",
+      "reason": "malformed",
+      "detail": "toml: expected ']' to close table name",
+      "members": [],
+      "edges": []
+    }
+  ]
+}

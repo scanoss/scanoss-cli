@@ -1,0 +1,13 @@
+[[package]]
+name = "chicken"
+version = "1.0.0"
+
+[package.dependencies]
+egg = "*"
+
+[[package]]
+name = "egg"
+version = "1.0.0"
+
+[package.dependencies]
+chicken = "*"

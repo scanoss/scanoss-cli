@@ -1,0 +1,86 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:pypi/charset-normalizer@3.3.2",
+      "purl": "pkg:pypi/charset-normalizer",
+      "version": "3.3.2"
+    },
+    {
+      "id": "pkg:pypi/numpy@1.24.4",
+      "purl": "pkg:pypi/numpy",
+      "version": "1.24.4"
+    },
+    {
+      "id": "pkg:pypi/numpy@1.26.4",
+      "purl": "pkg:pypi/numpy",
+      "version": "1.26.4"
+    },
+    {
+      "id": "pkg:pypi/requests@2.31.0",
+      "purl": "pkg:pypi/requests",
+      "version": "2.31.0"
+    },
+    {
+      "id": "pkg:pypi/sci-tool@1.0.0",
+      "purl": "pkg:pypi/sci-tool",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pkg:pypi/typing-extensions@4.10.0",
+      "purl": "pkg:pypi/typing-extensions",
+      "version": "4.10.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "pyproject.toml",
+      "lockfile": "poetry.lock",
+      "ecosystem": "pypi",
+      "status": "complete",
+      "members": [
+        {
+          "id": "pkg:pypi/charset-normalizer@3.3.2",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/numpy@1.24.4",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/numpy@1.26.4",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/requests@2.31.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:pypi/sci-tool@1.0.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:pypi/typing-extensions@4.10.0",
+          "direct": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:pypi/requests@2.31.0",
+          "to": "pkg:pypi/charset-normalizer@3.3.2"
+        },
+        {
+          "from": "pkg:pypi/sci-tool@1.0.0",
+          "to": "pkg:pypi/numpy@1.24.4"
+        },
+        {
+          "from": "pkg:pypi/sci-tool@1.0.0",
+          "to": "pkg:pypi/numpy@1.26.4"
+        },
+        {
+          "from": "pkg:pypi/sci-tool@1.0.0",
+          "to": "pkg:pypi/typing-extensions@4.10.0"
+        }
+      ]
+    }
+  ]
+}

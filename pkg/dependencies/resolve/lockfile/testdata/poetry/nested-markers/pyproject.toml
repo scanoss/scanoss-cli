@@ -1,0 +1,12 @@
+[project]
+name = "app"
+dependencies = [
+    "Requests[socks] >= 2.31 ; python_version >= '3.8'",
+    "sci_tool==1.0.0",
+]
+
+[project.optional-dependencies]
+docs = ["sphinx>=7"]
+
+[tool.poetry.dev-dependencies]
+typing-extensions = "*"
