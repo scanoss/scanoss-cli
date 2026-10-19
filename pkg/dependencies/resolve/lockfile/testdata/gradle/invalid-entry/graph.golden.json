@@ -12,8 +12,8 @@
       "lockfile": "gradle.lockfile",
       "ecosystem": "maven",
       "status": "partial",
-      "reason": "edges_unknown",
-      "detail": "gradle.lockfile records no edges",
+      "reason": "invalid_entry",
+      "detail": "\"com.google.guava:guava\" is not group:artifact:version",
       "devKnown": false,
       "members": [
         {

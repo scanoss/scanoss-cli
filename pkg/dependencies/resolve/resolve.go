@@ -114,13 +114,14 @@ const (
 	ReasonManifestMissing       Reason = "manifest_missing"
 	ReasonManifestMalformed     Reason = "manifest_malformed"
 	ReasonUnsupportedWorkspaces Reason = "unsupported_workspaces"
+	ReasonUnresolvedDependency  Reason = "unresolved_dependency"
+	ReasonInvalidEntry          Reason = "invalid_entry"
 	// ReasonEdgesUnknown means the lockfile pins exact versions but records
 	// no edges, such as gradle.lockfile, Pipfile.lock or go.mod: the members
 	// are known and the edges are not, so a member that is not direct is
-	// unattributed.
-	ReasonEdgesUnknown         Reason = "edges_unknown"
-	ReasonUnresolvedDependency Reason = "unresolved_dependency"
-	ReasonInvalidEntry         Reason = "invalid_entry"
+	// unattributed. It holds for every root of those formats, so it ranks
+	// last and any other problem shows instead.
+	ReasonEdgesUnknown Reason = "edges_unknown"
 )
 
 // Graph is the dependency graph of one or more lockfiles.

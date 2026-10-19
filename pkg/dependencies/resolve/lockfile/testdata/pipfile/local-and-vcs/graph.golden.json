@@ -18,8 +18,8 @@
       "lockfile": "Pipfile.lock",
       "ecosystem": "pypi",
       "status": "partial",
-      "reason": "edges_unknown",
-      "detail": "Pipfile.lock records no edges",
+      "reason": "unresolved_dependency",
+      "detail": "Pipfile requires app",
       "devKnown": true,
       "members": [
         {

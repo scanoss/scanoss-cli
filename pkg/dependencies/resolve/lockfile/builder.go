@@ -46,9 +46,9 @@ var precedence = []resolve.Reason{
 	resolve.ReasonManifestMissing,
 	resolve.ReasonManifestMalformed,
 	resolve.ReasonUnsupportedWorkspaces,
-	resolve.ReasonEdgesUnknown,
 	resolve.ReasonUnresolvedDependency,
 	resolve.ReasonInvalidEntry,
+	resolve.ReasonEdgesUnknown,
 }
 
 func isUnknown(r resolve.Reason) bool {
