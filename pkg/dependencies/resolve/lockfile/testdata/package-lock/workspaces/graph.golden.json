@@ -1,0 +1,87 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:npm/lint@1.0.0",
+      "purl": "pkg:npm/lint",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pkg:npm/ms@1.0.0",
+      "purl": "pkg:npm/ms",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pkg:npm/ms@2.1.3",
+      "purl": "pkg:npm/ms",
+      "version": "2.1.3"
+    },
+    {
+      "id": "pkg:npm/orphan@0.0.1",
+      "purl": "pkg:npm/orphan",
+      "version": "0.0.1"
+    },
+    {
+      "id": "pkg:npm/real-name@4.0.0",
+      "purl": "pkg:npm/real-name",
+      "version": "4.0.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "package.json",
+      "lockfile": "package-lock.json",
+      "ecosystem": "npm",
+      "status": "complete",
+      "members": [
+        {
+          "id": "pkg:npm/lint@1.0.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:npm/ms@2.1.3",
+          "direct": false
+        },
+        {
+          "id": "pkg:npm/orphan@0.0.1",
+          "direct": false
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:npm/orphan@0.0.1",
+          "to": "pkg:npm/ms@2.1.3"
+        }
+      ]
+    },
+    {
+      "manifest": "packages/app/package.json",
+      "lockfile": "package-lock.json",
+      "ecosystem": "npm",
+      "status": "complete",
+      "members": [
+        {
+          "id": "pkg:npm/ms@1.0.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:npm/real-name@4.0.0",
+          "direct": true
+        }
+      ],
+      "edges": []
+    },
+    {
+      "manifest": "packages/lib/package.json",
+      "lockfile": "package-lock.json",
+      "ecosystem": "npm",
+      "status": "complete",
+      "members": [
+        {
+          "id": "pkg:npm/ms@2.1.3",
+          "direct": true
+        }
+      ],
+      "edges": []
+    }
+  ]
+}

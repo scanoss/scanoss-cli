@@ -1,0 +1,15 @@
+{
+  "nodes": [],
+  "roots": [
+    {
+      "manifest": "package.json",
+      "lockfile": "package-lock.json",
+      "ecosystem": "npm",
+      "status": "unknown",
+      "reason": "unsupported_version",
+      "detail": "lockfileVersion 1",
+      "members": [],
+      "edges": []
+    }
+  ]
+}

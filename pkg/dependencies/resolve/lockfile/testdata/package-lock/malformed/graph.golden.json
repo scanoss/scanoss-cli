@@ -1,0 +1,15 @@
+{
+  "nodes": [],
+  "roots": [
+    {
+      "manifest": "package.json",
+      "lockfile": "package-lock.json",
+      "ecosystem": "npm",
+      "status": "unknown",
+      "reason": "malformed",
+      "detail": "unexpected end of JSON input",
+      "members": [],
+      "edges": []
+    }
+  ]
+}
