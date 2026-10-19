@@ -9,6 +9,12 @@
       "id": "pkg:cargo/log@0.4.22",
       "purl": "pkg:cargo/log",
       "version": "0.4.22"
+    },
+    {
+      "id": "pkg:cargo/member@0.1.0",
+      "purl": "pkg:cargo/member",
+      "version": "0.1.0",
+      "local": true
     }
   ],
   "roots": [
@@ -21,9 +27,22 @@
         {
           "id": "pkg:cargo/anyhow@1.0.86",
           "direct": true
+        },
+        {
+          "id": "pkg:cargo/log@0.4.22",
+          "direct": false
+        },
+        {
+          "id": "pkg:cargo/member@0.1.0",
+          "direct": true
         }
       ],
-      "edges": []
+      "edges": [
+        {
+          "from": "pkg:cargo/member@0.1.0",
+          "to": "pkg:cargo/log@0.4.22"
+        }
+      ]
     },
     {
       "manifest": "member/Cargo.toml",

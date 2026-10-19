@@ -38,8 +38,8 @@ type gemSpec struct {
 }
 
 // parseGemfileLock reads the GEM, GIT and PATH specs and the DEPENDENCIES of
-// a Gemfile.lock. PATH gems are the project's own and are folded into the
-// root like Cargo's local crates. Platform variants of a gem
+// a Gemfile.lock. PATH gems are the project's own: one that DEPENDENCIES or
+// another gem names is a local node. Platform variants of a gem
 // ("1.15.4-x86_64-linux") are one node.
 func parseGemfileLock(b *builder, data, _ []byte, _ map[string][]byte) {
 	specs, directs, err := scanGemfileLock(string(data))
@@ -47,16 +47,28 @@ func parseGemfileLock(b *builder, data, _ []byte, _ map[string][]byte) {
 		b.flag(resolve.ReasonMalformed, err.Error())
 		return
 	}
-	local := map[string]bool{}
+	named := map[string]bool{}
+	for _, name := range directs {
+		named[name] = true
+	}
+	for _, s := range specs {
+		for _, dep := range s.deps {
+			named[dep] = true
+		}
+	}
 	byName := map[string]resolve.NodeID{}
 	ids := make([]resolve.NodeID, len(specs))
 	for i, s := range specs {
-		if s.local {
-			local[s.name] = true
-			continue
-		}
 		version, _, _ := strings.Cut(s.version, "-")
-		if id, ok := b.node("", s.name, version); ok {
+		var id resolve.NodeID
+		var ok bool
+		switch {
+		case !s.local:
+			id, ok = b.node("", s.name, version)
+		case named[s.name]:
+			id, ok = b.local("", s.name, version)
+		}
+		if ok {
 			ids[i] = id
 			if _, seen := byName[s.name]; !seen {
 				byName[s.name] = id
@@ -64,31 +76,25 @@ func parseGemfileLock(b *builder, data, _ []byte, _ map[string][]byte) {
 		}
 	}
 
-	r := b.root("")
 	for i, s := range specs {
-		if !s.local && ids[i] == "" {
+		if ids[i] == "" {
 			continue
 		}
 		for _, dep := range s.deps {
 			// Bundler never locks itself, though gems depend on it.
-			if local[dep] || dep == "bundler" {
+			if dep == "bundler" {
 				continue
 			}
-			to, ok := byName[dep]
-			switch {
-			case !ok && s.local:
-				r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %s", s.name, dep))
-			case !ok:
-				b.flagNode(ids[i], resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %s", s.name, dep))
-			case s.local:
-				r.declare(to)
-			default:
+			if to, ok := byName[dep]; ok {
 				b.edge(ids[i], to)
+			} else {
+				b.flagNode(ids[i], resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %s", s.name, dep))
 			}
 		}
 	}
 	// A dependency missing from the specs is one Bundler left out for the
 	// locked platforms, such as tzinfo-data outside Windows.
+	r := b.root("")
 	for _, name := range directs {
 		if id, ok := byName[name]; ok {
 			r.declare(id)

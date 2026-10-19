@@ -1,6 +1,18 @@
 {
   "nodes": [
     {
+      "id": "pkg:gem/myapp-core@0.1.0",
+      "purl": "pkg:gem/myapp-core",
+      "version": "0.1.0",
+      "local": true
+    },
+    {
+      "id": "pkg:gem/myapp@0.1.0",
+      "purl": "pkg:gem/myapp",
+      "version": "0.1.0",
+      "local": true
+    },
+    {
       "id": "pkg:gem/nokogiri@1.15.4",
       "purl": "pkg:gem/nokogiri",
       "version": "1.15.4"
@@ -24,12 +36,20 @@
       "status": "complete",
       "members": [
         {
-          "id": "pkg:gem/nokogiri@1.15.4",
+          "id": "pkg:gem/myapp-core@0.1.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:gem/myapp@0.1.0",
           "direct": true
         },
         {
+          "id": "pkg:gem/nokogiri@1.15.4",
+          "direct": false
+        },
+        {
           "id": "pkg:gem/racc@1.7.3",
-          "direct": true
+          "direct": false
         },
         {
           "id": "pkg:gem/widget@0.3.0",
@@ -37,6 +57,18 @@
         }
       ],
       "edges": [
+        {
+          "from": "pkg:gem/myapp-core@0.1.0",
+          "to": "pkg:gem/racc@1.7.3"
+        },
+        {
+          "from": "pkg:gem/myapp@0.1.0",
+          "to": "pkg:gem/myapp-core@0.1.0"
+        },
+        {
+          "from": "pkg:gem/myapp@0.1.0",
+          "to": "pkg:gem/nokogiri@1.15.4"
+        },
         {
           "from": "pkg:gem/nokogiri@1.15.4",
           "to": "pkg:gem/racc@1.7.3"

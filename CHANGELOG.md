@@ -12,8 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`pkg/dependencies/resolve`**, a dependency graph with edges: nodes are `purl@version`, and
   each manifest is a root with its members, its edges and a status (`complete`, `partial` or
   `unknown`) with a reason. `Member.Direct` tells declared packages from those only in the
-  lockfile. `Node.Local` marks the project's own packages, such as a workspace that another
-  workspace depends on; they keep their edges, so consumers skip them to list third-party
+  lockfile. `Node.Local` marks the project's own packages, such as a workspace, path crate or
+  `PATH` gem that another package depends on; they keep their edges, so consumers skip them to list third-party
   packages without losing what they pull in.
 - **`pkg/dependencies/resolve/lockfile`** builds that graph from `package-lock.json` (v2 and v3,
   including nested `node_modules` versions and workspaces), `yarn.lock` (v1 with `package.json`,

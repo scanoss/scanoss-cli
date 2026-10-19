@@ -1,0 +1,48 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:cargo/lib@0.2.0",
+      "purl": "pkg:cargo/lib",
+      "version": "0.2.0",
+      "local": true
+    },
+    {
+      "id": "pkg:cargo/rand@0.8.5",
+      "purl": "pkg:cargo/rand",
+      "version": "0.8.5"
+    },
+    {
+      "id": "pkg:cargo/serde@1.0.200",
+      "purl": "pkg:cargo/serde",
+      "version": "1.0.200"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "Cargo.toml",
+      "lockfile": "Cargo.lock",
+      "ecosystem": "cargo",
+      "status": "complete",
+      "members": [
+        {
+          "id": "pkg:cargo/lib@0.2.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:cargo/rand@0.8.5",
+          "direct": false
+        },
+        {
+          "id": "pkg:cargo/serde@1.0.200",
+          "direct": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:cargo/lib@0.2.0",
+          "to": "pkg:cargo/rand@0.8.5"
+        }
+      ]
+    }
+  ]
+}

@@ -62,13 +62,16 @@ type composerPackage struct {
 	Require composerLinks `json:"require"`
 	Replace composerLinks `json:"replace"`
 	Provide composerLinks `json:"provide"`
+	Dist    struct {
+		Type string `json:"type"`
+	} `json:"dist"`
 }
 
 // parseComposerLock reads composer.lock, and composer.json for the direct
 // dependencies. A requirement may be met by a package that replaces or
 // provides the name, as laravel/framework does for illuminate/*. A name
 // locked twice resolves to its first entry, so packages win over
-// packages-dev.
+// packages-dev. A package from a path repository is a local node.
 func parseComposerLock(b *builder, data, manifest []byte, _ map[string][]byte) {
 	var lock struct {
 		Packages    []composerPackage `json:"packages"`
@@ -83,7 +86,11 @@ func parseComposerLock(b *builder, data, manifest []byte, _ map[string][]byte) {
 	ids := make([]resolve.NodeID, len(pkgs))
 	for i, p := range pkgs {
 		vendor, name, _ := strings.Cut(strings.ToLower(p.Name), "/")
-		if id, ok := b.node(vendor, name, p.Version); ok {
+		add := b.node
+		if p.Dist.Type == "path" {
+			add = b.local
+		}
+		if id, ok := add(vendor, name, p.Version); ok {
 			ids[i] = id
 			if _, seen := byName[strings.ToLower(p.Name)]; !seen {
 				byName[strings.ToLower(p.Name)] = id

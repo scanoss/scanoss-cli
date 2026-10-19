@@ -57,8 +57,8 @@ func TestParseFSCargoWorkspace(t *testing.T) {
 	}
 	checkGraph(t, Input{Path: "rust/Cargo.lock"}, DefaultLimits(), g)
 	want := map[string][]string{
-		"rust/Cargo.toml":            {"complete/", "pkg:cargo/itoa@1.0.11"},
-		"rust/crates/app/Cargo.toml": {"complete/", "pkg:cargo/serde@1.0.200"},
+		"rust/Cargo.toml":            {"complete/"},
+		"rust/crates/app/Cargo.toml": {"complete/", "pkg:cargo/lib@0.1.0", "pkg:cargo/serde@1.0.200", "pkg:cargo/skip@0.1.0"},
 		"rust/crates/lib/Cargo.toml": {"complete/", "pkg:cargo/rand@0.8.5", "pkg:cargo/serde@1.0.200"},
 	}
 	if got := directs(g); !reflect.DeepEqual(got, want) {

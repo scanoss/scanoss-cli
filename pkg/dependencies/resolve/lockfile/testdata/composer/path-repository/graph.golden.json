@@ -1,0 +1,53 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:composer/acme/app-core@dev-main",
+      "purl": "pkg:composer/acme/app-core",
+      "version": "dev-main",
+      "local": true
+    },
+    {
+      "id": "pkg:composer/acme/support@dev-main",
+      "purl": "pkg:composer/acme/support",
+      "version": "dev-main",
+      "local": true
+    },
+    {
+      "id": "pkg:composer/psr/log@3.0.2",
+      "purl": "pkg:composer/psr/log",
+      "version": "3.0.2"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "composer.json",
+      "lockfile": "composer.lock",
+      "ecosystem": "composer",
+      "status": "complete",
+      "members": [
+        {
+          "id": "pkg:composer/acme/app-core@dev-main",
+          "direct": true
+        },
+        {
+          "id": "pkg:composer/acme/support@dev-main",
+          "direct": false
+        },
+        {
+          "id": "pkg:composer/psr/log@3.0.2",
+          "direct": false
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:composer/acme/app-core@dev-main",
+          "to": "pkg:composer/acme/support@dev-main"
+        },
+        {
+          "from": "pkg:composer/acme/support@dev-main",
+          "to": "pkg:composer/psr/log@3.0.2"
+        }
+      ]
+    }
+  ]
+}

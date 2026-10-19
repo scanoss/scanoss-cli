@@ -1,0 +1,62 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:pypi/click@8.1.7",
+      "purl": "pkg:pypi/click",
+      "version": "8.1.7"
+    },
+    {
+      "id": "pkg:pypi/mycore@0.2.0",
+      "purl": "pkg:pypi/mycore",
+      "version": "0.2.0",
+      "local": true
+    },
+    {
+      "id": "pkg:pypi/mylib@0.1.0",
+      "purl": "pkg:pypi/mylib",
+      "version": "0.1.0",
+      "local": true
+    },
+    {
+      "id": "pkg:pypi/requests@2.32.3",
+      "purl": "pkg:pypi/requests",
+      "version": "2.32.3"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "pyproject.toml",
+      "lockfile": "poetry.lock",
+      "ecosystem": "pypi",
+      "status": "complete",
+      "members": [
+        {
+          "id": "pkg:pypi/click@8.1.7",
+          "direct": true
+        },
+        {
+          "id": "pkg:pypi/mycore@0.2.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/mylib@0.1.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:pypi/requests@2.32.3",
+          "direct": false
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:pypi/mycore@0.2.0",
+          "to": "pkg:pypi/requests@2.32.3"
+        },
+        {
+          "from": "pkg:pypi/mylib@0.1.0",
+          "to": "pkg:pypi/mycore@0.2.0"
+        }
+      ]
+    }
+  ]
+}

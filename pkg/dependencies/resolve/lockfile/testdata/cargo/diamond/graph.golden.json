@@ -1,6 +1,18 @@
 {
   "nodes": [
     {
+      "id": "pkg:cargo/app-core@0.1.0",
+      "purl": "pkg:cargo/app-core",
+      "version": "0.1.0",
+      "local": true
+    },
+    {
+      "id": "pkg:cargo/app@0.1.0",
+      "purl": "pkg:cargo/app",
+      "version": "0.1.0",
+      "local": true
+    },
+    {
       "id": "pkg:cargo/bottom@1.2.3",
       "purl": "pkg:cargo/bottom",
       "version": "1.2.3"
@@ -24,6 +36,14 @@
       "status": "complete",
       "members": [
         {
+          "id": "pkg:cargo/app-core@0.1.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:cargo/app@0.1.0",
+          "direct": true
+        },
+        {
           "id": "pkg:cargo/bottom@1.2.3",
           "direct": false
         },
@@ -37,6 +57,22 @@
         }
       ],
       "edges": [
+        {
+          "from": "pkg:cargo/app-core@0.1.0",
+          "to": "pkg:cargo/app@0.1.0"
+        },
+        {
+          "from": "pkg:cargo/app-core@0.1.0",
+          "to": "pkg:cargo/right@2.0.0"
+        },
+        {
+          "from": "pkg:cargo/app@0.1.0",
+          "to": "pkg:cargo/app-core@0.1.0"
+        },
+        {
+          "from": "pkg:cargo/app@0.1.0",
+          "to": "pkg:cargo/left@1.0.0"
+        },
         {
           "from": "pkg:cargo/left@1.0.0",
           "to": "pkg:cargo/bottom@1.2.3"

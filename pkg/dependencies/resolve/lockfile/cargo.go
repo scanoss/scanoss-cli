@@ -56,9 +56,11 @@ type cargoManifest struct {
 // parseCargoLock reads Cargo.lock. Packages without a source are the
 // workspace's own crates and path dependencies. Cargo.lock does not say where
 // they live, so a local crate is the root at the manifest that names it: the
-// sibling Cargo.toml or a member manifest. What it depends on from a registry
-// or git is direct; its links to other local crates are dropped. Local crates
-// that no manifest names are folded into the root beside the lockfile.
+// sibling Cargo.toml or a member manifest. A local crate that another crate
+// depends on is a local node. A local crate that no manifest names is folded
+// into the root beside the lockfile when nothing depends on it, or when no
+// other root reaches it, as in a cycle of crates that only depend on each
+// other.
 func parseCargoLock(b *builder, data, manifest []byte, members map[string][]byte) {
 	var lock struct {
 		Package []cargoPackage `toml:"package"`
@@ -67,37 +69,80 @@ func parseCargoLock(b *builder, data, manifest []byte, members map[string][]byte
 		b.flag(resolve.ReasonMalformed, err.Error())
 		return
 	}
+	pkgs := lock.Package
 	dirs := cargoDirs(b, manifest, members)
-	idx := cargoIndex(lock.Package)
-	ids := make([]resolve.NodeID, len(lock.Package))
-	for i, p := range lock.Package {
-		if p.Source != "" {
-			ids[i], _ = b.node("", p.Name, p.Version)
+	idx := cargoIndex(pkgs)
+	// deps[i][j] is the package that dependency j of package i names, or -1.
+	deps := make([][]int, len(pkgs))
+	depended := map[int]bool{}
+	for i, p := range pkgs {
+		for _, dep := range p.Dependencies {
+			to := -1
+			if match := cargoLookup(idx, pkgs, dep); len(match) == 1 {
+				to = match[0]
+				depended[to] = true
+			}
+			deps[i] = append(deps[i], to)
 		}
 	}
-	for i, p := range lock.Package {
-		local := p.Source == ""
-		if !local && ids[i] == "" {
-			continue
+
+	isRoot := map[int]bool{}
+	var queue []int
+	for i, p := range pkgs {
+		if _, named := dirs[p.Name]; p.Source == "" && (named || !depended[i]) {
+			isRoot[i] = true
+			queue = append(queue, i)
 		}
+	}
+	reached := maps.Clone(isRoot)
+	for len(queue) > 0 {
+		i := queue[0]
+		queue = queue[1:]
+		for _, to := range deps[i] {
+			if to >= 0 && pkgs[to].Source == "" && !reached[to] {
+				reached[to] = true
+				queue = append(queue, to)
+			}
+		}
+	}
+
+	ids := make([]resolve.NodeID, len(pkgs))
+	for i, p := range pkgs {
+		switch {
+		case p.Source != "":
+			ids[i], _ = b.node("", p.Name, p.Version)
+		case depended[i]:
+			ids[i], _ = b.local("", p.Name, p.Version)
+		}
+		if p.Source == "" && !reached[i] {
+			isRoot[i] = true
+		}
+	}
+	for i, p := range pkgs {
 		var r *root
-		if local {
+		if isRoot[i] {
 			r = b.root(dirs[p.Name])
 		}
-		for _, dep := range p.Dependencies {
-			match := cargoLookup(idx, lock.Package, dep)
-			ok := len(match) == 1
-			switch {
-			case !ok && local:
-				r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %q", p.Name, dep))
-			case !ok:
-				b.flagNode(ids[i], resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %q", ids[i], dep))
-			case ids[match[0]] == "":
-			case local:
-				r.declare(ids[match[0]])
-			default:
-				b.edge(ids[i], ids[match[0]])
+		if r == nil && ids[i] == "" {
+			continue
+		}
+		for j, to := range deps[i] {
+			if to < 0 {
+				if r != nil {
+					r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %q", p.Name, p.Dependencies[j]))
+				}
+				if ids[i] != "" {
+					b.flagNode(ids[i], resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %q", ids[i], p.Dependencies[j]))
+				}
+				continue
 			}
+			if ids[to] == "" {
+				continue
+			}
+			if r != nil {
+				r.declare(ids[to])
+			}
+			b.edge(ids[i], ids[to])
 		}
 	}
 }

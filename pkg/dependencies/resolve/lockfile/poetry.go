@@ -37,13 +37,17 @@ import (
 // parsePoetryLock reads poetry.lock, and pyproject.toml for the direct
 // dependencies. Poetry may lock one name at several versions, each for
 // different environment markers; a dependency on that name then has an edge
-// to every one of them.
+// to every one of them. A path dependency (source type "directory" or
+// "file") is a local node.
 func parsePoetryLock(b *builder, data, manifest []byte, _ map[string][]byte) {
 	var lock struct {
 		Package []struct {
 			Name         string         `toml:"name"`
 			Version      string         `toml:"version"`
 			Dependencies map[string]any `toml:"dependencies"`
+			Source       struct {
+				Type string `toml:"type"`
+			} `toml:"source"`
 		} `toml:"package"`
 	}
 	if err := toml.Unmarshal(data, &lock); err != nil {
@@ -54,7 +58,11 @@ func parsePoetryLock(b *builder, data, manifest []byte, _ map[string][]byte) {
 	ids := make([]resolve.NodeID, len(lock.Package))
 	for i, p := range lock.Package {
 		name := pep503(p.Name)
-		if id, ok := b.node("", name, p.Version); ok {
+		add := b.node
+		if p.Source.Type == "directory" || p.Source.Type == "file" {
+			add = b.local
+		}
+		if id, ok := add("", name, p.Version); ok {
 			ids[i] = id
 			byName[name] = append(byName[name], id)
 		}
