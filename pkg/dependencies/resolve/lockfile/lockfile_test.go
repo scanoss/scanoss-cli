@@ -32,6 +32,7 @@ import (
 	"testing"
 
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
+	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/internal/build"
 )
 
 func ids(nodes []resolve.Node) []resolve.NodeID {
@@ -137,8 +138,8 @@ func TestDetailIsBounded(t *testing.T) {
 	if r.Reason != resolve.ReasonInvalidEntry {
 		t.Fatalf("reason = %q, want %q", r.Reason, resolve.ReasonInvalidEntry)
 	}
-	if len(r.Detail) > maxDetail+len("...") {
-		t.Errorf("detail is %d bytes, want at most %d", len(r.Detail), maxDetail+len("..."))
+	if len(r.Detail) > build.MaxDetail+len("...") {
+		t.Errorf("detail is %d bytes, want at most %d", len(r.Detail), build.MaxDetail+len("..."))
 	}
 }
 

@@ -1,0 +1,9 @@
+example.com/app example.com/local@v0.0.0
+example.com/app github.com/google/uuid@v1.6.0
+example.com/app github.com/stretchr/testify@v1.12.1
+example.com/app go@1.22
+example.com/app go.yaml.in/yaml/v3@v3.0.5
+example.com/local@v0.0.0 go@1.22
+github.com/stretchr/testify@v1.12.1 github.com/stretchr/objx@v0.5.3
+github.com/stretchr/testify@v1.12.1 go.yaml.in/yaml/v3@v3.0.5
+go@1.22 toolchain@go1.22

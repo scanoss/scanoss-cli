@@ -34,6 +34,7 @@ import (
 	"github.com/pelletier/go-toml/v2"
 
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
+	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/internal/build"
 )
 
 type cargoPackage struct {
@@ -102,12 +103,12 @@ func cargoPackageName(name string, spec any) string {
 // into the root beside the lockfile when nothing depends on it, or when no
 // other root reaches it, as in a cycle of crates that only depend on each
 // other.
-func parseCargoLock(b *builder, data, manifest []byte, members map[string][]byte) {
+func parseCargoLock(b *build.Builder, data, manifest []byte, members map[string][]byte) {
 	var lock struct {
 		Package []cargoPackage `toml:"package"`
 	}
 	if err := toml.Unmarshal(data, &lock); err != nil {
-		b.flag(resolve.ReasonMalformed, err.Error())
+		b.Flag(resolve.ReasonMalformed, err.Error())
 		return
 	}
 	pkgs := lock.Package
@@ -151,9 +152,9 @@ func parseCargoLock(b *builder, data, manifest []byte, members map[string][]byte
 	for i, p := range pkgs {
 		switch {
 		case p.Source != "":
-			ids[i], _ = b.node("", p.Name, p.Version)
+			ids[i], _ = b.Node("", p.Name, p.Version)
 		case depended[i]:
-			ids[i], _ = b.local("", p.Name, p.Version)
+			ids[i], _ = b.Local("", p.Name, p.Version)
 		}
 		if p.Source == "" && !reached[i] {
 			isRoot[i] = true
@@ -161,11 +162,11 @@ func parseCargoLock(b *builder, data, manifest []byte, members map[string][]byte
 	}
 	// A root's dev dependencies are known when every crate it stands for has
 	// a manifest.
-	known := map[*root]bool{}
+	known := map[*build.Root]bool{}
 	for i, p := range pkgs {
-		var r *root
+		var r *build.Root
 		if isRoot[i] {
-			r = b.root(dirs[p.Name])
+			r = b.Root(dirs[p.Name])
 			_, ok := devOnly[p.Name]
 			if k, seen := known[r]; !seen || k {
 				known[r] = ok
@@ -177,10 +178,10 @@ func parseCargoLock(b *builder, data, manifest []byte, members map[string][]byte
 		for j, to := range deps[i] {
 			if to < 0 {
 				if r != nil {
-					r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %q", p.Name, p.Dependencies[j]))
+					r.Flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %q", p.Name, p.Dependencies[j]))
 				}
 				if ids[i] != "" {
-					b.flagNode(ids[i], resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %q", ids[i], p.Dependencies[j]))
+					b.FlagNode(ids[i], resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %q", ids[i], p.Dependencies[j]))
 				}
 				continue
 			}
@@ -189,15 +190,15 @@ func parseCargoLock(b *builder, data, manifest []byte, members map[string][]byte
 			}
 			dev := p.Source == "" && devOnly[p.Name][pkgs[to].Name]
 			if r != nil {
-				r.declare(ids[to], dev)
+				r.Declare(ids[to], dev)
 			}
 			if !dev {
-				b.edge(ids[i], ids[to])
+				b.Edge(ids[i], ids[to])
 			}
 		}
 	}
 	for r, k := range known {
-		r.devKnown = k
+		r.DevKnown = k
 	}
 }
 
@@ -205,12 +206,12 @@ func parseCargoLock(b *builder, data, manifest []byte, members map[string][]byte
 // directory, relative to the lockfile's, and to the packages it needs only as
 // dev dependencies. A manifest that does not parse is reported on every root
 // and left out.
-func cargoDirs(b *builder, manifest []byte, members map[string][]byte) (map[string]string, map[string]map[string]bool) {
+func cargoDirs(b *build.Builder, manifest []byte, members map[string][]byte) (map[string]string, map[string]map[string]bool) {
 	dirs, devOnly := map[string]string{}, map[string]map[string]bool{}
 	add := func(name string, data []byte) {
 		var m cargoManifest
 		if err := toml.Unmarshal(data, &m); err != nil {
-			b.flag(resolve.ReasonManifestMalformed, fmt.Sprintf("%s: %v", path.Join(path.Dir(b.lockfile), name), err))
+			b.Flag(resolve.ReasonManifestMalformed, fmt.Sprintf("%s: %v", path.Join(path.Dir(b.Lockfile()), name), err))
 			return
 		}
 		if m.Package.Name != "" {

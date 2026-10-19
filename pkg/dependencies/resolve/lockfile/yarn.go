@@ -35,6 +35,7 @@ import (
 
 	"github.com/scanoss/scanoss.go/pkg/dependencies/parsers"
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
+	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/internal/build"
 )
 
 // yarnEntry is one block of a yarn.lock: the descriptors ("name@range") that
@@ -49,21 +50,21 @@ type yarnEntry struct {
 
 // parseYarnLock reads yarn.lock v1, whose direct dependencies are only in
 // package.json, and yarn berry, which records each workspace as an entry.
-func parseYarnLock(b *builder, data, manifest []byte, _ map[string][]byte) {
+func parseYarnLock(b *build.Builder, data, manifest []byte, _ map[string][]byte) {
 	if bytes.HasPrefix(data, []byte("__metadata:")) || bytes.Contains(data, []byte("\n__metadata:")) {
 		parseYarnBerry(b, data, manifest)
 		return
 	}
 	entries, err := parseYarnV1(data)
 	if err != nil {
-		b.flag(resolve.ReasonMalformed, err.Error())
+		b.Flag(resolve.ReasonMalformed, err.Error())
 		return
 	}
 	index := map[string]resolve.NodeID{}
 	ids := make([]resolve.NodeID, len(entries))
 	for i, e := range entries {
 		ns, n := parsers.GetScopedPackage(e.name)
-		id, ok := b.node(ns, n, e.version)
+		id, ok := b.Node(ns, n, e.version)
 		if !ok {
 			continue
 		}
@@ -78,37 +79,37 @@ func parseYarnLock(b *builder, data, manifest []byte, _ map[string][]byte) {
 		}
 		for _, name := range slices.Sorted(maps.Keys(e.deps)) {
 			if to, ok := index[name+"@"+e.deps[name]]; ok {
-				b.edge(ids[i], to)
+				b.Edge(ids[i], to)
 			} else {
-				b.flagNode(ids[i], resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %s@%s", ids[i], name, e.deps[name]))
+				b.FlagNode(ids[i], resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %s@%s", ids[i], name, e.deps[name]))
 			}
 		}
 		for _, name := range slices.Sorted(maps.Keys(e.optional)) {
 			if to, ok := index[name+"@"+e.optional[name]]; ok {
-				b.edge(ids[i], to)
+				b.Edge(ids[i], to)
 			}
 		}
 	}
-	r := b.root("")
+	r := b.Root("")
 	if manifest == nil {
-		r.flag(resolve.ReasonManifestMissing, "package.json not found")
+		r.Flag(resolve.ReasonManifestMissing, "package.json not found")
 		return
 	}
 	pkg, err := parsePackageJSON(manifest)
 	if err != nil {
-		r.flag(resolve.ReasonManifestMalformed, err.Error())
+		r.Flag(resolve.ReasonManifestMalformed, err.Error())
 		return
 	}
 	if len(pkg.Workspaces) > 0 && string(pkg.Workspaces) != "null" {
-		r.flag(resolve.ReasonUnsupportedWorkspaces, "yarn.lock v1 does not record which workspace declares what")
+		r.Flag(resolve.ReasonUnsupportedWorkspaces, "yarn.lock v1 does not record which workspace declares what")
 	}
-	r.devKnown = true
+	r.DevKnown = true
 	for _, deps := range []map[string]string{pkg.Dependencies, pkg.DevDependencies, pkg.OptionalDependencies} {
 		for _, name := range slices.Sorted(maps.Keys(deps)) {
 			if id, ok := index[name+"@"+deps[name]]; ok {
-				r.declare(id, pkg.dev(name))
+				r.Declare(id, pkg.dev(name))
 			} else if _, optional := pkg.OptionalDependencies[name]; !optional {
-				r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("package.json requires %s@%s", name, deps[name]))
+				r.Flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("package.json requires %s@%s", name, deps[name]))
 			}
 		}
 	}
@@ -232,10 +233,10 @@ const berryLocal = "0.0.0-use.local"
 // merges a workspace's dev dependencies into its entry's dependencies, so
 // only the root workspace, whose package.json is the manifest, knows which
 // are dev.
-func parseYarnBerry(b *builder, data, manifest []byte) {
+func parseYarnBerry(b *build.Builder, data, manifest []byte) {
 	var lock map[string]berryEntry
 	if err := yaml.Unmarshal(data, &lock); err != nil {
-		b.flag(resolve.ReasonMalformed, err.Error())
+		b.Flag(resolve.ReasonMalformed, err.Error())
 		return
 	}
 	delete(lock, "__metadata")
@@ -269,7 +270,7 @@ func parseYarnBerry(b *builder, data, manifest []byte) {
 	}
 
 	ids := map[string]resolve.NodeID{}
-	roots := map[string]*root{}
+	roots := map[string]*build.Root{}
 	devs := map[string]packageJSON{}
 	for _, key := range keys {
 		e := lock[key]
@@ -277,16 +278,16 @@ func parseYarnBerry(b *builder, data, manifest []byte) {
 		ns, n := parsers.GetScopedPackage(name)
 		dir, workspace := strings.CutPrefix(rng, "workspace:")
 		if workspace {
-			roots[key] = b.root(dir)
+			roots[key] = b.Root(dir)
 		}
 		if workspace && dir == "." && manifest != nil {
 			if pkg, err := parsePackageJSON(manifest); err == nil {
-				roots[key].devKnown = true
+				roots[key].DevKnown = true
 				devs[key] = pkg
 			}
 		}
 		if !workspace && e.LinkType != "soft" {
-			if id, ok := b.node(ns, n, e.Version); ok {
+			if id, ok := b.Node(ns, n, e.Version); ok {
 				ids[key] = id
 			}
 		} else if depended[key] {
@@ -294,7 +295,7 @@ func parseYarnBerry(b *builder, data, manifest []byte) {
 			if version == berryLocal {
 				version = ""
 			}
-			if id, ok := b.local(ns, n, version); ok {
+			if id, ok := b.Local(ns, n, version); ok {
 				ids[key] = id
 			}
 		}
@@ -310,9 +311,9 @@ func parseYarnBerry(b *builder, data, manifest []byte) {
 			if !found {
 				detail := fmt.Sprintf("%s requires %s@%s", key, name, rng)
 				if r != nil {
-					r.flag(resolve.ReasonUnresolvedDependency, detail)
+					r.Flag(resolve.ReasonUnresolvedDependency, detail)
 				} else {
-					b.flagNode(from, resolve.ReasonUnresolvedDependency, detail)
+					b.FlagNode(from, resolve.ReasonUnresolvedDependency, detail)
 				}
 				continue
 			}
@@ -321,10 +322,10 @@ func parseYarnBerry(b *builder, data, manifest []byte) {
 				continue
 			}
 			if r != nil {
-				r.declare(to, devs[key].dev(name))
+				r.Declare(to, devs[key].dev(name))
 			}
 			if from != "" {
-				b.edge(from, to)
+				b.Edge(from, to)
 			}
 		}
 	}

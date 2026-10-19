@@ -31,6 +31,7 @@ import (
 	"strings"
 
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
+	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/internal/build"
 )
 
 type gemSpec struct {
@@ -44,10 +45,10 @@ type gemSpec struct {
 // another gem names is a local node. Platform variants of a gem
 // ("1.15.4-x86_64-linux") are one node. The Gemfile, when present, says
 // which direct dependencies are dev.
-func parseGemfileLock(b *builder, data, manifest []byte, _ map[string][]byte) {
+func parseGemfileLock(b *build.Builder, data, manifest []byte, _ map[string][]byte) {
 	specs, directs, err := scanGemfileLock(string(data))
 	if err != nil {
-		b.flag(resolve.ReasonMalformed, err.Error())
+		b.Flag(resolve.ReasonMalformed, err.Error())
 		return
 	}
 	named := map[string]bool{}
@@ -67,9 +68,9 @@ func parseGemfileLock(b *builder, data, manifest []byte, _ map[string][]byte) {
 		var ok bool
 		switch {
 		case !s.local:
-			id, ok = b.node("", s.name, version)
+			id, ok = b.Node("", s.name, version)
 		case named[s.name]:
-			id, ok = b.local("", s.name, version)
+			id, ok = b.Local("", s.name, version)
 		}
 		if ok {
 			ids[i] = id
@@ -89,22 +90,22 @@ func parseGemfileLock(b *builder, data, manifest []byte, _ map[string][]byte) {
 				continue
 			}
 			if to, ok := byName[dep]; ok {
-				b.edge(ids[i], to)
+				b.Edge(ids[i], to)
 			} else {
-				b.flagNode(ids[i], resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %s", s.name, dep))
+				b.FlagNode(ids[i], resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %s", s.name, dep))
 			}
 		}
 	}
 	// A dependency missing from the specs is one Bundler left out for the
 	// locked platforms, such as tzinfo-data outside Windows.
-	r := b.root("")
+	r := b.Root("")
 	var dev map[string]bool
 	if manifest != nil {
-		dev, r.devKnown = gemfileDev(string(manifest))
+		dev, r.DevKnown = gemfileDev(string(manifest))
 	}
 	for _, name := range directs {
 		if id, ok := byName[name]; ok {
-			r.declare(id, dev[name])
+			r.Declare(id, dev[name])
 		}
 	}
 }

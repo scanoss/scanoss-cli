@@ -32,6 +32,7 @@ import (
 	"strings"
 
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
+	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/internal/build"
 )
 
 type nugetEntry struct {
@@ -51,25 +52,25 @@ type nugetEntry struct {
 // The lockfile sits beside its project file, whose name varies, so the root
 // is named after the one project file in members, or after the lockfile
 // itself without one.
-func parseNuGetLock(b *builder, data, _ []byte, members map[string][]byte) {
-	b.nameRoot(members)
+func parseNuGetLock(b *build.Builder, data, _ []byte, members map[string][]byte) {
+	b.NameRoot(members)
 	var lock struct {
 		Version      int                              `json:"version"`
 		Dependencies map[string]map[string]nugetEntry `json:"dependencies"`
 	}
 	if err := json.Unmarshal(data, &lock); err != nil {
-		b.flag(resolve.ReasonMalformed, err.Error())
+		b.Flag(resolve.ReasonMalformed, err.Error())
 		return
 	}
 	if lock.Version != 1 && lock.Version != 2 {
-		b.flag(resolve.ReasonUnsupportedVersion, fmt.Sprintf("version %d", lock.Version))
+		b.Flag(resolve.ReasonUnsupportedVersion, fmt.Sprintf("version %d", lock.Version))
 		return
 	}
 	if lock.Dependencies == nil {
-		b.flag(resolve.ReasonMalformed, "no dependencies")
+		b.Flag(resolve.ReasonMalformed, "no dependencies")
 		return
 	}
-	r := b.root("")
+	r := b.Root("")
 
 	targets := slices.Sorted(maps.Keys(lock.Dependencies))
 	names := map[string]string{} // lower-case id to the casing first seen
@@ -88,9 +89,9 @@ func parseNuGetLock(b *builder, data, _ []byte, members map[string][]byte) {
 			if _, ok := names[key]; !ok {
 				names[key] = id
 			}
-			add := b.node
+			add := b.Node
 			if e.Type == "Project" {
-				add = b.local
+				add = b.Local
 			}
 			node, ok := add("", names[key], e.Resolved)
 			if !ok {
@@ -100,7 +101,7 @@ func parseNuGetLock(b *builder, data, _ []byte, members map[string][]byte) {
 			// A project that nothing else references is one of the root's
 			// own project references.
 			if e.Type == "Direct" || (e.Type == "Project" && !depended[key]) {
-				r.declare(node, false)
+				r.Declare(node, false)
 			}
 		}
 	}
@@ -118,10 +119,10 @@ func parseNuGetLock(b *builder, data, _ []byte, members map[string][]byte) {
 					to, ok = ids[framework][strings.ToLower(dep)]
 				}
 				if !ok {
-					b.flagNode(from, resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %s in %s", id, dep, t))
+					b.FlagNode(from, resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %s in %s", id, dep, t))
 					continue
 				}
-				b.edge(from, to)
+				b.Edge(from, to)
 			}
 		}
 	}

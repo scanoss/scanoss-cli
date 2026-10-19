@@ -1,0 +1,56 @@
+{
+	"Path": "example.com/app",
+	"Main": true,
+	"Dir": "/src/app",
+	"GoMod": "/src/app/go.mod",
+	"GoVersion": "1.22"
+}
+{
+	"Path": "example.com/local",
+	"Version": "v0.0.0",
+	"Replace": {
+		"Path": "./local",
+		"Dir": "/src/app/local",
+		"GoMod": "/src/app/local/go.mod",
+		"GoVersion": "1.22"
+	},
+	"Dir": "/src/app/local",
+	"GoMod": "/src/app/local/go.mod",
+	"GoVersion": "1.22"
+}
+{
+	"Path": "github.com/google/uuid",
+	"Version": "v1.6.0",
+	"Time": "2024-01-23T18:54:04Z",
+	"Dir": "/go/pkg/mod/github.com/google/uuid@v1.6.0",
+	"GoMod": "/go/pkg/mod/cache/download/github.com/google/uuid/@v/v1.6.0.mod",
+	"Sum": "h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=",
+	"GoModSum": "h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo="
+}
+{
+	"Path": "github.com/stretchr/objx",
+	"Version": "v0.5.3",
+	"Time": "2025-10-03T06:41:42Z",
+	"Indirect": true
+}
+{
+	"Path": "github.com/stretchr/testify",
+	"Version": "v1.12.1",
+	"Time": "2026-08-17T08:24:05Z",
+	"Dir": "/go/pkg/mod/github.com/stretchr/testify@v1.12.1",
+	"GoMod": "/go/pkg/mod/cache/download/github.com/stretchr/testify/@v/v1.12.1.mod",
+	"GoVersion": "1.17",
+	"Sum": "h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=",
+	"GoModSum": "h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg="
+}
+{
+	"Path": "go.yaml.in/yaml/v3",
+	"Version": "v3.0.5",
+	"Time": "2026-07-26T14:51:55Z",
+	"Indirect": true,
+	"Dir": "/go/pkg/mod/go.yaml.in/yaml/v3@v3.0.5",
+	"GoMod": "/go/pkg/mod/cache/download/go.yaml.in/yaml/v3/@v/v3.0.5.mod",
+	"GoVersion": "1.16",
+	"Sum": "h1:N6y/pJk8buWs9NY5ERU2HSMfm+IuD/OtfdAnq6kESPw=",
+	"GoModSum": "h1:HVTZu1O7/Vkt2N+BFy8Zza+lnLsABggaTM2ZpNIGuKg="
+}

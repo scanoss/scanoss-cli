@@ -1,0 +1,11 @@
+example.com/app github.com/davecgh/go-spew@v1.1.1
+example.com/app github.com/pmezard/go-difflib@v1.0.0
+example.com/app github.com/stretchr/testify@v1.12.1
+example.com/app go@1.22
+example.com/app gopkg.in/yaml.v3@v3.0.1
+github.com/stretchr/testify@v1.12.1 github.com/davecgh/go-spew@v1.1.1
+github.com/stretchr/testify@v1.12.1 github.com/pmezard/go-difflib@v1.0.0
+github.com/stretchr/testify@v1.12.1 github.com/stretchr/objx@v0.5.2
+github.com/stretchr/testify@v1.12.1 gopkg.in/yaml.v3@v3.0.1
+go@1.22 toolchain@go1.22
+gopkg.in/yaml.v3@v3.0.1 gopkg.in/check.v1@v0.0.0-20161208181325-20d25e280405

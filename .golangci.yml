@@ -11,15 +11,15 @@ linters:
   settings:
     depguard:
       rules:
-        # Lockfiles are untrusted input: parsing one must never run a process.
-        lockfile-parsers:
+        no-processes:
           files:
             - "**/pkg/dependencies/resolve/lockfile/**"
+            - "**/pkg/dependencies/resolve/internal/build/**"
           deny:
             - pkg: os/exec
-              desc: lockfile parsers read untrusted input and must not run processes
+              desc: lockfile parsing and graph building read untrusted input and must not run processes
             - pkg: syscall
-              desc: lockfile parsers read untrusted input and must not run processes
+              desc: lockfile parsing and graph building read untrusted input and must not run processes
   exclusions:
     # Do not apply linters to test files.
     paths:

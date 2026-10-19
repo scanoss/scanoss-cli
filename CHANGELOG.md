@@ -5,6 +5,21 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`pkg/dependencies/resolve/toolchain`** builds the dependency graph by running the
+  ecosystem's own tools on a manifest, for projects whose lockfile does not record the whole
+  graph. It resolves `go.mod` with `go list -m all` and `go mod graph`: the members are the
+  modules the build selects, the edges run between those selected versions, and `replace` is
+  applied as for the `go.mod` lockfile. A tool problem never fails the call; it is reported on
+  the root with the new reasons **`tool_missing`**, **`tool_failed`** and **`timeout`**
+  (`unknown`), or **`registry_unreachable`** (`partial`, with the modules the tool resolved
+  without the registry). The tools run on files the scanned repository controls, so callers
+  run them in an isolated sandbox. They need no credentials, take the registry or mirror from
+  `Options.Env`, and each run has a timeout and capped output. Only Go is resolved for now.
+
 ## [0.12.0] - 2026-10-19
 
 ### Added
@@ -448,6 +463,7 @@ Initial release of the SCANOSS Go CLI and SDK (`scanoss`).
   CycloneDX and SPDX (with `WithTool`/`WithAuthor`/`WithTimestamp` document-metadata options).
 - **C shared library** (`libscanoss`) with Node.js and Python bindings.
 
+[Unreleased]: https://github.com/scanoss/scanoss.go/compare/v0.12.0...HEAD
 [0.12.0]: https://github.com/scanoss/scanoss.go/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/scanoss/scanoss.go/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/scanoss/scanoss.go/compare/v0.9.0...v0.10.0

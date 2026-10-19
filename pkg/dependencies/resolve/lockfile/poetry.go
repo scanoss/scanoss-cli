@@ -32,6 +32,7 @@ import (
 	"github.com/pelletier/go-toml/v2"
 
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
+	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/internal/build"
 )
 
 // parsePoetryLock reads poetry.lock, and pyproject.toml for the direct
@@ -39,7 +40,7 @@ import (
 // different environment markers; a dependency on that name then has an edge
 // to every one of them. A path dependency (source type "directory" or
 // "file") is a local node.
-func parsePoetryLock(b *builder, data, manifest []byte, _ map[string][]byte) {
+func parsePoetryLock(b *build.Builder, data, manifest []byte, _ map[string][]byte) {
 	var lock struct {
 		Package []struct {
 			Name         string         `toml:"name"`
@@ -51,16 +52,16 @@ func parsePoetryLock(b *builder, data, manifest []byte, _ map[string][]byte) {
 		} `toml:"package"`
 	}
 	if err := toml.Unmarshal(data, &lock); err != nil {
-		b.flag(resolve.ReasonMalformed, err.Error())
+		b.Flag(resolve.ReasonMalformed, err.Error())
 		return
 	}
 	byName := map[string][]resolve.NodeID{}
 	ids := make([]resolve.NodeID, len(lock.Package))
 	for i, p := range lock.Package {
 		name := pep503(p.Name)
-		add := b.node
+		add := b.Node
 		if p.Source.Type == "directory" || p.Source.Type == "file" {
-			add = b.local
+			add = b.Local
 		}
 		if id, ok := add("", name, p.Version); ok {
 			ids[i] = id
@@ -74,19 +75,19 @@ func parsePoetryLock(b *builder, data, manifest []byte, _ map[string][]byte) {
 		for _, dep := range slices.Sorted(maps.Keys(p.Dependencies)) {
 			to, ok := byName[pep503(dep)]
 			if !ok && !poetryOptional(p.Dependencies[dep]) {
-				b.flagNode(ids[i], resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %s", p.Name, dep))
+				b.FlagNode(ids[i], resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %s", p.Name, dep))
 			}
 			for _, id := range to {
-				b.edge(ids[i], id)
+				b.Edge(ids[i], id)
 			}
 		}
 	}
-	pyprojectDirects(b.root(""), manifest, byName)
+	pyprojectDirects(b.Root(""), manifest, byName)
 }
 
-func pyprojectDirects(r *root, manifest []byte, byName map[string][]resolve.NodeID) {
+func pyprojectDirects(r *build.Root, manifest []byte, byName map[string][]resolve.NodeID) {
 	if manifest == nil {
-		r.flag(resolve.ReasonManifestMissing, "pyproject.toml not found")
+		r.Flag(resolve.ReasonManifestMissing, "pyproject.toml not found")
 		return
 	}
 	var py struct {
@@ -106,17 +107,17 @@ func pyprojectDirects(r *root, manifest []byte, byName map[string][]resolve.Node
 		DependencyGroups map[string][]any `toml:"dependency-groups"`
 	}
 	if err := toml.Unmarshal(manifest, &py); err != nil {
-		r.flag(resolve.ReasonManifestMalformed, err.Error())
+		r.Flag(resolve.ReasonManifestMalformed, err.Error())
 		return
 	}
-	r.devKnown = true
+	r.DevKnown = true
 	declare := func(dep string, optional, dev bool) {
 		ids, ok := byName[pep503(dep)]
 		if !ok && !optional {
-			r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("pyproject.toml requires %s", dep))
+			r.Flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("pyproject.toml requires %s", dep))
 		}
 		for _, id := range ids {
-			r.declare(id, dev)
+			r.Declare(id, dev)
 		}
 	}
 	// Every Poetry group but main, and every PEP 735 group, is for

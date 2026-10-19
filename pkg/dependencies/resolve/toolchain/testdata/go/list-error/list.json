@@ -1,0 +1,23 @@
+{
+	"Path": "example.com/app",
+	"Main": true,
+	"Dir": "/src/app",
+	"GoMod": "/src/app/go.mod",
+	"GoVersion": "1.22"
+}
+{
+	"Path": "github.com/google/uuid",
+	"Version": "v1.6.0",
+	"Time": "2024-01-23T18:54:04Z",
+	"Dir": "/go/pkg/mod/github.com/google/uuid@v1.6.0",
+	"GoMod": "/go/pkg/mod/cache/download/github.com/google/uuid/@v/v1.6.0.mod",
+	"Sum": "h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=",
+	"GoModSum": "h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo="
+}
+{
+	"Path": "github.com/google/uuid-gone",
+	"Version": "v1.0.0",
+	"Error": {
+		"Err": "github.com/google/uuid-gone@v1.0.0: invalid version: git ls-remote -q https://github.com/google/uuid-gone in /go/pkg/mod/cache/vcs/b1a4d1fd109216d663b923f4a384c21bac32c596213ca06757609e4880390821: exit status 128:\n\tremote: Repository not found.\n\tfatal: repository 'https://github.com/google/uuid-gone/' not found"
+	}
+}

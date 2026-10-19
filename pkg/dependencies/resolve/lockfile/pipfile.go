@@ -33,6 +33,7 @@ import (
 	"github.com/pelletier/go-toml/v2"
 
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
+	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/internal/build"
 )
 
 // parsePipfileLock reads Pipfile.lock, whose "default" and "develop" maps
@@ -41,7 +42,7 @@ import (
 // package that the Pipfile does not name is a member that is not direct,
 // and so not dev. A path package is a local node, except the project's own
 // directory. A VCS package has no version and is left out.
-func parsePipfileLock(b *builder, data, manifest []byte, _ map[string][]byte) {
+func parsePipfileLock(b *build.Builder, data, manifest []byte, _ map[string][]byte) {
 	type entry struct {
 		Version string `json:"version"`
 		Path    string `json:"path"`
@@ -51,24 +52,24 @@ func parsePipfileLock(b *builder, data, manifest []byte, _ map[string][]byte) {
 		Develop map[string]entry `json:"develop"`
 	}
 	if err := json.Unmarshal(data, &lock); err != nil {
-		b.flag(resolve.ReasonMalformed, err.Error())
+		b.Flag(resolve.ReasonMalformed, err.Error())
 		return
 	}
 	if lock.Default == nil && lock.Develop == nil {
-		b.flag(resolve.ReasonMalformed, "no default or develop packages")
+		b.Flag(resolve.ReasonMalformed, "no default or develop packages")
 		return
 	}
-	b.flag(resolve.ReasonEdgesUnknown, "Pipfile.lock records no edges")
+	b.Flag(resolve.ReasonEdgesUnknown, "Pipfile.lock records no edges")
 	byName := map[string][]resolve.NodeID{}
 	for _, section := range []map[string]entry{lock.Default, lock.Develop} {
 		for _, name := range slices.Sorted(maps.Keys(section)) {
 			e := section[name]
-			add := b.node
+			add := b.Node
 			switch {
 			case e.Path == ".":
 				continue
 			case e.Path != "":
-				add = b.local
+				add = b.Local
 			}
 			if id, ok := add("", pep503(name), strings.TrimLeft(e.Version, "=")); ok && !slices.Contains(byName[pep503(name)], id) {
 				byName[pep503(name)] = append(byName[pep503(name)], id)
@@ -76,9 +77,9 @@ func parsePipfileLock(b *builder, data, manifest []byte, _ map[string][]byte) {
 		}
 	}
 
-	r := b.root("")
+	r := b.Root("")
 	if manifest == nil {
-		r.flag(resolve.ReasonManifestMissing, "Pipfile not found")
+		r.Flag(resolve.ReasonManifestMissing, "Pipfile not found")
 		return
 	}
 	var pipfile struct {
@@ -86,10 +87,10 @@ func parsePipfileLock(b *builder, data, manifest []byte, _ map[string][]byte) {
 		DevPackages map[string]any `toml:"dev-packages"`
 	}
 	if err := toml.Unmarshal(manifest, &pipfile); err != nil {
-		r.flag(resolve.ReasonManifestMalformed, err.Error())
+		r.Flag(resolve.ReasonManifestMalformed, err.Error())
 		return
 	}
-	r.devKnown = true
+	r.DevKnown = true
 	for _, t := range []struct {
 		deps map[string]any
 		dev  bool
@@ -97,10 +98,10 @@ func parsePipfileLock(b *builder, data, manifest []byte, _ map[string][]byte) {
 		for _, name := range slices.Sorted(maps.Keys(t.deps)) {
 			ids, ok := byName[pep503(name)]
 			if !ok {
-				r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("Pipfile requires %s", name))
+				r.Flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("Pipfile requires %s", name))
 			}
 			for _, id := range ids {
-				r.declare(id, t.dev)
+				r.Declare(id, t.dev)
 			}
 		}
 	}
