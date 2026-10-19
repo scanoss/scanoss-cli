@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net48": {
+      "Newtonsoft.Json": {
+        "type": "Direct",
+        "requested": "[12.0.3, )",
+        "resolved": "12.0.3",
+        "contentHash": "HzpWJT2PNlNwdUDe6Yz7Ad38DKDzqImJiOKi5vc/EoqEGUinkciOhvi0cDFqezGDt4IW/ivf0Qn4r7QY+5/gqg=="
+      },
+      "System.Memory": {
+        "type": "Direct",
+        "requested": "[4.5.5, )",
+        "resolved": "4.5.5",
+        "contentHash": "aWZQ0W9CI41dVL2oj0s56SUenYb6EP5wgJ1zkBoBwoZ8iH7zJz6YGWOcFOn/eCv3HEGEzH4JMzmzb0CCjX4wYQ==",
+        "dependencies": {
+          "System.Buffers": "4.5.1",
+          "system.numerics.vectors": "4.5.0"
+        }
+      },
+      "System.Buffers": {
+        "type": "Transitive",
+        "resolved": "4.5.1",
+        "contentHash": "lLLw+NqN6M8gg5x/Kah7o+6r7esHfLtXJJdSyN6UUhJ2VlRq78eU+q9+VvLkprCoKBBJvxJvyVGPJO8MGBCVFQ=="
+      },
+      "System.Numerics.Vectors": {
+        "type": "Transitive",
+        "resolved": "4.5.0",
+        "contentHash": "3T227t+n+R9yuPbuYlmxdh3VFEGmdSJGgxIVVJI5cuJ1mK7U5uCoB7rHZ69ATVxvVEpzX7XK61cIJPcG4mxRIA=="
+      }
+    },
+    "net8.0": {
+      "newtonsoft.json": {
+        "type": "Direct",
+        "requested": "[13.0.3, )",
+        "resolved": "13.0.3",
+        "contentHash": "Yl47KIbe1z4XG88gYyhttxPt+z4ZFD7fA4BEq0k1UGt+GKjZUqVJL3pjti1T3sbRk835pAgZzm2j2Inwz6G1dQ=="
+      },
+      "System.Memory": {
+        "type": "Direct",
+        "requested": "[4.5.5, )",
+        "resolved": "4.5.5",
+        "contentHash": "587BacQ4CiKNrAgQGyTsjIRJq3H8ZiMQTmm6971g+Z2stG0X13sHiDzt2LfOmlmj/cnfWzYTAMVg0Kv16mrOqQ==",
+        "dependencies": {
+          "System.Buffers": "4.5.1"
+        }
+      },
+      "System.Buffers": {
+        "type": "Transitive",
+        "resolved": "4.5.1",
+        "contentHash": "lLLw+NqN6M8gg5x/Kah7o+6r7esHfLtXJJdSyN6UUhJ2VlRq78eU+q9+VvLkprCoKBBJvxJvyVGPJO8MGBCVFQ=="
+      }
+    },
+    "net8.0/linux-x64": {
+      "Native.Lib": {
+        "type": "Direct",
+        "requested": "[1.0.0, )",
+        "resolved": "1.0.0",
+        "contentHash": "RmHStCgjhDM2EnAqTbd4yGRoY4KBXdfhiGCF5g2uw5NTnnJBqmpYdVnhHa6oIRvgXl5rBCs8ecqH3myF6Pr4qA==",
+        "dependencies": {
+          "runtime.linux-x64.Native.Lib": "1.0.0"
+        }
+      },
+      "runtime.linux-x64.Native.Lib": {
+        "type": "Transitive",
+        "resolved": "1.0.0",
+        "contentHash": "53QSFmZnbIy/YroOGYbM94dWEEM2fzsPxhGtVm5E3gBC3injhPMt9M2Q4YKwjZvR08qh7bVzqXt+0POpMomeWw==",
+        "dependencies": {
+          "System.Buffers": "4.5.1"
+        }
+      }
+    }
+  }
+}

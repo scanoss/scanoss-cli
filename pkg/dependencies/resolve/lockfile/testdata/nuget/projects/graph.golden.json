@@ -1,0 +1,89 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:nuget/Newtonsoft.Json@13.0.3",
+      "purl": "pkg:nuget/Newtonsoft.Json",
+      "version": "13.0.3"
+    },
+    {
+      "id": "pkg:nuget/Polly.Core@8.4.1",
+      "purl": "pkg:nuget/Polly.Core",
+      "version": "8.4.1"
+    },
+    {
+      "id": "pkg:nuget/Polly@8.4.1",
+      "purl": "pkg:nuget/Polly",
+      "version": "8.4.1"
+    },
+    {
+      "id": "pkg:nuget/Serilog@4.0.0",
+      "purl": "pkg:nuget/Serilog",
+      "version": "4.0.0"
+    },
+    {
+      "id": "pkg:nuget/core",
+      "purl": "pkg:nuget/core",
+      "version": "",
+      "local": true
+    },
+    {
+      "id": "pkg:nuget/data",
+      "purl": "pkg:nuget/data",
+      "version": "",
+      "local": true
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "Web.csproj",
+      "lockfile": "packages.lock.json",
+      "ecosystem": "nuget",
+      "status": "complete",
+      "devKnown": false,
+      "members": [
+        {
+          "id": "pkg:nuget/Newtonsoft.Json@13.0.3",
+          "direct": false
+        },
+        {
+          "id": "pkg:nuget/Polly.Core@8.4.1",
+          "direct": false
+        },
+        {
+          "id": "pkg:nuget/Polly@8.4.1",
+          "direct": false
+        },
+        {
+          "id": "pkg:nuget/Serilog@4.0.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:nuget/core",
+          "direct": false
+        },
+        {
+          "id": "pkg:nuget/data",
+          "direct": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:nuget/Polly@8.4.1",
+          "to": "pkg:nuget/Polly.Core@8.4.1"
+        },
+        {
+          "from": "pkg:nuget/core",
+          "to": "pkg:nuget/Newtonsoft.Json@13.0.3"
+        },
+        {
+          "from": "pkg:nuget/data",
+          "to": "pkg:nuget/Polly@8.4.1"
+        },
+        {
+          "from": "pkg:nuget/data",
+          "to": "pkg:nuget/core"
+        }
+      ]
+    }
+  ]
+}

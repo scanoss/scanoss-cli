@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net8.0": {
+      "Serilog": {
+        "type": "Direct",
+        "requested": "[4.0.0, )",
+        "resolved": "4.0.0",
+        "contentHash": "aQUOqkVWafXG7rWMVk4c4KQ2i0zT1U5B4r8mIG5gpKDbRMYwwi+kEzbsYski7ImoGo6hGUYlRf+R/0KXCSVKFg=="
+      },
+      "Newtonsoft.Json": {
+        "type": "Transitive",
+        "resolved": "13.0.3",
+        "contentHash": "CzXwe6UuUiAXDXuA2D3hzhOM2CxfcFKnmnnejU9tHP6br8gts7toxIyB++lzPNRx3XVfPFT0FFIYTMKx37j6Fg=="
+      },
+      "Polly": {
+        "type": "Transitive",
+        "resolved": "8.4.1",
+        "contentHash": "3zuyAyA2CamOLucEh2Z7tjfBFow4fWG9MiypPY1ch8Wz3QFZMwkTVvLtxmY1qwcp12zokvRqjeTuxc9wu/DvNQ==",
+        "dependencies": {
+          "Polly.Core": "8.4.1"
+        }
+      },
+      "Polly.Core": {
+        "type": "Transitive",
+        "resolved": "8.4.1",
+        "contentHash": "5d5jsNw+zFVOCXQ5xSHkyMxs/lOGVOkvFuGt3tS2Q1RUFE+eJQpTIffapim9ZiIlFXMlKpBOGKp7efXZp5yCuQ=="
+      },
+      "core": {
+        "type": "Project",
+        "dependencies": {
+          "Newtonsoft.Json": "[13.0.3, )"
+        }
+      },
+      "data": {
+        "type": "Project",
+        "dependencies": {
+          "Polly": "[8.4.1, )",
+          "core": "[1.0.0, )"
+        }
+      }
+    }
+  }
+}

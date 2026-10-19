@@ -1,0 +1,52 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:nuget/Bottom@1.2.3",
+      "purl": "pkg:nuget/Bottom",
+      "version": "1.2.3"
+    },
+    {
+      "id": "pkg:nuget/Left@1.0.0",
+      "purl": "pkg:nuget/Left",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pkg:nuget/Right@2.0.0",
+      "purl": "pkg:nuget/Right",
+      "version": "2.0.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "App.csproj",
+      "lockfile": "packages.lock.json",
+      "ecosystem": "nuget",
+      "status": "complete",
+      "devKnown": false,
+      "members": [
+        {
+          "id": "pkg:nuget/Bottom@1.2.3",
+          "direct": false
+        },
+        {
+          "id": "pkg:nuget/Left@1.0.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:nuget/Right@2.0.0",
+          "direct": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:nuget/Left@1.0.0",
+          "to": "pkg:nuget/Bottom@1.2.3"
+        },
+        {
+          "from": "pkg:nuget/Right@2.0.0",
+          "to": "pkg:nuget/Bottom@1.2.3"
+        }
+      ]
+    }
+  ]
+}

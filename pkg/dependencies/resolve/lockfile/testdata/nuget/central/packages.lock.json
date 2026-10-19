@@ -1,0 +1,31 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net8.0": {
+      "Microsoft.Extensions.Logging": {
+        "type": "Direct",
+        "requested": "[8.0.1, )",
+        "resolved": "8.0.1",
+        "contentHash": "qcaV6L+P1tFuEQdstQw+zgwLMt/GElk48jxmwLgxK4RBbcszby3ht2LdDXSEH5so0RrcYay040qeNHjAne3FjQ==",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.2",
+          "Microsoft.Extensions.Logging.Abstractions": "8.0.2"
+        }
+      },
+      "Microsoft.Extensions.DependencyInjection.Abstractions": {
+        "type": "Transitive",
+        "resolved": "8.0.2",
+        "contentHash": "x7OTDS5YVyoC32Xus84c15qrXvEd1KPtHN3BnvJl/pXyyH6XzJWatC8TIx1ADTcLZwKNtagV/vFRP13lGIDITA=="
+      },
+      "Microsoft.Extensions.Logging.Abstractions": {
+        "type": "CentralTransitive",
+        "requested": "[8.0.2, )",
+        "resolved": "8.0.2",
+        "contentHash": "mzh+UKsXpIu1NCsQ0S06n9+Wx9B8omOoHlbT4A50rjJs+yd95ZmiFp3nkqDiw4MGOzd1amijsxYH6gmXrRtN9g==",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.2"
+        }
+      }
+    }
+  }
+}

@@ -70,8 +70,10 @@ type Input struct {
 	Lockfile []byte
 	Manifest []byte // the sibling manifest named by ManifestFor; nil when absent
 	// Members holds workspace member manifests keyed by slash path relative
-	// to the lockfile's directory, such as "crates/app/Cargo.toml". Only
-	// Cargo.lock reads it.
+	// to the lockfile's directory, such as "crates/app/Cargo.toml", for
+	// Cargo.lock. For packages.lock.json it holds the project file beside
+	// it, such as "App.csproj", which names the root; its content is not
+	// read.
 	Members map[string][]byte
 }
 
@@ -85,7 +87,8 @@ type format struct {
 	reads     bool   // parse reads the sibling manifest
 	parse     func(b *builder, lockfile, manifest []byte, members map[string][]byte)
 	// members, when set, finds and reads the member manifests the sibling
-	// manifest names, within budget bytes in total.
+	// manifest names, within budget bytes in total. manifest is nil when the
+	// format reads none or it is absent.
 	members func(fsys fs.FS, dir string, manifest []byte, budget int64, maxFiles int) map[string][]byte
 }
 
@@ -98,6 +101,7 @@ var formats = map[string]format{
 	"Gemfile.lock":        {resolve.EcosystemGem, "Gemfile", true, parseGemfileLock, nil},
 	"poetry.lock":         {resolve.EcosystemPyPI, "pyproject.toml", true, parsePoetryLock, nil},
 	"uv.lock":             {resolve.EcosystemPyPI, "pyproject.toml", false, parseUvLock, nil},
+	"packages.lock.json":  {resolve.EcosystemNuGet, "packages.lock.json", false, parseNuGetLock, nugetProject},
 	"composer.lock":       {resolve.EcosystemComposer, "composer.json", true, parseComposerLock, nil},
 }
 
@@ -151,10 +155,11 @@ func Parse(in Input, lim Limits) (resolve.Graph, error) {
 // ParseFS reads the lockfile at path in fsys, and the sibling manifest when
 // its format reads one, then parses them. For Cargo.lock it also reads the
 // manifest of each workspace member the sibling Cargo.toml lists; more than
-// MaxNodes of them is too_large, like oversized bytes. The lockfile is read up to MaxBytes+1 bytes, and the
-// manifests up to MaxBytes+1 bytes in total, so oversized input costs no more
-// than that. A missing manifest is not an error; formats that need it report
-// it on the root.
+// MaxNodes of them is too_large, like oversized bytes. For packages.lock.json
+// it looks for the project file beside it. The lockfile is read up to
+// MaxBytes+1 bytes, and the manifests up to MaxBytes+1 bytes in total, so
+// oversized input costs no more than that. A missing manifest is not an
+// error; formats that need it report it on the root.
 func ParseFS(fsys fs.FS, p string, lim Limits) (resolve.Graph, error) {
 	f, ok := lookup(p)
 	if !ok {
@@ -171,7 +176,7 @@ func ParseFS(fsys fs.FS, p string, lim Limits) (resolve.Graph, error) {
 			return resolve.Graph{}, err
 		}
 	}
-	if f.members != nil && in.Manifest != nil {
+	if f.members != nil {
 		in.Members = f.members(fsys, path.Dir(p), in.Manifest, lim.MaxBytes-int64(len(in.Manifest)), lim.MaxNodes)
 	}
 	return Parse(in, lim)

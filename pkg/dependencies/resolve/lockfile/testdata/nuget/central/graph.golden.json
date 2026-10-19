@@ -1,0 +1,56 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@8.0.2",
+      "purl": "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions",
+      "version": "8.0.2"
+    },
+    {
+      "id": "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@8.0.2",
+      "purl": "pkg:nuget/Microsoft.Extensions.Logging.Abstractions",
+      "version": "8.0.2"
+    },
+    {
+      "id": "pkg:nuget/Microsoft.Extensions.Logging@8.0.1",
+      "purl": "pkg:nuget/Microsoft.Extensions.Logging",
+      "version": "8.0.1"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "Service.csproj",
+      "lockfile": "packages.lock.json",
+      "ecosystem": "nuget",
+      "status": "complete",
+      "devKnown": false,
+      "members": [
+        {
+          "id": "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@8.0.2",
+          "direct": false
+        },
+        {
+          "id": "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@8.0.2",
+          "direct": false
+        },
+        {
+          "id": "pkg:nuget/Microsoft.Extensions.Logging@8.0.1",
+          "direct": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@8.0.2",
+          "to": "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@8.0.2"
+        },
+        {
+          "from": "pkg:nuget/Microsoft.Extensions.Logging@8.0.1",
+          "to": "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@8.0.2"
+        },
+        {
+          "from": "pkg:nuget/Microsoft.Extensions.Logging@8.0.1",
+          "to": "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@8.0.2"
+        }
+      ]
+    }
+  ]
+}

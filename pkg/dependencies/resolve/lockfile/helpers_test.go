@@ -220,7 +220,7 @@ func loadCase(t testing.TB, dir string) Input {
 				t.Fatal(err)
 			}
 		}
-		if f, _ := lookup(e.Name()); f.members != nil && in.Manifest != nil {
+		if f, _ := lookup(e.Name()); f.members != nil {
 			lim := DefaultLimits()
 			in.Members = f.members(os.DirFS(dir), ".", in.Manifest, lim.MaxBytes, lim.MaxNodes)
 		}

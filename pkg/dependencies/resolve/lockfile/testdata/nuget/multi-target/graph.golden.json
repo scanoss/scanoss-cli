@@ -1,0 +1,96 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:nuget/Native.Lib@1.0.0",
+      "purl": "pkg:nuget/Native.Lib",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pkg:nuget/Newtonsoft.Json@12.0.3",
+      "purl": "pkg:nuget/Newtonsoft.Json",
+      "version": "12.0.3"
+    },
+    {
+      "id": "pkg:nuget/Newtonsoft.Json@13.0.3",
+      "purl": "pkg:nuget/Newtonsoft.Json",
+      "version": "13.0.3"
+    },
+    {
+      "id": "pkg:nuget/System.Buffers@4.5.1",
+      "purl": "pkg:nuget/System.Buffers",
+      "version": "4.5.1"
+    },
+    {
+      "id": "pkg:nuget/System.Memory@4.5.5",
+      "purl": "pkg:nuget/System.Memory",
+      "version": "4.5.5"
+    },
+    {
+      "id": "pkg:nuget/System.Numerics.Vectors@4.5.0",
+      "purl": "pkg:nuget/System.Numerics.Vectors",
+      "version": "4.5.0"
+    },
+    {
+      "id": "pkg:nuget/runtime.linux-x64.Native.Lib@1.0.0",
+      "purl": "pkg:nuget/runtime.linux-x64.Native.Lib",
+      "version": "1.0.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "Lib.fsproj",
+      "lockfile": "packages.lock.json",
+      "ecosystem": "nuget",
+      "status": "complete",
+      "devKnown": false,
+      "members": [
+        {
+          "id": "pkg:nuget/Native.Lib@1.0.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:nuget/Newtonsoft.Json@12.0.3",
+          "direct": true
+        },
+        {
+          "id": "pkg:nuget/Newtonsoft.Json@13.0.3",
+          "direct": true
+        },
+        {
+          "id": "pkg:nuget/System.Buffers@4.5.1",
+          "direct": false
+        },
+        {
+          "id": "pkg:nuget/System.Memory@4.5.5",
+          "direct": true
+        },
+        {
+          "id": "pkg:nuget/System.Numerics.Vectors@4.5.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:nuget/runtime.linux-x64.Native.Lib@1.0.0",
+          "direct": false
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:nuget/Native.Lib@1.0.0",
+          "to": "pkg:nuget/runtime.linux-x64.Native.Lib@1.0.0"
+        },
+        {
+          "from": "pkg:nuget/System.Memory@4.5.5",
+          "to": "pkg:nuget/System.Buffers@4.5.1"
+        },
+        {
+          "from": "pkg:nuget/System.Memory@4.5.5",
+          "to": "pkg:nuget/System.Numerics.Vectors@4.5.0"
+        },
+        {
+          "from": "pkg:nuget/runtime.linux-x64.Native.Lib@1.0.0",
+          "to": "pkg:nuget/System.Buffers@4.5.1"
+        }
+      ]
+    }
+  ]
+}

@@ -75,6 +75,7 @@ const (
 	EcosystemGem      Ecosystem = "gem"
 	EcosystemPyPI     Ecosystem = "pypi"
 	EcosystemComposer Ecosystem = "composer"
+	EcosystemNuGet    Ecosystem = "nuget"
 )
 
 // Status says how much of a root's graph is known.
