@@ -32,6 +32,7 @@ import (
 	"strings"
 
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
+	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/internal/build"
 )
 
 // composerLinks is a name-to-constraint map. PHP encodes an empty one as [].
@@ -72,13 +73,13 @@ type composerPackage struct {
 // provides the name, as laravel/framework does for illuminate/*. A name
 // locked twice resolves to its first entry, so packages win over
 // packages-dev. A package from a path repository is a local node.
-func parseComposerLock(b *builder, data, manifest []byte, _ map[string][]byte) {
+func parseComposerLock(b *build.Builder, data, manifest []byte, _ map[string][]byte) {
 	var lock struct {
 		Packages    []composerPackage `json:"packages"`
 		PackagesDev []composerPackage `json:"packages-dev"`
 	}
 	if err := json.Unmarshal(data, &lock); err != nil {
-		b.flag(resolve.ReasonMalformed, err.Error())
+		b.Flag(resolve.ReasonMalformed, err.Error())
 		return
 	}
 	pkgs := slices.Concat(lock.Packages, lock.PackagesDev)
@@ -86,9 +87,9 @@ func parseComposerLock(b *builder, data, manifest []byte, _ map[string][]byte) {
 	ids := make([]resolve.NodeID, len(pkgs))
 	for i, p := range pkgs {
 		vendor, name, _ := strings.Cut(strings.ToLower(p.Name), "/")
-		add := b.node
+		add := b.Node
 		if p.Dist.Type == "path" {
-			add = b.local
+			add = b.Local
 		}
 		if id, ok := add(vendor, name, p.Version); ok {
 			ids[i] = id
@@ -110,16 +111,16 @@ func parseComposerLock(b *builder, data, manifest []byte, _ map[string][]byte) {
 		}
 		for _, name := range p.Require.names() {
 			if to, ok := byName[strings.ToLower(name)]; ok {
-				b.edge(ids[i], to)
+				b.Edge(ids[i], to)
 			} else {
-				b.flagNode(ids[i], resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %s", p.Name, name))
+				b.FlagNode(ids[i], resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %s", p.Name, name))
 			}
 		}
 	}
 
-	r := b.root("")
+	r := b.Root("")
 	if manifest == nil {
-		r.flag(resolve.ReasonManifestMissing, "composer.json not found")
+		r.Flag(resolve.ReasonManifestMissing, "composer.json not found")
 		return
 	}
 	var cj struct {
@@ -127,16 +128,16 @@ func parseComposerLock(b *builder, data, manifest []byte, _ map[string][]byte) {
 		RequireDev composerLinks `json:"require-dev"`
 	}
 	if err := json.Unmarshal(manifest, &cj); err != nil {
-		r.flag(resolve.ReasonManifestMalformed, err.Error())
+		r.Flag(resolve.ReasonManifestMalformed, err.Error())
 		return
 	}
-	r.devKnown = true
+	r.DevKnown = true
 	for _, name := range slices.Concat(cj.Require.names(), cj.RequireDev.names()) {
 		if id, ok := byName[strings.ToLower(name)]; ok {
 			_, runtime := cj.Require[name]
-			r.declare(id, !runtime)
+			r.Declare(id, !runtime)
 		} else {
-			r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("composer.json requires %s", name))
+			r.Flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("composer.json requires %s", name))
 		}
 	}
 }

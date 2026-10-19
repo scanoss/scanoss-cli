@@ -28,6 +28,7 @@ import (
 	"strings"
 
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
+	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/internal/build"
 )
 
 // parseGradleLockfile reads gradle.lockfile, which has a line
@@ -35,8 +36,8 @@ import (
 // edges. It does not say which modules the build file declares, so every
 // module is a member that is not direct, and none is dev: the builder marks
 // dev only what dev direct dependencies reach.
-func parseGradleLockfile(b *builder, data, _ []byte, members map[string][]byte) {
-	b.nameRoot(members)
+func parseGradleLockfile(b *build.Builder, data, _ []byte, members map[string][]byte) {
+	b.NameRoot(members)
 	for line := range strings.Lines(string(data)) {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
@@ -44,7 +45,7 @@ func parseGradleLockfile(b *builder, data, _ []byte, members map[string][]byte) 
 		}
 		coords, _, ok := strings.Cut(line, "=")
 		if !ok {
-			b.flag(resolve.ReasonMalformed, fmt.Sprintf("line %q has no configurations", line))
+			b.Flag(resolve.ReasonMalformed, fmt.Sprintf("line %q has no configurations", line))
 			return
 		}
 		if coords == "empty" {
@@ -52,12 +53,12 @@ func parseGradleLockfile(b *builder, data, _ []byte, members map[string][]byte) 
 		}
 		parts := strings.Split(coords, ":")
 		if len(parts) != 3 || parts[0] == "" {
-			b.flag(resolve.ReasonInvalidEntry, fmt.Sprintf("%q is not group:artifact:version", coords))
+			b.Flag(resolve.ReasonInvalidEntry, fmt.Sprintf("%q is not group:artifact:version", coords))
 			continue
 		}
-		b.node(parts[0], parts[1], parts[2])
+		b.Node(parts[0], parts[1], parts[2])
 	}
-	b.flag(resolve.ReasonEdgesUnknown, "gradle.lockfile records no edges")
+	b.Flag(resolve.ReasonEdgesUnknown, "gradle.lockfile records no edges")
 }
 
 // isGradleBuild reports whether name is a Gradle build file, which sits

@@ -32,6 +32,7 @@ import (
 
 	"github.com/scanoss/scanoss.go/pkg/dependencies/parsers"
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
+	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/internal/build"
 )
 
 type npmLock struct {
@@ -58,18 +59,18 @@ const nodeModules = "node_modules/"
 // parsePackageLock reads the "packages" map of lockfileVersion 2 and 3. Keys
 // are install locations; a key outside node_modules is the project or one of
 // its workspaces, and so a root.
-func parsePackageLock(b *builder, data, _ []byte, _ map[string][]byte) {
+func parsePackageLock(b *build.Builder, data, _ []byte, _ map[string][]byte) {
 	var lock npmLock
 	if err := json.Unmarshal(data, &lock); err != nil {
-		b.flag(resolve.ReasonMalformed, err.Error())
+		b.Flag(resolve.ReasonMalformed, err.Error())
 		return
 	}
 	if lock.LockfileVersion != 2 && lock.LockfileVersion != 3 {
-		b.flag(resolve.ReasonUnsupportedVersion, fmt.Sprintf("lockfileVersion %d", lock.LockfileVersion))
+		b.Flag(resolve.ReasonUnsupportedVersion, fmt.Sprintf("lockfileVersion %d", lock.LockfileVersion))
 		return
 	}
 	if lock.Packages == nil {
-		b.flag(resolve.ReasonMalformed, "no packages")
+		b.Flag(resolve.ReasonMalformed, "no packages")
 		return
 	}
 
@@ -85,7 +86,7 @@ func parsePackageLock(b *builder, data, _ []byte, _ map[string][]byte) {
 			name = key[strings.LastIndex(key, nodeModules)+len(nodeModules):]
 		}
 		ns, n := parsers.GetScopedPackage(name)
-		if id, ok := b.node(ns, n, e.Version); ok {
+		if id, ok := b.Node(ns, n, e.Version); ok {
 			ids[key] = id
 		}
 	}
@@ -113,7 +114,7 @@ func parsePackageLock(b *builder, data, _ []byte, _ map[string][]byte) {
 			name = at[strings.LastIndex(at, nodeModules)+len(nodeModules):]
 		}
 		ns, n := parsers.GetScopedPackage(name)
-		id, ok := b.local(ns, n, f.Version)
+		id, ok := b.Local(ns, n, f.Version)
 		if ok {
 			ids[dir] = id
 			folders = append(folders, dir)
@@ -123,10 +124,10 @@ func parsePackageLock(b *builder, data, _ []byte, _ map[string][]byte) {
 	edges := func(from resolve.NodeID, key string, e npmEntry) {
 		found, missing := npmDeps(lock.Packages, target, key, e, false)
 		for _, to := range found {
-			b.edge(from, to)
+			b.Edge(from, to)
 		}
 		for _, name := range missing {
-			b.flagNode(from, resolve.ReasonUnresolvedDependency, fmt.Sprintf("%q requires %q", key, name))
+			b.FlagNode(from, resolve.ReasonUnresolvedDependency, fmt.Sprintf("%q requires %q", key, name))
 		}
 	}
 
@@ -141,15 +142,15 @@ func parsePackageLock(b *builder, data, _ []byte, _ map[string][]byte) {
 			}
 			continue
 		}
-		r := b.root(key)
-		r.devKnown = true
+		r := b.Root(key)
+		r.DevKnown = true
 		for _, dev := range []bool{false, true} {
 			found, missing := npmDeps(lock.Packages, target, key, e, dev)
 			for _, id := range found {
-				r.declare(id, dev)
+				r.Declare(id, dev)
 			}
 			for _, name := range missing {
-				r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("%q requires %q", key, name))
+				r.Flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("%q requires %q", key, name))
 			}
 		}
 	}

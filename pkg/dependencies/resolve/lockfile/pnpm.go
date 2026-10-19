@@ -34,6 +34,7 @@ import (
 
 	"github.com/scanoss/scanoss.go/pkg/dependencies/parsers"
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
+	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/internal/build"
 )
 
 type pnpmLock struct {
@@ -115,10 +116,10 @@ func splitAt(key string) (string, string) {
 // parsePnpmLock reads pnpm-lock.yaml 5.x, 6.x and 9.x. Each importer (each
 // workspace project) is a root. Packages that differ only by the peers they
 // were installed with are one node.
-func parsePnpmLock(b *builder, data, _ []byte, _ map[string][]byte) {
+func parsePnpmLock(b *build.Builder, data, _ []byte, _ map[string][]byte) {
 	var lock pnpmLock
 	if err := yaml.Unmarshal(data, &lock); err != nil {
-		b.flag(resolve.ReasonMalformed, err.Error())
+		b.Flag(resolve.ReasonMalformed, err.Error())
 		return
 	}
 	var style pnpmStyle
@@ -131,7 +132,7 @@ func parsePnpmLock(b *builder, data, _ []byte, _ map[string][]byte) {
 	case strings.HasPrefix(v, "9."):
 		style, pkgs = pnpmV9, lock.Snapshots
 	default:
-		b.flag(resolve.ReasonUnsupportedVersion, fmt.Sprintf("lockfileVersion %q", v))
+		b.Flag(resolve.ReasonUnsupportedVersion, fmt.Sprintf("lockfileVersion %q", v))
 		return
 	}
 
@@ -164,7 +165,7 @@ func parsePnpmLock(b *builder, data, _ []byte, _ map[string][]byte) {
 			return "", false
 		}
 		ns, n := parsers.GetScopedPackage(name)
-		id, ok := b.local(ns, n, "")
+		id, ok := b.Local(ns, n, "")
 		if ok {
 			locals[to] = id
 			linked = append(linked, to)
@@ -193,10 +194,10 @@ func parsePnpmLock(b *builder, data, _ []byte, _ map[string][]byte) {
 	}
 	edges := func(from resolve.NodeID, what string, found []resolve.NodeID, missing []string) {
 		for _, to := range found {
-			b.edge(from, to)
+			b.Edge(from, to)
 		}
 		for _, m := range missing {
-			b.flagNode(from, resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %s", what, m))
+			b.FlagNode(from, resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %s", what, m))
 		}
 	}
 
@@ -204,7 +205,7 @@ func parsePnpmLock(b *builder, data, _ []byte, _ map[string][]byte) {
 	for _, key := range keys {
 		name, version := style.split(key)
 		ns, n := parsers.GetScopedPackage(name)
-		if id, ok := b.node(ns, n, version); ok {
+		if id, ok := b.Node(ns, n, version); ok {
 			ids[key] = id
 		}
 	}
@@ -216,8 +217,8 @@ func parsePnpmLock(b *builder, data, _ []byte, _ map[string][]byte) {
 		}
 	}
 	for _, dir := range slices.Sorted(maps.Keys(importers)) {
-		r, imp := b.root(dir), importers[dir]
-		r.devKnown = true
+		r, imp := b.Root(dir), importers[dir]
+		r.DevKnown = true
 		optional := refs(imp.OptionalDependencies)
 		for _, dev := range []bool{false, true} {
 			groups := []map[string]string{refs(imp.Dependencies), optional}
@@ -226,10 +227,10 @@ func parsePnpmLock(b *builder, data, _ []byte, _ map[string][]byte) {
 			}
 			found, missing := deps(dir, optional, groups...)
 			for _, id := range found {
-				r.declare(id, dev)
+				r.Declare(id, dev)
 			}
 			for _, m := range missing {
-				r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("importer %q requires %s", dir, m))
+				r.Flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("importer %q requires %s", dir, m))
 			}
 		}
 	}

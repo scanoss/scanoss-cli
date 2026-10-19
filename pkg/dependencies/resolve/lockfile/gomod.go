@@ -30,6 +30,7 @@ import (
 	"strings"
 
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
+	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/internal/build"
 )
 
 // goModule is a module path and version. A replacement without a version
@@ -44,7 +45,7 @@ type goModule struct {
 // identity of its replacement, or makes it a local node when the
 // replacement is a directory. Go has no dev dependencies: a module that only
 // tests need looks like any other.
-func parseGoMod(b *builder, data, _ []byte, _ map[string][]byte) {
+func parseGoMod(b *build.Builder, data, _ []byte, _ map[string][]byte) {
 	type require struct {
 		goModule
 		indirect bool
@@ -89,32 +90,32 @@ func parseGoMod(b *builder, data, _ []byte, _ map[string][]byte) {
 			}
 		}
 		if !ok {
-			b.flag(resolve.ReasonMalformed, fmt.Sprintf("line %d: %q", n+1, strings.TrimSpace(line)))
+			b.Flag(resolve.ReasonMalformed, fmt.Sprintf("line %d: %q", n+1, strings.TrimSpace(line)))
 			return
 		}
 	}
 	if block != "" {
-		b.flag(resolve.ReasonMalformed, fmt.Sprintf("%s block is not closed", block))
+		b.Flag(resolve.ReasonMalformed, fmt.Sprintf("%s block is not closed", block))
 		return
 	}
 
-	b.flag(resolve.ReasonEdgesUnknown, "go.mod records no edges")
-	r := b.root("")
+	b.Flag(resolve.ReasonEdgesUnknown, "go.mod records no edges")
+	r := b.Root("")
 	for _, req := range requires {
 		to, replaced := replaces[req.goModule]
 		if !replaced {
 			to, replaced = replaces[goModule{path: req.path}]
 		}
-		add, m := b.node, req.goModule
+		add, m := b.Node, req.goModule
 		switch {
 		case replaced && to.version == "":
-			add, m = b.local, goModule{path: req.path}
+			add, m = b.Local, goModule{path: req.path}
 		case replaced:
 			m = to
 		}
 		i := strings.LastIndex(m.path, "/")
 		if id, ok := add(m.path[:max(i, 0)], m.path[i+1:], m.version); ok && !req.indirect {
-			r.declare(id, false)
+			r.Declare(id, false)
 		}
 	}
 }

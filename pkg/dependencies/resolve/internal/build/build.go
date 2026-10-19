@@ -21,7 +21,10 @@
  * THE SOFTWARE.
  */
 
-package lockfile
+// Package build is the only way the resolvers under resolve add to a graph,
+// so the graph invariants (limits, edge ends, reasons, ordering) hold for
+// every one of them.
+package build
 
 import (
 	"cmp"
@@ -55,9 +58,9 @@ func isUnknown(r resolve.Reason) bool {
 	return r == resolve.ReasonMalformed || r == resolve.ReasonUnsupportedVersion || r == resolve.ReasonTooLarge
 }
 
-// maxDetail bounds a detail, which quotes names taken from the lockfile, so a
+// MaxDetail bounds a detail, which quotes names taken from the input, so a
 // hostile lockfile cannot make every root carry megabytes of text.
-const maxDetail = 256
+const MaxDetail = 256
 
 // issue is the winning reason among those recorded. Ties on the reason keep
 // the smallest detail, so the result does not depend on recording order.
@@ -70,8 +73,8 @@ func (i *issue) add(o issue) {
 	if o.reason == "" {
 		return
 	}
-	if len(o.detail) > maxDetail {
-		o.detail = strings.ToValidUTF8(o.detail[:maxDetail], "") + "..."
+	if len(o.detail) > MaxDetail {
+		o.detail = strings.ToValidUTF8(o.detail[:MaxDetail], "") + "..."
 	}
 	if i.reason == "" {
 		*i = o
@@ -83,33 +86,40 @@ func (i *issue) add(o issue) {
 	}
 }
 
-// root collects what a format knows about one manifest: the nodes it declares
-// and its own problems. Members, edges and dev marks are derived in graph.
-type root struct {
+// Limits bounds the graph a Builder makes.
+type Limits struct {
+	MaxNodes int // nodes kept; reaching it makes the roots partial (node_limit)
+	MaxEdges int // edges kept; reaching it makes the roots partial (edge_limit)
+}
+
+// Root collects what a resolver knows about one manifest: the nodes it
+// declares and its own problems. Members, edges and dev marks are derived in
+// Graph.
+type Root struct {
 	direct  map[resolve.NodeID]bool // declared nodes
 	runtime map[resolve.NodeID]bool // declared nodes that are not dev dependencies
-	// devKnown is set by a format whose manifests say which declared nodes
+	// DevKnown is set by a resolver whose manifests say which declared nodes
 	// are dev dependencies.
-	devKnown bool
+	DevKnown bool
 	issue
 }
 
-// declare records id as declared by the root's manifest, as a dev dependency
+// Declare records id as declared by the root's manifest, as a dev dependency
 // when dev is set. A node declared both ways is a runtime dependency.
-func (r *root) declare(id resolve.NodeID, dev bool) {
+func (r *Root) Declare(id resolve.NodeID, dev bool) {
 	r.direct[id] = true
 	if !dev {
 		r.runtime[id] = true
 	}
 }
 
-func (r *root) flag(reason resolve.Reason, detail string) {
+// Flag records a problem of this root alone.
+func (r *Root) Flag(reason resolve.Reason, detail string) {
 	r.add(issue{reason, detail})
 }
 
-// builder is the only way a format adds to a graph, so the graph invariants
-// (limits, edge ends, reasons, ordering) hold for every format.
-type builder struct {
+// Builder collects the nodes, edges and roots of one graph.
+type Builder struct {
 	lim       Limits
 	lockfile  string
 	ecosystem resolve.Ecosystem
@@ -117,43 +127,50 @@ type builder struct {
 	nodes     map[resolve.NodeID]resolve.Node
 	adj       map[resolve.NodeID]map[resolve.NodeID]bool
 	edges     int
-	roots     map[string]*root
+	roots     map[string]*Root
 	problem   issue
 	problems  map[resolve.NodeID]issue
 }
 
-func newBuilder(lockfile string, f format, lim Limits) *builder {
-	return &builder{
+// New returns a Builder for the graph that lockfile, a slash path, resolves.
+// Its roots stand for files named manifest and carry eco.
+func New(lockfile string, eco resolve.Ecosystem, manifest string, lim Limits) *Builder {
+	return &Builder{
 		lim:       lim,
 		lockfile:  lockfile,
-		ecosystem: f.ecosystem,
-		manifest:  f.manifest,
+		ecosystem: eco,
+		manifest:  manifest,
 		nodes:     map[resolve.NodeID]resolve.Node{},
 		adj:       map[resolve.NodeID]map[resolve.NodeID]bool{},
-		roots:     map[string]*root{},
+		roots:     map[string]*Root{},
 		problems:  map[resolve.NodeID]issue{},
 	}
 }
 
-// node adds the registry package namespace/name at version and returns its
+// Lockfile returns the slash path of the lockfile the graph is resolved from.
+func (b *Builder) Lockfile() string {
+	return b.lockfile
+}
+
+// Node adds the registry package namespace/name at version and returns its
 // ID. It returns false when the entry is incomplete or the node limit is
 // reached.
-func (b *builder) node(namespace, name, version string) (resolve.NodeID, bool) {
+func (b *Builder) Node(namespace, name, version string) (resolve.NodeID, bool) {
 	return b.add(namespace, name, version, false)
 }
 
-// local adds the project's own package namespace/name, as node does. A local
+// Local adds the project's own package namespace/name, as Node does. A local
 // package may lack a version; its ID is then its versionless Package URL. A
 // local package with the ID of a registry package shares that node, which
 // stays a registry node, so a consumer that skips local nodes never drops a
 // third-party package.
-func (b *builder) local(namespace, name, version string) (resolve.NodeID, bool) {
+func (b *Builder) Local(namespace, name, version string) (resolve.NodeID, bool) {
 	return b.add(namespace, name, version, true)
 }
 
-func (b *builder) add(namespace, name, version string, local bool) (resolve.NodeID, bool) {
+func (b *Builder) add(namespace, name, version string, local bool) (resolve.NodeID, bool) {
 	if name == "" || (version == "" && !local) {
-		b.flag(resolve.ReasonInvalidEntry, fmt.Sprintf("entry %q at version %q lacks a name or version", name, version))
+		b.Flag(resolve.ReasonInvalidEntry, fmt.Sprintf("entry %q at version %q lacks a name or version", name, version))
 		return "", false
 	}
 	purl := parsers.BuildPURL(string(b.ecosystem), namespace, name, "", nil)
@@ -167,15 +184,15 @@ func (b *builder) add(namespace, name, version string, local bool) (resolve.Node
 		return id, true
 	}
 	if len(b.nodes) >= b.lim.MaxNodes {
-		b.flag(resolve.ReasonNodeLimit, fmt.Sprintf("more than %d nodes", b.lim.MaxNodes))
+		b.Flag(resolve.ReasonNodeLimit, fmt.Sprintf("more than %d nodes", b.lim.MaxNodes))
 		return "", false
 	}
 	b.nodes[id] = resolve.Node{ID: id, PURL: purl, Version: version, Local: local}
 	return id, true
 }
 
-// edge records that from depends on to. Both must be nodes already.
-func (b *builder) edge(from, to resolve.NodeID) {
+// Edge records that from depends on to. Both must be nodes already.
+func (b *Builder) Edge(from, to resolve.NodeID) {
 	if b.adj[from][to] {
 		return
 	}
@@ -186,7 +203,7 @@ func (b *builder) edge(from, to resolve.NodeID) {
 		return
 	}
 	if b.edges >= b.lim.MaxEdges {
-		b.flag(resolve.ReasonEdgeLimit, fmt.Sprintf("more than %d edges", b.lim.MaxEdges))
+		b.Flag(resolve.ReasonEdgeLimit, fmt.Sprintf("more than %d edges", b.lim.MaxEdges))
 		return
 	}
 	if b.adj[from] == nil {
@@ -196,41 +213,42 @@ func (b *builder) edge(from, to resolve.NodeID) {
 	b.edges++
 }
 
-// root returns the root for the manifest in dir, a directory relative to the
+// Root returns the root for the manifest in dir, a directory relative to the
 // lockfile's.
-func (b *builder) root(dir string) *root {
+func (b *Builder) Root(dir string) *Root {
 	m := path.Join(path.Dir(b.lockfile), dir, b.manifest)
 	r, ok := b.roots[m]
 	if !ok {
-		r = &root{direct: map[resolve.NodeID]bool{}, runtime: map[resolve.NodeID]bool{}}
+		r = &Root{direct: map[resolve.NodeID]bool{}, runtime: map[resolve.NodeID]bool{}}
 		b.roots[m] = r
 	}
 	return r
 }
 
-// nameRoot names the roots after the one file in members, for a format whose
+// NameRoot names the roots after the one file in members, for a format whose
 // manifest name varies; its members hook is sibling.
-func (b *builder) nameRoot(members map[string][]byte) {
+func (b *Builder) NameRoot(members map[string][]byte) {
 	if len(members) == 1 {
 		b.manifest = slices.Collect(maps.Keys(members))[0]
 	}
 }
 
-// flag records a problem that affects every root.
-func (b *builder) flag(reason resolve.Reason, detail string) {
+// Flag records a problem that affects every root.
+func (b *Builder) Flag(reason resolve.Reason, detail string) {
 	b.problem.add(issue{reason, detail})
 }
 
-// flagNode records a problem with node id; it affects every root that reaches
+// FlagNode records a problem with node id; it affects every root that reaches
 // id.
-func (b *builder) flagNode(id resolve.NodeID, reason resolve.Reason, detail string) {
+func (b *Builder) FlagNode(id resolve.NodeID, reason resolve.Reason, detail string) {
 	i := b.problems[id]
 	i.add(issue{reason, detail})
 	b.problems[id] = i
 }
 
-func (b *builder) graph() resolve.Graph {
-	b.root("")
+// Graph returns the graph built so far.
+func (b *Builder) Graph() resolve.Graph {
+	b.Root("")
 	mainName := path.Join(path.Dir(b.lockfile), b.manifest)
 	if isUnknown(b.problem.reason) {
 		return resolve.Graph{
@@ -254,10 +272,6 @@ func (b *builder) graph() resolve.Graph {
 	}
 
 	g := resolve.Graph{Nodes: make([]resolve.Node, 0, len(b.nodes)), Roots: make([]resolve.Root, 0, len(b.roots))}
-	for _, n := range b.nodes {
-		g.Nodes = append(g.Nodes, n)
-	}
-	slices.SortFunc(g.Nodes, func(x, y resolve.Node) int { return cmp.Compare(x.ID, y.ID) })
 	for name, r := range b.roots {
 		members := b.reach(starts[name])
 		is := r.issue
@@ -268,7 +282,7 @@ func (b *builder) graph() resolve.Graph {
 		// Only what dev dependencies alone reach is dev; the rest of starts,
 		// unattributed nodes included, counts as runtime.
 		var runtime map[resolve.NodeID]bool
-		if r.devKnown {
+		if r.DevKnown {
 			runtime = map[resolve.NodeID]bool{}
 			for id, direct := range starts[name] {
 				if !direct || r.runtime[id] {
@@ -279,6 +293,18 @@ func (b *builder) graph() resolve.Graph {
 		}
 		g.Roots = append(g.Roots, b.emit(name, is, members, runtime))
 	}
+	kept := map[resolve.NodeID]bool{}
+	for _, r := range g.Roots {
+		for _, m := range r.Members {
+			kept[m.ID] = true
+		}
+	}
+	for id, n := range b.nodes {
+		if kept[id] {
+			g.Nodes = append(g.Nodes, n)
+		}
+	}
+	slices.SortFunc(g.Nodes, func(x, y resolve.Node) int { return cmp.Compare(x.ID, y.ID) })
 	slices.SortFunc(g.Roots, func(x, y resolve.Root) int {
 		return cmp.Or(cmp.Compare(x.Manifest, y.Manifest), cmp.Compare(x.Lockfile, y.Lockfile))
 	})
@@ -287,7 +313,7 @@ func (b *builder) graph() resolve.Graph {
 
 // reach returns start plus every node reachable from it, keeping start's
 // direct flags.
-func (b *builder) reach(start map[resolve.NodeID]bool) map[resolve.NodeID]bool {
+func (b *Builder) reach(start map[resolve.NodeID]bool) map[resolve.NodeID]bool {
 	out := make(map[resolve.NodeID]bool, len(start))
 	queue := make([]resolve.NodeID, 0, len(start))
 	for id, direct := range start {
@@ -309,7 +335,7 @@ func (b *builder) reach(start map[resolve.NodeID]bool) map[resolve.NodeID]bool {
 
 // emit builds a root from its members. runtime holds the members that runtime
 // dependencies reach; nil means the root does not know its dev dependencies.
-func (b *builder) emit(manifest string, is issue, members, runtime map[resolve.NodeID]bool) resolve.Root {
+func (b *Builder) emit(manifest string, is issue, members, runtime map[resolve.NodeID]bool) resolve.Root {
 	r := resolve.Root{
 		Manifest:  manifest,
 		Lockfile:  b.lockfile,
@@ -318,12 +344,14 @@ func (b *builder) emit(manifest string, is issue, members, runtime map[resolve.N
 		Reason:    is.reason,
 		Detail:    is.detail,
 		DevKnown:  runtime != nil,
-		Members:   make([]resolve.Member, 0, len(members)),
+		Members:   []resolve.Member{},
 		Edges:     []resolve.Edge{},
 	}
 	switch {
 	case isUnknown(is.reason):
 		r.Status = resolve.StatusUnknown
+		r.DevKnown = false
+		return r
 	case is.reason != "":
 		r.Status = resolve.StatusPartial
 	}

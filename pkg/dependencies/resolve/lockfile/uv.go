@@ -32,6 +32,7 @@ import (
 	"github.com/pelletier/go-toml/v2"
 
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
+	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/internal/build"
 )
 
 // uvDep names a locked package. uv writes the version when the name is
@@ -90,7 +91,7 @@ func (p uvPackage) dev() []uvDep {
 // directory and path packages are local, and become nodes only when another
 // package depends on them. A dependency on a name locked at several versions
 // names the version; one that does not has an edge to each.
-func parseUvLock(b *builder, data, _ []byte, _ map[string][]byte) {
+func parseUvLock(b *build.Builder, data, _ []byte, _ map[string][]byte) {
 	var lock struct {
 		Version  int `toml:"version"`
 		Manifest struct {
@@ -99,11 +100,11 @@ func parseUvLock(b *builder, data, _ []byte, _ map[string][]byte) {
 		Package []uvPackage `toml:"package"`
 	}
 	if err := toml.Unmarshal(data, &lock); err != nil {
-		b.flag(resolve.ReasonMalformed, err.Error())
+		b.Flag(resolve.ReasonMalformed, err.Error())
 		return
 	}
 	if lock.Version != 1 {
-		b.flag(resolve.ReasonUnsupportedVersion, fmt.Sprintf("version %d", lock.Version))
+		b.Flag(resolve.ReasonUnsupportedVersion, fmt.Sprintf("version %d", lock.Version))
 		return
 	}
 	pkgs := lock.Package
@@ -139,9 +140,9 @@ func parseUvLock(b *builder, data, _ []byte, _ map[string][]byte) {
 	for i, p := range pkgs {
 		switch {
 		case !p.local():
-			ids[i], _ = b.node("", pep503(p.Name), p.Version)
+			ids[i], _ = b.Node("", pep503(p.Name), p.Version)
 		case depended[i]:
-			ids[i], _ = b.local("", pep503(p.Name), p.Version)
+			ids[i], _ = b.Local("", pep503(p.Name), p.Version)
 		}
 	}
 
@@ -161,21 +162,21 @@ func parseUvLock(b *builder, data, _ []byte, _ map[string][]byte) {
 	for i, p := range pkgs {
 		if ids[i] != "" {
 			for _, d := range p.runtime() {
-				link(i, d, func(to resolve.NodeID) { b.edge(ids[i], to) },
-					func(detail string) { b.flagNode(ids[i], resolve.ReasonUnresolvedDependency, detail) })
+				link(i, d, func(to resolve.NodeID) { b.Edge(ids[i], to) },
+					func(detail string) { b.FlagNode(ids[i], resolve.ReasonUnresolvedDependency, detail) })
 			}
 		}
 		if !isRoot[i] {
 			continue
 		}
-		r := b.root(p.project())
-		r.devKnown = true
-		unresolved := func(detail string) { r.flag(resolve.ReasonUnresolvedDependency, detail) }
+		r := b.Root(p.project())
+		r.DevKnown = true
+		unresolved := func(detail string) { r.Flag(resolve.ReasonUnresolvedDependency, detail) }
 		for _, d := range p.runtime() {
-			link(i, d, func(id resolve.NodeID) { r.declare(id, false) }, unresolved)
+			link(i, d, func(id resolve.NodeID) { r.Declare(id, false) }, unresolved)
 		}
 		for _, d := range p.dev() {
-			link(i, d, func(id resolve.NodeID) { r.declare(id, true) }, unresolved)
+			link(i, d, func(id resolve.NodeID) { r.Declare(id, true) }, unresolved)
 		}
 	}
 }

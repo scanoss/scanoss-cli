@@ -49,6 +49,7 @@ import (
 	"path"
 
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
+	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/internal/build"
 )
 
 // Limits bounds the work Parse does on one lockfile.
@@ -85,7 +86,7 @@ type format struct {
 	ecosystem resolve.Ecosystem
 	manifest  string // the manifest each root stands for
 	reads     bool   // parse reads the sibling manifest
-	parse     func(b *builder, lockfile, manifest []byte, members map[string][]byte)
+	parse     func(b *build.Builder, lockfile, manifest []byte, members map[string][]byte)
 	// members, when set, finds and reads the member manifests the sibling
 	// manifest names, within budget bytes in total. manifest is nil when the
 	// format reads none or it is absent.
@@ -137,22 +138,22 @@ func Parse(in Input, lim Limits) (resolve.Graph, error) {
 	if !ok {
 		return resolve.Graph{}, ErrUnsupported
 	}
-	b := newBuilder(in.Path, f, lim)
+	b := build.New(in.Path, f.ecosystem, f.manifest, build.Limits{MaxNodes: lim.MaxNodes, MaxEdges: lim.MaxEdges})
 	manifests := int64(len(in.Manifest))
 	for _, m := range in.Members {
 		manifests += int64(len(m))
 	}
 	switch {
 	case int64(len(in.Lockfile)) > lim.MaxBytes:
-		b.flag(resolve.ReasonTooLarge, fmt.Sprintf("lockfile exceeds %d bytes", lim.MaxBytes))
+		b.Flag(resolve.ReasonTooLarge, fmt.Sprintf("lockfile exceeds %d bytes", lim.MaxBytes))
 	case manifests > lim.MaxBytes:
-		b.flag(resolve.ReasonTooLarge, fmt.Sprintf("manifests exceed %d bytes", lim.MaxBytes))
+		b.Flag(resolve.ReasonTooLarge, fmt.Sprintf("manifests exceed %d bytes", lim.MaxBytes))
 	case len(in.Members) > lim.MaxNodes:
-		b.flag(resolve.ReasonTooLarge, fmt.Sprintf("more than %d member manifests", lim.MaxNodes))
+		b.Flag(resolve.ReasonTooLarge, fmt.Sprintf("more than %d member manifests", lim.MaxNodes))
 	default:
 		f.parse(b, in.Lockfile, in.Manifest, in.Members)
 	}
-	return b.graph(), nil
+	return b.Graph(), nil
 }
 
 // ParseFS reads the lockfile at path in fsys, and the sibling manifest when
