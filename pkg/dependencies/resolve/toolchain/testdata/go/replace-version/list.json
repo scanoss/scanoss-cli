@@ -1,0 +1,42 @@
+{
+	"Path": "example.com/app",
+	"Main": true,
+	"Dir": "/src/app",
+	"GoMod": "/src/app/go.mod",
+	"GoVersion": "1.22"
+}
+{
+	"Path": "github.com/davecgh/go-spew",
+	"Version": "v1.1.1",
+	"Indirect": true
+}
+{
+	"Path": "github.com/pmezard/go-difflib",
+	"Version": "v1.0.0",
+	"Indirect": true
+}
+{
+	"Path": "github.com/stretchr/objx",
+	"Version": "v0.5.2",
+	"Indirect": true
+}
+{
+	"Path": "github.com/stretchr/testify",
+	"Version": "v1.12.1",
+	"Replace": {
+		"Path": "github.com/stretchr/testify",
+		"Version": "v1.11.1",
+		"GoVersion": "1.17"
+	},
+	"GoVersion": "1.17"
+}
+{
+	"Path": "gopkg.in/check.v1",
+	"Version": "v0.0.0-20161208181325-20d25e280405",
+	"Indirect": true
+}
+{
+	"Path": "gopkg.in/yaml.v3",
+	"Version": "v3.0.1",
+	"Indirect": true
+}

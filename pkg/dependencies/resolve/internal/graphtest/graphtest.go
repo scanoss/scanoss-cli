@@ -154,9 +154,12 @@ func checkDev(t testing.TB, r resolve.Root) {
 
 func checkStatus(t testing.TB, r resolve.Root) {
 	t.Helper()
-	unknown := []resolve.Reason{resolve.ReasonMalformed, resolve.ReasonUnsupportedVersion, resolve.ReasonTooLarge}
+	unknown := []resolve.Reason{
+		resolve.ReasonMalformed, resolve.ReasonUnsupportedVersion, resolve.ReasonTooLarge,
+		resolve.ReasonToolMissing, resolve.ReasonToolFailed, resolve.ReasonTimeout,
+	}
 	partial := []resolve.Reason{
-		resolve.ReasonNodeLimit, resolve.ReasonEdgeLimit, resolve.ReasonManifestMissing,
+		resolve.ReasonNodeLimit, resolve.ReasonEdgeLimit, resolve.ReasonRegistryUnreachable, resolve.ReasonManifestMissing,
 		resolve.ReasonManifestMalformed, resolve.ReasonUnsupportedWorkspaces,
 		resolve.ReasonEdgesUnknown, resolve.ReasonUnresolvedDependency, resolve.ReasonInvalidEntry,
 	}

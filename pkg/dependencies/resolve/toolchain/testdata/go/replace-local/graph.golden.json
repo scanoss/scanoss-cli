@@ -1,0 +1,71 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:golang/example.com/local",
+      "purl": "pkg:golang/example.com/local",
+      "version": "",
+      "local": true
+    },
+    {
+      "id": "pkg:golang/github.com/google/uuid@v1.6.0",
+      "purl": "pkg:golang/github.com/google/uuid",
+      "version": "v1.6.0"
+    },
+    {
+      "id": "pkg:golang/github.com/stretchr/objx@v0.5.3",
+      "purl": "pkg:golang/github.com/stretchr/objx",
+      "version": "v0.5.3"
+    },
+    {
+      "id": "pkg:golang/github.com/stretchr/testify@v1.12.1",
+      "purl": "pkg:golang/github.com/stretchr/testify",
+      "version": "v1.12.1"
+    },
+    {
+      "id": "pkg:golang/go.yaml.in/yaml/v3@v3.0.5",
+      "purl": "pkg:golang/go.yaml.in/yaml/v3",
+      "version": "v3.0.5"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "go.mod",
+      "lockfile": "go.mod",
+      "ecosystem": "golang",
+      "status": "complete",
+      "devKnown": false,
+      "members": [
+        {
+          "id": "pkg:golang/example.com/local",
+          "direct": true
+        },
+        {
+          "id": "pkg:golang/github.com/google/uuid@v1.6.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:golang/github.com/stretchr/objx@v0.5.3",
+          "direct": false
+        },
+        {
+          "id": "pkg:golang/github.com/stretchr/testify@v1.12.1",
+          "direct": true
+        },
+        {
+          "id": "pkg:golang/go.yaml.in/yaml/v3@v3.0.5",
+          "direct": false
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:golang/github.com/stretchr/testify@v1.12.1",
+          "to": "pkg:golang/github.com/stretchr/objx@v0.5.3"
+        },
+        {
+          "from": "pkg:golang/github.com/stretchr/testify@v1.12.1",
+          "to": "pkg:golang/go.yaml.in/yaml/v3@v3.0.5"
+        }
+      ]
+    }
+  ]
+}

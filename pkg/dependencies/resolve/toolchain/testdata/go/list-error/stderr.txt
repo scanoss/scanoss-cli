@@ -1,0 +1,3 @@
+go: github.com/google/uuid-gone@v1.0.0: reading github.com/google/uuid-gone/go.mod at revision v1.0.0: git ls-remote -q origin in /go/pkg/mod/cache/vcs/b1a4d1fd109216d663b923f4a384c21bac32c596213ca06757609e4880390821: exit status 128:
+	remote: Repository not found.
+	fatal: repository 'https://github.com/google/uuid-gone/' not found

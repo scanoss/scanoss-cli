@@ -1,0 +1,1 @@
+go: github.com/google/uuid@v1.6.0: Get "http://127.0.0.1:9/github.com/google/uuid/@v/v1.6.0.mod": dial tcp 127.0.0.1:9: connect: connection refused

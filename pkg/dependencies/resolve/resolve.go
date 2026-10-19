@@ -22,8 +22,9 @@
  */
 
 // Package resolve defines a dependency graph with edges, as resolved from a
-// project's lockfiles. The parsers that build it live in sub-packages, such as
-// resolve/lockfile.
+// project's lockfiles or by its build tools. The resolvers that build it live
+// in sub-packages: resolve/lockfile parses lockfiles, and resolve/toolchain
+// runs the ecosystem's tools, such as the go command, on a manifest.
 //
 // A node is one package at one version, identified by its versioned Package
 // URL ("pkg:npm/express@4.19.2"). Nodes are shared by every root.
@@ -85,13 +86,14 @@ type Status string
 
 // Statuses.
 const (
-	// StatusComplete means the root's graph is the lockfile's graph.
+	// StatusComplete means the root's graph is the lockfile's graph, or the
+	// tool's.
 	StatusComplete Status = "complete"
 	// StatusPartial means the root's graph is usable but missing something;
 	// Reason says what.
 	StatusPartial Status = "partial"
-	// StatusUnknown means the lockfile could not be read; the root has no
-	// members and no edges.
+	// StatusUnknown means the lockfile could not be read, or the tool could
+	// not resolve the manifest; the root has no members and no edges.
 	StatusUnknown Status = "unknown"
 )
 
@@ -105,12 +107,25 @@ const (
 	ReasonMalformed          Reason = "malformed"
 	ReasonUnsupportedVersion Reason = "unsupported_version"
 	ReasonTooLarge           Reason = "too_large"
+	// ReasonToolMissing means the tool that resolves the manifest is not on
+	// PATH.
+	ReasonToolMissing Reason = "tool_missing"
+	// ReasonToolFailed means the tool exited with an error; Detail quotes the
+	// end of what it wrote to stderr.
+	ReasonToolFailed Reason = "tool_failed"
+	// ReasonTimeout means the tool did not finish in time, or the caller
+	// cancelled it.
+	ReasonTimeout Reason = "timeout"
 )
 
 // Reasons for a partial root.
 const (
-	ReasonNodeLimit             Reason = "node_limit"
-	ReasonEdgeLimit             Reason = "edge_limit"
+	ReasonNodeLimit Reason = "node_limit"
+	ReasonEdgeLimit Reason = "edge_limit"
+	// ReasonRegistryUnreachable means the tool could not reach the package
+	// registry or its mirror: the members are what it could resolve without
+	// it.
+	ReasonRegistryUnreachable   Reason = "registry_unreachable"
 	ReasonManifestMissing       Reason = "manifest_missing"
 	ReasonManifestMalformed     Reason = "manifest_malformed"
 	ReasonUnsupportedWorkspaces Reason = "unsupported_workspaces"
@@ -143,7 +158,7 @@ type Node struct {
 // Root is the graph of one manifest, as resolved by one lockfile.
 type Root struct {
 	Manifest  string    `json:"manifest"` // slash path of the manifest this root stands for
-	Lockfile  string    `json:"lockfile"` // slash path of the lockfile it was resolved from
+	Lockfile  string    `json:"lockfile"` // slash path of the lockfile it was resolved from; the manifest when a tool resolved it
 	Ecosystem Ecosystem `json:"ecosystem"`
 	Status    Status    `json:"status"`
 	Reason    Reason    `json:"reason,omitempty"`

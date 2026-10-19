@@ -1,0 +1,48 @@
+{
+	"Path": "example.com/app",
+	"Main": true,
+	"Dir": "/src/app",
+	"GoMod": "/src/app/go.mod",
+	"GoVersion": "1.22"
+}
+{
+	"Path": "example.com/local",
+	"Version": "v0.0.0",
+	"Replace": {
+		"Path": "./local",
+		"Dir": "/src/app/local",
+		"GoMod": "/src/app/local/go.mod",
+		"GoVersion": "1.22"
+	},
+	"Dir": "/src/app/local",
+	"GoMod": "/src/app/local/go.mod",
+	"GoVersion": "1.22"
+}
+{
+	"Path": "github.com/google/uuid",
+	"Version": "v1.6.0",
+	"Error": {
+		"Err": "github.com/google/uuid@v1.6.0: Get \"http://127.0.0.1:9/github.com/google/uuid/@v/v1.6.0.info\": dial tcp 127.0.0.1:9: connect: connection refused"
+	},
+	"Sum": "h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=",
+	"GoModSum": "h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo="
+}
+{
+	"Path": "github.com/stretchr/testify",
+	"Version": "v1.12.1",
+	"Error": {
+		"Err": "github.com/stretchr/testify@v1.12.1: Get \"http://127.0.0.1:9/github.com/stretchr/testify/@v/v1.12.1.info\": dial tcp 127.0.0.1:9: connect: connection refused"
+	},
+	"Sum": "h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=",
+	"GoModSum": "h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg="
+}
+{
+	"Path": "go.yaml.in/yaml/v3",
+	"Version": "v3.0.5",
+	"Indirect": true,
+	"Error": {
+		"Err": "go.yaml.in/yaml/v3@v3.0.5: Get \"http://127.0.0.1:9/go.yaml.in/yaml/v3/@v/v3.0.5.info\": dial tcp 127.0.0.1:9: connect: connection refused"
+	},
+	"Sum": "h1:N6y/pJk8buWs9NY5ERU2HSMfm+IuD/OtfdAnq6kESPw=",
+	"GoModSum": "h1:HVTZu1O7/Vkt2N+BFy8Zza+lnLsABggaTM2ZpNIGuKg="
+}

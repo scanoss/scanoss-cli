@@ -1,0 +1,91 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:golang/github.com/davecgh/go-spew@v1.1.1",
+      "purl": "pkg:golang/github.com/davecgh/go-spew",
+      "version": "v1.1.1"
+    },
+    {
+      "id": "pkg:golang/github.com/pmezard/go-difflib@v1.0.0",
+      "purl": "pkg:golang/github.com/pmezard/go-difflib",
+      "version": "v1.0.0"
+    },
+    {
+      "id": "pkg:golang/github.com/stretchr/objx@v0.5.2",
+      "purl": "pkg:golang/github.com/stretchr/objx",
+      "version": "v0.5.2"
+    },
+    {
+      "id": "pkg:golang/github.com/stretchr/testify@v1.11.1",
+      "purl": "pkg:golang/github.com/stretchr/testify",
+      "version": "v1.11.1"
+    },
+    {
+      "id": "pkg:golang/gopkg.in/check.v1@v0.0.0-20161208181325-20d25e280405",
+      "purl": "pkg:golang/gopkg.in/check.v1",
+      "version": "v0.0.0-20161208181325-20d25e280405"
+    },
+    {
+      "id": "pkg:golang/gopkg.in/yaml.v3@v3.0.1",
+      "purl": "pkg:golang/gopkg.in/yaml.v3",
+      "version": "v3.0.1"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "go.mod",
+      "lockfile": "go.mod",
+      "ecosystem": "golang",
+      "status": "complete",
+      "devKnown": false,
+      "members": [
+        {
+          "id": "pkg:golang/github.com/davecgh/go-spew@v1.1.1",
+          "direct": false
+        },
+        {
+          "id": "pkg:golang/github.com/pmezard/go-difflib@v1.0.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:golang/github.com/stretchr/objx@v0.5.2",
+          "direct": false
+        },
+        {
+          "id": "pkg:golang/github.com/stretchr/testify@v1.11.1",
+          "direct": true
+        },
+        {
+          "id": "pkg:golang/gopkg.in/check.v1@v0.0.0-20161208181325-20d25e280405",
+          "direct": false
+        },
+        {
+          "id": "pkg:golang/gopkg.in/yaml.v3@v3.0.1",
+          "direct": false
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:golang/github.com/stretchr/testify@v1.11.1",
+          "to": "pkg:golang/github.com/davecgh/go-spew@v1.1.1"
+        },
+        {
+          "from": "pkg:golang/github.com/stretchr/testify@v1.11.1",
+          "to": "pkg:golang/github.com/pmezard/go-difflib@v1.0.0"
+        },
+        {
+          "from": "pkg:golang/github.com/stretchr/testify@v1.11.1",
+          "to": "pkg:golang/github.com/stretchr/objx@v0.5.2"
+        },
+        {
+          "from": "pkg:golang/github.com/stretchr/testify@v1.11.1",
+          "to": "pkg:golang/gopkg.in/yaml.v3@v3.0.1"
+        },
+        {
+          "from": "pkg:golang/gopkg.in/yaml.v3@v3.0.1",
+          "to": "pkg:golang/gopkg.in/check.v1@v0.0.0-20161208181325-20d25e280405"
+        }
+      ]
+    }
+  ]
+}

@@ -44,8 +44,12 @@ var precedence = []resolve.Reason{
 	resolve.ReasonMalformed,
 	resolve.ReasonUnsupportedVersion,
 	resolve.ReasonTooLarge,
+	resolve.ReasonToolMissing,
+	resolve.ReasonToolFailed,
+	resolve.ReasonTimeout,
 	resolve.ReasonNodeLimit,
 	resolve.ReasonEdgeLimit,
+	resolve.ReasonRegistryUnreachable,
 	resolve.ReasonManifestMissing,
 	resolve.ReasonManifestMalformed,
 	resolve.ReasonUnsupportedWorkspaces,
@@ -55,7 +59,12 @@ var precedence = []resolve.Reason{
 }
 
 func isUnknown(r resolve.Reason) bool {
-	return r == resolve.ReasonMalformed || r == resolve.ReasonUnsupportedVersion || r == resolve.ReasonTooLarge
+	switch r {
+	case resolve.ReasonMalformed, resolve.ReasonUnsupportedVersion, resolve.ReasonTooLarge,
+		resolve.ReasonToolMissing, resolve.ReasonToolFailed, resolve.ReasonTimeout:
+		return true
+	}
+	return false
 }
 
 // MaxDetail bounds a detail, which quotes names taken from the input, so a

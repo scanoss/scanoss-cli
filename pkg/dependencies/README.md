@@ -311,6 +311,34 @@ The `Gemfile` is Ruby, so only `gem` lines, `group` blocks and `group:` or
 and a `Gemfile` whose blocks do not balance leaves the root's dev dependencies
 unknown.
 
+### Resolving with the build tools
+
+Some lockfiles record no edges, such as `go.mod`. `resolve/toolchain` builds
+the same `resolve.Graph` by running the ecosystem's own tools on the manifest:
+
+```go
+g, err := toolchain.Resolve(ctx, projectDir, "svc/go.mod", toolchain.Options{
+    Env: []string{"GOPROXY=https://proxy.golang.org"},
+})
+if err != nil {
+    return err // toolchain.ErrUnsupported
+}
+root := g.Roots[0] // Manifest and Lockfile are both svc/go.mod
+```
+
+The tools run on files the scanned repository controls, and some run its own
+code, so run `Resolve` inside an isolated sandbox. They need no credentials;
+`Options.Env` sets the registry or mirror and overrides the tool's defaults.
+Each run has a timeout (`Options.Timeout`, 10 minutes by default) and its
+output is capped by `Limits`. A tool problem never fails the call: the root is
+`unknown` with `tool_missing`, `tool_failed`, `timeout` or `too_large`, or
+`partial` with `registry_unreachable` when the tool could not reach the
+registry and the members are what it resolved without it.
+
+| Manifest | Runs | Graph |
+|----------|------|-------|
+| `go.mod` | `go list -e -m -json all` and `go mod graph`, with `GOWORK=off`, `GOFLAGS=-mod=readonly` and `GOTOOLCHAIN=local` | the modules the build selects, with edges between the selected versions; `replace` as for the `go.mod` lockfile; `edges_unknown` when only `go mod graph` fails |
+
 ## Error Handling
 
 The parser handles errors gracefully:

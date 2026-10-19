@@ -1,0 +1,36 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:golang/github.com/google/uuid-gone@v1.0.0",
+      "purl": "pkg:golang/github.com/google/uuid-gone",
+      "version": "v1.0.0"
+    },
+    {
+      "id": "pkg:golang/github.com/google/uuid@v1.6.0",
+      "purl": "pkg:golang/github.com/google/uuid",
+      "version": "v1.6.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "go.mod",
+      "lockfile": "go.mod",
+      "ecosystem": "golang",
+      "status": "partial",
+      "reason": "unresolved_dependency",
+      "detail": "github.com/google/uuid-gone@v1.0.0: invalid version: git ls-remote -q https://github.com/google/uuid-gone in /go/pkg/mod/cache/vcs/b1a4d1fd109216d663b923f4a384c21bac32c596213ca06757609e4880390821: exit status 128:\n\tremote: Repository not found.\n\tfatal: rep...",
+      "devKnown": false,
+      "members": [
+        {
+          "id": "pkg:golang/github.com/google/uuid-gone@v1.0.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:golang/github.com/google/uuid@v1.6.0",
+          "direct": true
+        }
+      ],
+      "edges": []
+    }
+  ]
+}

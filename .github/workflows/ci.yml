@@ -41,6 +41,26 @@ jobs:
       - name: Run go vet
         run: go vet ./...
 
+  toolchain:
+    name: Toolchain resolvers (${{ matrix.ecosystem }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ecosystem: go
+            image: golang:1.26
+            test: Go
+    container: ${{ matrix.image }}
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Run integration tests
+        run: go test -tags integration -run '${{ matrix.test }}' ./pkg/dependencies/resolve/toolchain/...
+
   build-cli:
     name: Build CLI
     runs-on: ubuntu-latest

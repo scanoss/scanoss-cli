@@ -1,0 +1,4 @@
+{"Path": "example.com/app", "Main": true, "GoVersion": "1.22"}
+{"Path": "example.com/a", "Version": "v1.2.0"}
+{"Path": "example.com/b", "Version": "v1.0.0"}
+{"Path": "example.com/d", "Version": "v1.0.0", "Indirect": true}
