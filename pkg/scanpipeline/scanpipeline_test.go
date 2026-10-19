@@ -31,6 +31,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -41,6 +42,7 @@ import (
 	"github.com/scanoss/scanoss.go/pkg/dependencies/parsers"
 	"github.com/scanoss/scanoss.go/pkg/filter"
 	"github.com/scanoss/scanoss.go/pkg/sbom"
+	"github.com/scanoss/scanoss.go/pkg/sbom/depsource"
 	"github.com/scanoss/scanoss.go/pkg/sbom/scansource"
 	"github.com/scanoss/scanoss.go/pkg/scanoss"
 	"github.com/scanoss/scanoss.go/pkg/wfp"
@@ -124,7 +126,7 @@ func assembleAndEnrich(t *testing.T, client *scanoss.Client, result *scanossapi.
 	t.Helper()
 	inv := scansource.Inventory(result)
 	if includeDeclared && declared != nil && len(declared.Files) > 0 {
-		inv.Add(sourceDeclared(declared, "")...)
+		inv.Add(depsource.Manifests(declared, "").Components...)
 	}
 	if err := (Enricher{Client: client, Services: services}).Enrich(context.Background(), &inv); err != nil {
 		t.Fatalf("Enrich: %v", err)
@@ -274,63 +276,6 @@ func TestDepsWithoutDetectedMatches(t *testing.T) {
 	}
 }
 
-// TestSourceDeclared proves declared components are sourced from the parsed manifests without a
-// service call: each PURL is split into base + version, scoped npm PURLs split correctly, and only
-// EXACT duplicates (same PURL + version) are collapsed. A declared range (package.json "^1.3.0")
-// is kept alongside its resolved pin (package-lock.json "1.3.0") — those are not duplicates.
-func TestSourceDeclared(t *testing.T) {
-	declared := &parsers.LocalDependencies{
-		Files: []parsers.LocalDependency{
-			{File: "package.json", Purls: []parsers.LocalPurl{
-				{Purl: "pkg:npm/left-pad", Requirement: "^1.3.0"}, // range (manifest)
-				{Purl: "pkg:npm/dup@1.0.0", Requirement: "1.0.0"}, // exact dup (repeated below)
-			}},
-			{File: "package-lock.json", Purls: []parsers.LocalPurl{
-				{Purl: "pkg:npm/left-pad@1.3.0", Requirement: "1.3.0"},   // pinned — kept ALONGSIDE the range
-				{Purl: "pkg:npm/@scope/pkg@2.1.0", Requirement: "2.1.0"}, // scoped, pinned
-				{Purl: "pkg:npm/dup@1.0.0", Requirement: "1.0.0"},        // exact duplicate → collapsed
-				{Purl: "pkg:npm/multi@1.0.0", Requirement: "1.0.0"},      // two concrete versions...
-				{Purl: "pkg:npm/multi@2.0.0", Requirement: "2.0.0"},      // ...both kept
-			}},
-		},
-	}
-
-	got := sourceDeclared(declared, "")
-	byKey := make(map[string]sbom.Component, len(got))
-	for _, c := range got {
-		if _, dup := byKey[c.Purl+"@"+c.Version]; dup {
-			t.Errorf("duplicate entry for %s@%s", c.Purl, c.Version)
-		}
-		byKey[c.Purl+"@"+c.Version] = c
-		if !c.IsDeclared() {
-			t.Errorf("%s should have declared scope", c.Purl)
-		}
-	}
-
-	for _, w := range []string{
-		"pkg:npm/left-pad@^1.3.0",  // range KEPT (not dropped)
-		"pkg:npm/left-pad@1.3.0",   // pinned KEPT alongside the range
-		"pkg:npm/@scope/pkg@2.1.0", // scoped split correctly
-		"pkg:npm/multi@1.0.0",      // both concrete versions survive
-		"pkg:npm/multi@2.0.0",
-		"pkg:npm/dup@1.0.0", // exact duplicate collapsed to one
-	} {
-		c, ok := byKey[w]
-		if !ok {
-			t.Errorf("missing %q in %v", w, byKey)
-			continue
-		}
-		if len(c.Evidence) == 0 || c.Evidence[0].MatchType != "declared" {
-			t.Errorf("%s should carry declared evidence, got %+v", w, c.Evidence)
-		}
-	}
-
-	// dup@1.0.0 was declared in two manifests → the collapse keeps one occurrence per manifest.
-	if dup := byKey["pkg:npm/dup@1.0.0"]; len(dup.Evidence) != 2 {
-		t.Errorf("dup@1.0.0 should keep both manifest occurrences, got %+v", dup.Evidence)
-	}
-}
-
 // TestEnrichesAllPurlLayers proves the crypto and geo layers are gathered and attached inline
 // on the component when requested.
 func TestEnrichesAllPurlLayers(t *testing.T) {
@@ -412,6 +357,66 @@ func TestRunStreamsWFPToWriter(t *testing.T) {
 	}
 	if findComponent(res.Inventory, "pkg:npm/lodash") == nil {
 		t.Errorf("inventory missing the detected component; got %+v", res.Inventory.Components)
+	}
+}
+
+// With the deps layer requested, Run resolves the lockfile beside the scanned code into the
+// inventory's dependency graph: the resolved packages are declared components and the root is
+// in Dependencies, while the manifest the lockfile covers contributes no flat range entry.
+func TestRunResolvesLockfileGraph(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "code.c"), []byte(strings.Repeat("int x;\n", 40)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	fixture := filepath.Join("..", "dependencies", "resolve", "lockfile", "testdata", "package-lock", "dev-scope")
+	if err := os.CopyFS(root, os.DirFS(fixture)); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "package.json"), []byte(`{"dependencies":{"left":"^1.0.0"}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			w.WriteHeader(http.StatusAccepted)
+		case http.MethodGet:
+			_, _ = w.Write([]byte(`{"scan_id":"s1","status":"completed","phase":"done","result":{"files":[],"components":{}}}`))
+		}
+	}))
+	defer srv.Close()
+
+	depFilters := filter.Dependencies(nil)
+	depFilters.BuiltinFileRules = false
+	res, err := Run(context.Background(), Options{
+		Client:            mustNewClient(t, srv.URL),
+		SourcePath:        root,
+		SourceDeclared:    true,
+		ScanFilters:       filter.Scanning(nil),
+		DependencyFilters: depFilters,
+		ScanOptions:       []scanoss.ScanOption{scanoss.WithPollInterval(10 * time.Millisecond)},
+	})
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	var roots []string
+	for _, r := range res.Inventory.Dependencies {
+		roots = append(roots, r.Manifest+" "+string(r.Status))
+	}
+	if want := []string{"package.json complete", "packages/tool/package.json complete"}; !slices.Equal(roots, want) {
+		t.Errorf("roots = %q, want %q", roots, want)
+	}
+	left := findComponent(res.Inventory, "pkg:npm/left")
+	if left == nil || left.Version != "1.0.0" {
+		t.Fatalf("want the resolved left@1.0.0 from the lockfile, got %+v", left)
+	}
+	if !left.IsDeclared() || len(left.Evidence) != 1 || left.Evidence[0].MatchType != "declared" || left.Evidence[0].Path != "package.json" {
+		t.Errorf("left = %+v, want a declared component with the manifest as evidence", left)
+	}
+	for _, c := range res.Inventory.Components {
+		if c.Purl == "pkg:npm/left" && c.Version == "^1.0.0" {
+			t.Error("the range entry of a manifest its lockfile covers must not be emitted")
+		}
 	}
 }
 

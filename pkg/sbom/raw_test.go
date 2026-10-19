@@ -101,3 +101,37 @@ func TestRawDocumentEmptyComponentsIsList(t *testing.T) {
 		t.Errorf("expected no components, got %d", len(inv.Components))
 	}
 }
+
+// The dependency graph and the local mark travel through the raw document unchanged: raw is the
+// interchange format between scan, enrich and convert, so it is the one that must lose nothing.
+func TestRawDocumentDependenciesRoundTrip(t *testing.T) {
+	inv := Inventory{
+		Components: []Component{
+			{Purl: "pkg:npm/tool", Scope: ScopeDeclared, Local: true, Evidence: []FileEvidence{{Path: "package.json", MatchType: "declared"}}},
+			{Purl: "pkg:npm/left", Version: "1.0.0", Scope: ScopeDeclared, Evidence: []FileEvidence{{Path: "package.json", MatchType: "transitive"}}},
+		},
+		Dependencies: []DependencyRoot{{
+			Manifest: "package.json", Lockfile: "package-lock.json", Ecosystem: "npm",
+			Status: GraphPartial, Reason: "node_limit", Detail: "50000 nodes", DevKnown: true,
+			Edges: []DependencyEdge{{From: "pkg:npm/tool", To: "pkg:npm/left@1.0.0"}},
+		}},
+	}
+
+	out, err := NewRawDocument(inv, RawMetadata{Tool: "t"}).Marshal()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`"local": true`, `"match_type": "transitive"`, `"dev_known": true`, `"status": "partial"`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("raw document should carry %s, got:\n%s", want, out)
+		}
+	}
+
+	got, err := ParseRaw([]byte(out))
+	if err != nil {
+		t.Fatalf("ParseRaw: %v", err)
+	}
+	if !reflect.DeepEqual(got, inv) {
+		t.Errorf("round-trip mismatch:\n want %+v\n  got %+v", inv, got)
+	}
+}

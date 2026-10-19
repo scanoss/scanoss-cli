@@ -319,7 +319,7 @@ layers, gathered over both detected and declared components:
 
 | Layer | What it adds |
 |-------|--------------|
-| `deps` | Declared dependencies parsed from the project's manifests (`package.json`, `go.mod`, …) and resolved. Needs a source tree, so it is ignored for `scan wfp`. |
+| `deps` | The project's dependencies. Where a lockfile covers a manifest (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `Cargo.lock`, `Gemfile.lock`, `poetry.lock`, `composer.lock`) the dependency graph is resolved from it: every runtime package, direct and transitive, with its edges, and without dev dependencies. Manifests no lockfile covers (`pom.xml`, `go.mod`, `requirements.txt`, …) contribute their declared packages flat. Needs a source tree, so it is ignored for `scan wfp`. |
 | `vulns` | Known vulnerabilities. |
 | `licenses` | Declared/concluded licenses per component. |
 | `crypto` | Cryptographic algorithms. |
@@ -350,6 +350,42 @@ Components that share the same identity (PURL + version) are collapsed into one 
 package listed in both `package.json` and `package-lock.json`, or detected and also declared, is
 emitted once; different versions of the same PURL are kept. In SPDX, multiple licenses on a
 component are combined with `AND`.
+
+#### The dependency graph (`--include deps`)
+
+When a lockfile resolves a manifest, the output carries the graph, not just the list, and the
+manifest's own range entries (`^1.5.5`) give way to the resolved versions. Dev dependencies are
+never included: a package the manifest reaches only through its `devDependencies` (or
+`[dev-dependencies]`, `require-dev`, the `development`/`test` groups, Poetry's dev groups) is
+left out, and so are the edges into it. A package that is both a dev dependency and reachable at
+runtime stays. When the manifests do not say which dependencies are dev (`dev_known: false`),
+every package is kept. A lockfile that cannot be read gives an `unknown` root with no packages;
+its manifest is not read as a flat list instead.
+
+- `raw` adds a `dependencies` list with one root per manifest a lockfile resolved: `manifest`,
+  `lockfile`, `ecosystem`, `status` (`complete`, `partial` or `unknown`), `reason` and `detail`
+  when it is not complete, `dev_known`, `direct` (the `purl@version` of each package the
+  manifest declares, as this root's lockfile resolved it), and its `edges` (`from` depends on
+  `to`). A manifest resolved by two lockfiles is two roots, each with its own versions. Which
+  components a root reaches is also on their evidence: a manifest path with `match_type`
+  `declared` means the manifest declares the package, `transitive` means its lockfile pulls it
+  in. A component that is the project's own package (a workspace member, a
+  path dependency) is marked `"local": true`. `schema_version` is `2.1`; `2.0` readers can ignore
+  the additions.
+- `cyclonedx` names the project in `metadata.component` (with a `bom-ref`) and adds one
+  `application` component per root, named by its manifest path, with `scanoss:lockfile` and, when
+  not complete, `scanoss:reason` properties. `dependencies` lists the project depending on each
+  root, each root on the packages its manifest declares, and each package on its own
+  dependencies; every component has an entry, so a package with no dependencies says so.
+  `compositions` has one entry per root, `complete`, `incomplete` or `unknown`, listing the root
+  under `dependencies`. Local packages carry a `scanoss:local` property.
+- `spdx` adds a project package the document `DESCRIBES`, one package per root (comment
+  `scanoss:root lockfile=… status=…`), and `DEPENDS_ON` relationships: project to roots, roots to
+  the packages their manifest declares, packages to their dependencies. Local packages carry the
+  comment `scanoss:local`.
+
+`sbom` and `enrich` keep the graph when the input is `raw`; a CycloneDX or SPDX input is read
+back as a component list, like `match_index`.
 
 #### Which component a file comes from (`match_index`)
 
@@ -470,6 +506,17 @@ same directories as `--extract-local`. `Pipfile.lock`, `gradle.lockfile` and
 scanoss-cli dependencies ./my-project --extract-local --graph
 ```
 
+Add `--format raw|cyclonedx|spdx` to render the dependencies as an inventory instead, in
+the same shape `scan --include deps` writes, with no API call: the lockfiles
+(`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `Cargo.lock`, `Gemfile.lock`,
+`poetry.lock`, `composer.lock`) are resolved into the dependency graph, without dev
+dependencies, and manifests no lockfile covers are listed flat. See
+[The dependency graph](#the-dependency-graph---include-deps) for what each format carries.
+
+```bash
+scanoss-cli dependencies ./my-project --extract-local --format cyclonedx --output deps.cdx.json
+```
+
 **API mode** — query a component's dependencies (`--requirement` is optional):
 
 ```bash
@@ -482,7 +529,8 @@ scanoss-cli dependencies --purl 'pkg:github/scanoss/engine' --requirement '5.4.7
   --depth 5 --limit 20 --api-key "$SCANOSS_API_KEY"
 ```
 
-Flags: `--extract-local`, `--graph`, `--purl`, `--requirement` (optional), `--transient`,
+Flags: `--extract-local`, `--graph`, `-f, --format` (with `--extract-local`: `raw`/`cyclonedx`/`spdx`),
+`--purl`, `--requirement` (optional), `--transient`,
 `--depth` (10), `--limit` (10), `--api-url`, `--api-key`, `--ignore-cert-errors`,
 `-o, --output`.
 

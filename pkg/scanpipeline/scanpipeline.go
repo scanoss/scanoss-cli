@@ -23,8 +23,9 @@
 
 // Package scanpipeline runs the scan pipeline that assembles a neutral sbom.Inventory. Run is
 // the full flow over a source path: collect files → fingerprint → scan → source declared
-// dependencies from the same files → gather + enrich the requested layers via the SDK's
-// decoration pipeline (scanoss.DecorationPipeline). Enricher is the gathering half on its own,
+// dependencies from the same tree (the lockfile graph, and the manifests no lockfile covers,
+// via sbom/depsource) → gather + enrich the requested layers via the SDK's decoration pipeline
+// (scanoss.DecorationPipeline). Enricher is the gathering half on its own,
 // for callers that already have an inventory (a scan result, or a parsed SBOM). Rendering
 // is left to sbom.Generate — this package does not render. Layers to gather are driven by the
 // caller's request, never by any output format.
@@ -38,17 +39,15 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 
 	scanossapi "github.com/scanoss/scanoss.api-sdk"
 
 	"github.com/scanoss/scanoss.go/internal/logging"
-	"github.com/scanoss/scanoss.go/pkg/dependencies"
-	"github.com/scanoss/scanoss.go/pkg/dependencies/parsers"
 	"github.com/scanoss/scanoss.go/pkg/filter"
 	"github.com/scanoss/scanoss.go/pkg/postprocess"
 	"github.com/scanoss/scanoss.go/pkg/sbom"
+	"github.com/scanoss/scanoss.go/pkg/sbom/depsource"
 	"github.com/scanoss/scanoss.go/pkg/sbom/scansource"
 	"github.com/scanoss/scanoss.go/pkg/scanoss"
 	"github.com/scanoss/scanoss.go/pkg/wfp"
@@ -143,8 +142,8 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 	// scan root labels the WFP paths relative to it. Fingerprinting and dependency scanning need
 	// different filters: the fingerprint filter drops dependency manifests (package.json, go.mod,
 	// …) since they aren't useful for matching, so when the deps layer is requested we collect a
-	// second time with a dependency-scoped filter (same base rules, manifests preserved) and keep
-	// only the manifests. The pipeline applies this second filter implicitly.
+	// second time with a dependency-scoped filter and keep only the manifests and lockfiles the
+	// dependency stage reads. The pipeline applies this second filter implicitly.
 	var files []string
 	var skipped int
 	var manifestFiles []string
@@ -163,7 +162,7 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 			if depErr != nil {
 				return Result{}, fmt.Errorf("collecting dependency manifests: %w", depErr)
 			}
-			manifestFiles = dependencies.NewDependencyParser().FilterFiles(dcr.Files)
+			manifestFiles = depsource.Select(dcr.Files)
 		}
 	} else {
 		abs, absErr := filepath.Abs(opts.SourcePath)
@@ -173,7 +172,7 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 		files = []string{abs}
 		scanRoot = filepath.Dir(opts.SourcePath)
 		if opts.SourceDeclared {
-			manifestFiles = dependencies.NewDependencyParser().FilterFiles(files)
+			manifestFiles = depsource.Select(files)
 		}
 	}
 	if abs, absErr := filepath.Abs(scanRoot); absErr == nil {
@@ -199,7 +198,7 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 		procErrors     []error
 		scanErr        error
 		fingerprintErr error
-		declaredComps  []sbom.Component
+		declared       sbom.Inventory
 		wg             sync.WaitGroup
 	)
 
@@ -302,9 +301,10 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 			defer wg.Done()
 			total := len(manifestFiles)
 			emit(Progress{Layer: LayerManifests, Status: StatusRunning, Total: total}) // show it up front, alongside fingerprinting
-			parsed, failed := dependencies.NewDependencyParser().ParseFiles(manifestFiles)
-			for path, parseErr := range failed {
-				logging.Warn("manifest could not be parsed", "path", path, "err", parseErr)
+			var failed map[string]error
+			declared, failed = depsource.Inventory(scanRoot, manifestFiles)
+			for path, readErr := range failed {
+				logging.Warn("dependency file could not be read", "path", path, "err", readErr)
 			}
 			// All of them failing is a failed layer; some of them is a partial answer that
 			// is still worth having. Reporting both the same way used to make an empty
@@ -313,7 +313,6 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 				emit(Progress{Layer: LayerManifests, Status: StatusFailed, Total: total})
 				return
 			}
-			declaredComps = sourceDeclared(parsed, scanRoot)
 			emit(Progress{Layer: LayerManifests, Status: StatusCompleted, Done: total, Total: total})
 		}()
 	}
@@ -325,16 +324,17 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 	// Nothing was fingerprinted. Fatal only when the manifest stage produced nothing either:
 	// otherwise the declared components are a real inventory, and discarding them would throw
 	// away work that succeeded because a different stage found nothing to do.
-	if fingerprintErr != nil && len(declaredComps) == 0 {
+	if fingerprintErr != nil && len(declared.Components) == 0 {
 		return Result{}, fingerprintErr
 	}
-	if scanResult == nil && len(declaredComps) == 0 {
+	if scanResult == nil && len(declared.Components) == 0 {
 		return Result{ProcessErrors: procErrors}, nil
 	}
 
 	// The enrichment layers report to r as well.
 	inv := scansource.Inventory(scanResult, scansource.WithIdentified(bomReport.IsIdentified))
-	inv.Add(declaredComps...)
+	inv.Add(declared.Components...)
+	inv.Dependencies = declared.Dependencies
 	enrichErr := Enricher{Client: opts.Client, Services: opts.Services, Reporter: r}.Enrich(ctx, &inv)
 	return Result{
 		Inventory:     inv,
@@ -451,100 +451,4 @@ func warnPartial(svc string, failed []scanoss.ChunkError) {
 	}
 	logging.Warn("layer returned no data for some components",
 		"service", svc, "components", len(purls), "first", first)
-}
-
-// sourceDeclared builds ScopeDeclared components directly from the manifests parsed from the
-// project — no dependency-service round trip. The parser already yields resolved PURLs (pinned in
-// the lockfile), so we only split each `pkg:...@version` into its base PURL and version, tag it
-// declared, and record its manifest origin. The decoration pipeline then adds the requested
-// purl-layers (licenses, vulns, …) over these alongside the scan matches. Duplicates are removed
-// (see dedupeDeclared).
-func sourceDeclared(declared *parsers.LocalDependencies, scanRoot string) []sbom.Component {
-	if declared == nil {
-		return nil
-	}
-	var comps []sbom.Component
-	for _, file := range declared.Files {
-		manifest := relativeTo(file.File, scanRoot) // same project-relative form as scan-match evidence
-		for _, p := range file.Purls {
-			purl, version := splitPurlVersion(p.Purl)
-			if version == "" {
-				version = p.Requirement
-			}
-			if purl == "" {
-				continue
-			}
-			comps = append(comps, sbom.Component{
-				Purl:     purl,
-				Version:  version,
-				Scope:    sbom.ScopeDeclared,
-				Evidence: []sbom.FileEvidence{{Path: manifest, MatchType: "declared"}},
-			})
-		}
-	}
-	return dedupeDeclared(comps)
-}
-
-// relativeTo returns path relative to root when path is under it, so a declared dependency's
-// manifest evidence uses the same project-relative path as scan-match evidence. Falls back to the
-// path unchanged (root empty, or path outside root).
-func relativeTo(path, root string) string {
-	if root == "" {
-		return path
-	}
-	if rel, err := filepath.Rel(root, path); err == nil && !strings.HasPrefix(rel, "..") {
-		return rel
-	}
-	return path
-}
-
-// splitPurlVersion splits a PURL into its base identity and version, e.g.
-// "pkg:npm/@scope/name@1.2.3" -> ("pkg:npm/@scope/name", "1.2.3"). The version separator is the
-// last "@" after the final "/", so a scoped-npm "@scope" prefix (which has no preceding "/") is
-// never mistaken for a version.
-func splitPurlVersion(purl string) (base, version string) {
-	slash := strings.LastIndex(purl, "/")
-	if at := strings.LastIndex(purl, "@"); at > slash {
-		return purl[:at], purl[at+1:]
-	}
-	return purl, ""
-}
-
-// dedupeDeclared collapses exact duplicate declared components — the same package at the same
-// version listed more than once (across manifest sections, or in both package.json and its
-// lockfile). Their manifest evidence is merged, so a package declared in several manifests keeps
-// one occurrence per manifest. Distinct versions of a package are kept, including a declared range
-// (package.json "^1.5.5") alongside its resolved pin (package-lock.json "1.14.3") — those are
-// different, meaningful entries, not duplicates.
-func dedupeDeclared(comps []sbom.Component) []sbom.Component {
-	index := make(map[string]int, len(comps))
-	out := make([]sbom.Component, 0, len(comps))
-	for _, c := range comps {
-		key := c.Purl + "@" + c.Version
-		if i, ok := index[key]; ok {
-			out[i].Evidence = addEvidence(out[i].Evidence, c.Evidence...)
-			continue
-		}
-		index[key] = len(out)
-		out = append(out, c)
-	}
-	return out
-}
-
-// addEvidence appends the evidence entries not already present (by path + match type), so merging
-// duplicate or overlapping components keeps one occurrence per distinct origin.
-func addEvidence(dst []sbom.FileEvidence, add ...sbom.FileEvidence) []sbom.FileEvidence {
-	for _, e := range add {
-		dup := false
-		for _, existing := range dst {
-			if existing.Path == e.Path && existing.MatchType == e.MatchType {
-				dup = true
-				break
-			}
-		}
-		if !dup {
-			dst = append(dst, e)
-		}
-	}
-	return dst
 }
