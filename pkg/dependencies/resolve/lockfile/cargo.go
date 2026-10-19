@@ -25,6 +25,10 @@ package lockfile
 
 import (
 	"fmt"
+	"io/fs"
+	"maps"
+	"path"
+	"slices"
 	"strings"
 
 	"github.com/pelletier/go-toml/v2"
@@ -39,10 +43,23 @@ type cargoPackage struct {
 	Dependencies []string `toml:"dependencies"`
 }
 
+type cargoManifest struct {
+	Package struct {
+		Name string `toml:"name"`
+	} `toml:"package"`
+	Workspace struct {
+		Members []string `toml:"members"`
+		Exclude []string `toml:"exclude"`
+	} `toml:"workspace"`
+}
+
 // parseCargoLock reads Cargo.lock. Packages without a source are the
-// workspace's own crates and path dependencies; they are folded into the one
-// root, so what they depend on from a registry or git is direct.
-func parseCargoLock(b *builder, data, _ []byte) {
+// workspace's own crates and path dependencies. Cargo.lock does not say where
+// they live, so a local crate is the root at the manifest that names it: the
+// sibling Cargo.toml or a member manifest. What it depends on from a registry
+// or git is direct; its links to other local crates are dropped. Local crates
+// that no manifest names are folded into the root beside the lockfile.
+func parseCargoLock(b *builder, data, manifest []byte, members map[string][]byte) {
 	var lock struct {
 		Package []cargoPackage `toml:"package"`
 	}
@@ -50,7 +67,7 @@ func parseCargoLock(b *builder, data, _ []byte) {
 		b.flag(resolve.ReasonMalformed, err.Error())
 		return
 	}
-	r := b.root("")
+	dirs := cargoDirs(b, manifest, members)
 	idx := cargoIndex(lock.Package)
 	ids := make([]resolve.NodeID, len(lock.Package))
 	for i, p := range lock.Package {
@@ -62,6 +79,10 @@ func parseCargoLock(b *builder, data, _ []byte) {
 		local := p.Source == ""
 		if !local && ids[i] == "" {
 			continue
+		}
+		var r *root
+		if local {
+			r = b.root(dirs[p.Name])
 		}
 		for _, dep := range p.Dependencies {
 			match := idx[strings.Join(strings.Fields(dep), " ")]
@@ -79,6 +100,75 @@ func parseCargoLock(b *builder, data, _ []byte) {
 			}
 		}
 	}
+}
+
+// cargoDirs maps the crate each manifest declares to the manifest's
+// directory, relative to the lockfile's. A manifest that does not parse is
+// reported on every root and left out.
+func cargoDirs(b *builder, manifest []byte, members map[string][]byte) map[string]string {
+	dirs := map[string]string{}
+	add := func(name string, data []byte) {
+		var m cargoManifest
+		if err := toml.Unmarshal(data, &m); err != nil {
+			b.flag(resolve.ReasonManifestMalformed, fmt.Sprintf("%s: %v", path.Join(path.Dir(b.lockfile), name), err))
+			return
+		}
+		if m.Package.Name != "" {
+			dirs[m.Package.Name] = path.Dir(name)
+		}
+	}
+	if manifest != nil {
+		add("Cargo.toml", manifest)
+	}
+	for _, name := range slices.Sorted(maps.Keys(members)) {
+		add(name, members[name])
+	}
+	return dirs
+}
+
+// cargoMembers reads the Cargo.toml of each workspace member that manifest
+// lists, expanding its globs under dir and dropping excluded directories. It
+// stops once it has read more than maxFiles manifests or more than budget
+// bytes, so that Parse reports the excess. Invalid globs and members without a readable
+// Cargo.toml are skipped.
+func cargoMembers(fsys fs.FS, dir string, manifest []byte, budget int64, maxFiles int) map[string][]byte {
+	var m cargoManifest
+	if toml.Unmarshal(manifest, &m) != nil {
+		return nil
+	}
+	excluded := func(rel string) bool {
+		return slices.ContainsFunc(m.Workspace.Exclude, func(e string) bool {
+			e = path.Clean(e)
+			return rel == e || strings.HasPrefix(rel, e+"/")
+		})
+	}
+	out := map[string][]byte{}
+	for _, pattern := range m.Workspace.Members {
+		matches, err := fs.Glob(fsys, path.Join(dir, pattern))
+		if err != nil {
+			continue
+		}
+		for _, match := range matches {
+			rel, ok := match, true
+			if dir != "." {
+				rel, ok = strings.CutPrefix(match, dir+"/")
+			}
+			key := path.Join(rel, "Cargo.toml")
+			if _, seen := out[key]; !ok || seen || rel == "." || excluded(rel) {
+				continue
+			}
+			if len(out) > maxFiles || budget < 0 {
+				return out
+			}
+			data, err := readCapped(fsys, path.Join(dir, key), budget)
+			if err != nil {
+				continue
+			}
+			out[key] = data
+			budget -= int64(len(data))
+		}
+	}
+	return out
 }
 
 // cargoIndex maps every way Cargo can name a package ("name", "name

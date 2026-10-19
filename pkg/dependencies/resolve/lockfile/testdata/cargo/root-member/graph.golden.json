@@ -1,0 +1,42 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:cargo/anyhow@1.0.86",
+      "purl": "pkg:cargo/anyhow",
+      "version": "1.0.86"
+    },
+    {
+      "id": "pkg:cargo/log@0.4.22",
+      "purl": "pkg:cargo/log",
+      "version": "0.4.22"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "Cargo.toml",
+      "lockfile": "Cargo.lock",
+      "ecosystem": "cargo",
+      "status": "complete",
+      "members": [
+        {
+          "id": "pkg:cargo/anyhow@1.0.86",
+          "direct": true
+        }
+      ],
+      "edges": []
+    },
+    {
+      "manifest": "member/Cargo.toml",
+      "lockfile": "Cargo.lock",
+      "ecosystem": "cargo",
+      "status": "complete",
+      "members": [
+        {
+          "id": "pkg:cargo/log@0.4.22",
+          "direct": true
+        }
+      ],
+      "edges": []
+    }
+  ]
+}

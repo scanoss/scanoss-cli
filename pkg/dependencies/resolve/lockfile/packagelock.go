@@ -54,7 +54,7 @@ const nodeModules = "node_modules/"
 // parsePackageLock reads the "packages" map of lockfileVersion 2 and 3. Keys
 // are install locations; a key outside node_modules is the project or one of
 // its workspaces, and so a root.
-func parsePackageLock(b *builder, data, _ []byte) {
+func parsePackageLock(b *builder, data, _ []byte, _ map[string][]byte) {
 	var lock npmLock
 	if err := json.Unmarshal(data, &lock); err != nil {
 		b.flag(resolve.ReasonMalformed, err.Error())

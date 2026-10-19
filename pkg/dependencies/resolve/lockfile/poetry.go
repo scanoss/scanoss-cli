@@ -38,7 +38,7 @@ import (
 // dependencies. Poetry may lock one name at several versions, each for
 // different environment markers; a dependency on that name then has an edge
 // to every one of them.
-func parsePoetryLock(b *builder, data, manifest []byte) {
+func parsePoetryLock(b *builder, data, manifest []byte, _ map[string][]byte) {
 	var lock struct {
 		Package []struct {
 			Name         string         `toml:"name"`

@@ -69,7 +69,7 @@ type composerPackage struct {
 // provides the name, as laravel/framework does for illuminate/*. A name
 // locked twice resolves to its first entry, so packages win over
 // packages-dev.
-func parseComposerLock(b *builder, data, manifest []byte) {
+func parseComposerLock(b *builder, data, manifest []byte, _ map[string][]byte) {
 	var lock struct {
 		Packages    []composerPackage `json:"packages"`
 		PackagesDev []composerPackage `json:"packages-dev"`

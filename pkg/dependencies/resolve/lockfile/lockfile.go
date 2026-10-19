@@ -32,8 +32,10 @@
 //
 // Each format names its roots after the manifest beside the lockfile, joined
 // with the workspace directory for formats that record workspaces
-// (package-lock.json, yarn.lock, pnpm-lock.yaml). Lockfile entries that no
-// root reaches become non-direct members of the root beside the lockfile.
+// (package-lock.json, yarn.lock, pnpm-lock.yaml). Cargo.lock does not record
+// where its workspace members live, so their roots come from the member
+// manifests in Input.Members. Lockfile entries that no root reaches become
+// non-direct members of the root beside the lockfile.
 package lockfile
 
 import (
@@ -48,7 +50,7 @@ import (
 
 // Limits bounds the work Parse does on one lockfile.
 type Limits struct {
-	MaxBytes int64 // largest lockfile or manifest read and parsed
+	MaxBytes int64 // largest lockfile, and largest total of its manifests, read and parsed
 	MaxNodes int   // nodes kept; reaching it makes the roots partial (node_limit)
 	MaxEdges int   // edges kept; reaching it makes the roots partial (edge_limit)
 }
@@ -64,6 +66,10 @@ type Input struct {
 	Path     string // slash path of the lockfile; names the roots, never opened
 	Lockfile []byte
 	Manifest []byte // the sibling manifest named by ManifestFor; nil when absent
+	// Members holds workspace member manifests keyed by slash path relative
+	// to the lockfile's directory, such as "crates/app/Cargo.toml". Only
+	// Cargo.lock reads it.
+	Members map[string][]byte
 }
 
 // ErrUnsupported is returned for a lockfile whose base name is not a
@@ -74,17 +80,20 @@ type format struct {
 	ecosystem resolve.Ecosystem
 	manifest  string // the manifest each root stands for
 	reads     bool   // parse reads the sibling manifest
-	parse     func(b *builder, lockfile, manifest []byte)
+	parse     func(b *builder, lockfile, manifest []byte, members map[string][]byte)
+	// members, when set, finds and reads the member manifests the sibling
+	// manifest names, within budget bytes in total.
+	members func(fsys fs.FS, dir string, manifest []byte, budget int64, maxFiles int) map[string][]byte
 }
 
 var formats = map[string]format{
-	"package-lock.json": {resolve.EcosystemNPM, "package.json", false, parsePackageLock},
-	"yarn.lock":         {resolve.EcosystemNPM, "package.json", true, parseYarnLock},
-	"pnpm-lock.yaml":    {resolve.EcosystemNPM, "package.json", false, parsePnpmLock},
-	"Cargo.lock":        {resolve.EcosystemCargo, "Cargo.toml", false, parseCargoLock},
-	"Gemfile.lock":      {resolve.EcosystemGem, "Gemfile", false, parseGemfileLock},
-	"poetry.lock":       {resolve.EcosystemPyPI, "pyproject.toml", true, parsePoetryLock},
-	"composer.lock":     {resolve.EcosystemComposer, "composer.json", true, parseComposerLock},
+	"package-lock.json": {resolve.EcosystemNPM, "package.json", false, parsePackageLock, nil},
+	"yarn.lock":         {resolve.EcosystemNPM, "package.json", true, parseYarnLock, nil},
+	"pnpm-lock.yaml":    {resolve.EcosystemNPM, "package.json", false, parsePnpmLock, nil},
+	"Cargo.lock":        {resolve.EcosystemCargo, "Cargo.toml", true, parseCargoLock, cargoMembers},
+	"Gemfile.lock":      {resolve.EcosystemGem, "Gemfile", false, parseGemfileLock, nil},
+	"poetry.lock":       {resolve.EcosystemPyPI, "pyproject.toml", true, parsePoetryLock, nil},
+	"composer.lock":     {resolve.EcosystemComposer, "composer.json", true, parseComposerLock, nil},
 }
 
 // Supported reports whether path's base name is a lockfile this package
@@ -117,21 +126,30 @@ func Parse(in Input, lim Limits) (resolve.Graph, error) {
 		return resolve.Graph{}, ErrUnsupported
 	}
 	b := newBuilder(in.Path, f, lim)
+	manifests := int64(len(in.Manifest))
+	for _, m := range in.Members {
+		manifests += int64(len(m))
+	}
 	switch {
 	case int64(len(in.Lockfile)) > lim.MaxBytes:
 		b.flag(resolve.ReasonTooLarge, fmt.Sprintf("lockfile exceeds %d bytes", lim.MaxBytes))
-	case int64(len(in.Manifest)) > lim.MaxBytes:
-		b.flag(resolve.ReasonTooLarge, fmt.Sprintf("manifest exceeds %d bytes", lim.MaxBytes))
+	case manifests > lim.MaxBytes:
+		b.flag(resolve.ReasonTooLarge, fmt.Sprintf("manifests exceed %d bytes", lim.MaxBytes))
+	case len(in.Members) > lim.MaxNodes:
+		b.flag(resolve.ReasonTooLarge, fmt.Sprintf("more than %d member manifests", lim.MaxNodes))
 	default:
-		f.parse(b, in.Lockfile, in.Manifest)
+		f.parse(b, in.Lockfile, in.Manifest, in.Members)
 	}
 	return b.graph(), nil
 }
 
 // ParseFS reads the lockfile at path in fsys, and the sibling manifest when
-// its format reads one, then parses them. Each file is read up to MaxBytes+1
-// bytes, so an oversized file costs no more than that. A missing manifest is
-// not an error; it is reported on the root.
+// its format reads one, then parses them. For Cargo.lock it also reads the
+// manifest of each workspace member the sibling Cargo.toml lists; more than
+// MaxNodes of them is too_large, like oversized bytes. The lockfile is read up to MaxBytes+1 bytes, and the
+// manifests up to MaxBytes+1 bytes in total, so oversized input costs no more
+// than that. A missing manifest is not an error; formats that need it report
+// it on the root.
 func ParseFS(fsys fs.FS, p string, lim Limits) (resolve.Graph, error) {
 	f, ok := lookup(p)
 	if !ok {
@@ -147,6 +165,9 @@ func ParseFS(fsys fs.FS, p string, lim Limits) (resolve.Graph, error) {
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return resolve.Graph{}, err
 		}
+	}
+	if f.members != nil && in.Manifest != nil {
+		in.Members = f.members(fsys, path.Dir(p), in.Manifest, lim.MaxBytes-int64(len(in.Manifest)), lim.MaxNodes)
 	}
 	return Parse(in, lim)
 }

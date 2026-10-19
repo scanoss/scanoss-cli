@@ -41,7 +41,7 @@ type gemSpec struct {
 // a Gemfile.lock. PATH gems are the project's own and are folded into the
 // root like Cargo's local crates. Platform variants of a gem
 // ("1.15.4-x86_64-linux") are one node.
-func parseGemfileLock(b *builder, data, _ []byte) {
+func parseGemfileLock(b *builder, data, _ []byte, _ map[string][]byte) {
 	specs, directs, err := scanGemfileLock(string(data))
 	if err != nil {
 		b.flag(resolve.ReasonMalformed, err.Error())
