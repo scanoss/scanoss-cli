@@ -457,6 +457,16 @@ Two modes.
 scanoss-cli dependencies ./my-project --extract-local --output deps.json
 ```
 
+Add `--graph` to print the dependency graph resolved from the lockfiles instead:
+one JSON graph whose nodes are `purl@version` and whose roots are the manifests,
+each with its members, edges and status. It reads `package-lock.json`,
+`yarn.lock`, `pnpm-lock.yaml`, `Cargo.lock`, `Gemfile.lock`, `poetry.lock` and
+`composer.lock`, skipping the same directories as `--extract-local`.
+
+```bash
+scanoss-cli dependencies ./my-project --extract-local --graph
+```
+
 **API mode** — query a component's dependencies (`--requirement` is optional):
 
 ```bash
@@ -469,7 +479,7 @@ scanoss-cli dependencies --purl 'pkg:github/scanoss/engine' --requirement '5.4.7
   --depth 5 --limit 20 --api-key "$SCANOSS_API_KEY"
 ```
 
-Flags: `--extract-local`, `--purl`, `--requirement` (optional), `--transient`,
+Flags: `--extract-local`, `--graph`, `--purl`, `--requirement` (optional), `--transient`,
 `--depth` (10), `--limit` (10), `--api-url`, `--api-key`, `--ignore-cert-errors`,
 `-o, --output`.
 
