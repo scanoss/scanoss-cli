@@ -47,7 +47,10 @@ type npmEntry struct {
 	Dependencies         map[string]string `json:"dependencies"`
 	OptionalDependencies map[string]string `json:"optionalDependencies"`
 	PeerDependencies     map[string]string `json:"peerDependencies"`
-	DevDependencies      map[string]string `json:"devDependencies"`
+	PeerDependenciesMeta map[string]struct {
+		Optional bool `json:"optional"`
+	} `json:"peerDependenciesMeta"`
+	DevDependencies map[string]string `json:"devDependencies"`
 }
 
 const nodeModules = "node_modules/"
@@ -169,7 +172,11 @@ func npmDeps(pkgs map[string]npmEntry, target func(at string) (resolve.NodeID, b
 		deps     map[string]string
 		optional bool
 	}
-	groups := []group{{e.Dependencies, false}, {e.OptionalDependencies, true}, {e.PeerDependencies, true}}
+	// An optional peer is the dependent's to provide, so following it would
+	// make a package only the dev tree installs look like a runtime one.
+	peers := maps.Clone(e.PeerDependencies)
+	maps.DeleteFunc(peers, func(name, _ string) bool { return e.PeerDependenciesMeta[name].Optional })
+	groups := []group{{e.Dependencies, false}, {e.OptionalDependencies, true}, {peers, true}}
 	if dev {
 		groups = []group{{e.DevDependencies, false}}
 	}
