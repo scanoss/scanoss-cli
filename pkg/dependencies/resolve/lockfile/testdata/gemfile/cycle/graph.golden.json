@@ -1,0 +1,42 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:gem/chicken@1.0.0",
+      "purl": "pkg:gem/chicken",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pkg:gem/egg@1.0.0",
+      "purl": "pkg:gem/egg",
+      "version": "1.0.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "Gemfile",
+      "lockfile": "Gemfile.lock",
+      "ecosystem": "gem",
+      "status": "complete",
+      "members": [
+        {
+          "id": "pkg:gem/chicken@1.0.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:gem/egg@1.0.0",
+          "direct": false
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:gem/chicken@1.0.0",
+          "to": "pkg:gem/egg@1.0.0"
+        },
+        {
+          "from": "pkg:gem/egg@1.0.0",
+          "to": "pkg:gem/chicken@1.0.0"
+        }
+      ]
+    }
+  ]
+}

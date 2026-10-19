@@ -1,0 +1,138 @@
+// SPDX-License-Identifier: MIT
+/*
+ * Copyright (c) 2026, SCANOSS
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+package lockfile
+
+import (
+	"errors"
+	"fmt"
+	"strings"
+
+	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
+)
+
+type gemSpec struct {
+	name, version string
+	local         bool // from a PATH section
+	deps          []string
+}
+
+// parseGemfileLock reads the GEM, GIT and PATH specs and the DEPENDENCIES of
+// a Gemfile.lock. PATH gems are the project's own and are folded into the
+// root like Cargo's local crates. Platform variants of a gem
+// ("1.15.4-x86_64-linux") are one node.
+func parseGemfileLock(b *builder, data, _ []byte) {
+	specs, directs, err := scanGemfileLock(string(data))
+	if err != nil {
+		b.flag(resolve.ReasonMalformed, err.Error())
+		return
+	}
+	local := map[string]bool{}
+	byName := map[string]resolve.NodeID{}
+	ids := make([]resolve.NodeID, len(specs))
+	for i, s := range specs {
+		if s.local {
+			local[s.name] = true
+			continue
+		}
+		version, _, _ := strings.Cut(s.version, "-")
+		if id, ok := b.node("", s.name, version); ok {
+			ids[i] = id
+			if _, seen := byName[s.name]; !seen {
+				byName[s.name] = id
+			}
+		}
+	}
+
+	r := b.root("")
+	for i, s := range specs {
+		if !s.local && ids[i] == "" {
+			continue
+		}
+		for _, dep := range s.deps {
+			// Bundler never locks itself, though gems depend on it.
+			if local[dep] || dep == "bundler" {
+				continue
+			}
+			to, ok := byName[dep]
+			switch {
+			case !ok && s.local:
+				r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %s", s.name, dep))
+			case !ok:
+				b.flagNode(ids[i], resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %s", s.name, dep))
+			case s.local:
+				r.declare(to)
+			default:
+				b.edge(ids[i], to)
+			}
+		}
+	}
+	// A dependency missing from the specs is one Bundler left out for the
+	// locked platforms, such as tzinfo-data outside Windows.
+	for _, name := range directs {
+		if id, ok := byName[name]; ok {
+			r.declare(id)
+		}
+	}
+}
+
+// scanGemfileLock splits a Gemfile.lock into its specs (four-space
+// "name (version)" lines, each followed by six-space dependency lines) and
+// the names under DEPENDENCIES.
+func scanGemfileLock(data string) (specs []gemSpec, directs []string, err error) {
+	section, known := "", false
+	current := -1
+	for _, line := range strings.Split(data, "\n") {
+		line = strings.TrimRight(line, "\r")
+		trimmed := strings.TrimLeft(line, " ")
+		if trimmed == "" {
+			continue
+		}
+		if trimmed == line {
+			section, current = line, -1
+			known = known || section == "GEM" || section == "GIT" || section == "PATH" || section == "DEPENDENCIES"
+			continue
+		}
+		name, version := gemLine(trimmed)
+		switch indent := len(line) - len(trimmed); {
+		case section == "DEPENDENCIES" && indent == 2:
+			directs = append(directs, strings.TrimSuffix(name, "!"))
+		case section != "GEM" && section != "GIT" && section != "PATH":
+		case indent == 4:
+			specs = append(specs, gemSpec{name: name, version: version, local: section == "PATH"})
+			current = len(specs) - 1
+		case indent == 6 && current >= 0:
+			specs[current].deps = append(specs[current].deps, name)
+		}
+	}
+	if !known {
+		return nil, nil, errors.New("no GEM, GIT, PATH or DEPENDENCIES section")
+	}
+	return specs, directs, nil
+}
+
+// gemLine splits "name (version or constraints)".
+func gemLine(s string) (name, version string) {
+	name, rest, _ := strings.Cut(s, " ")
+	return name, strings.TrimSuffix(strings.TrimPrefix(rest, "("), ")")
+}

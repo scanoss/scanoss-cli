@@ -1,0 +1,9 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    plugin (1.0.0)
+      ghost (~> 1.0)
+    noversion
+
+DEPENDENCIES
+  plugin

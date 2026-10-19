@@ -1,0 +1,38 @@
+GIT
+  remote: https://github.com/acme/widget.git
+  revision: 0123456789abcdef
+  specs:
+    widget (0.3.0)
+      racc (~> 1.4)
+
+PATH
+  remote: .
+  specs:
+    myapp (0.1.0)
+      myapp-core
+      nokogiri (>= 1.15)
+    myapp-core (0.1.0)
+      racc
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    nokogiri (1.15.4-arm64-darwin)
+      racc (~> 1.4)
+    nokogiri (1.15.4-x86_64-linux)
+      racc (~> 1.4)
+    racc (1.7.3)
+
+PLATFORMS
+  arm64-darwin
+  x86_64-linux
+
+DEPENDENCIES
+  myapp!
+  widget!
+
+CHECKSUMS
+  racc (1.7.3) sha256=abc
+
+BUNDLED WITH
+   2.5.3

@@ -82,6 +82,7 @@ var formats = map[string]format{
 	"yarn.lock":         {resolve.EcosystemNPM, "package.json", true, parseYarnLock},
 	"pnpm-lock.yaml":    {resolve.EcosystemNPM, "package.json", false, parsePnpmLock},
 	"Cargo.lock":        {resolve.EcosystemCargo, "Cargo.toml", false, parseCargoLock},
+	"Gemfile.lock":      {resolve.EcosystemGem, "Gemfile", false, parseGemfileLock},
 }
 
 // Supported reports whether path's base name is a lockfile this package

@@ -1,0 +1,51 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:gem/nokogiri@1.15.4",
+      "purl": "pkg:gem/nokogiri",
+      "version": "1.15.4"
+    },
+    {
+      "id": "pkg:gem/racc@1.7.3",
+      "purl": "pkg:gem/racc",
+      "version": "1.7.3"
+    },
+    {
+      "id": "pkg:gem/widget@0.3.0",
+      "purl": "pkg:gem/widget",
+      "version": "0.3.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "Gemfile",
+      "lockfile": "Gemfile.lock",
+      "ecosystem": "gem",
+      "status": "complete",
+      "members": [
+        {
+          "id": "pkg:gem/nokogiri@1.15.4",
+          "direct": true
+        },
+        {
+          "id": "pkg:gem/racc@1.7.3",
+          "direct": true
+        },
+        {
+          "id": "pkg:gem/widget@0.3.0",
+          "direct": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:gem/nokogiri@1.15.4",
+          "to": "pkg:gem/racc@1.7.3"
+        },
+        {
+          "from": "pkg:gem/widget@0.3.0",
+          "to": "pkg:gem/racc@1.7.3"
+        }
+      ]
+    }
+  ]
+}
