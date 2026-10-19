@@ -91,6 +91,23 @@ func TestLimits(t *testing.T) {
 			nodes:  []resolve.NodeID{},
 			edges:  []resolve.Edge{},
 		},
+		{
+			name: "manifests too large together",
+			in: Input{
+				Path:     "Cargo.lock",
+				Lockfile: []byte("version = 4"),
+				Manifest: []byte("[workspace]\nmembers = [\"a\", \"b\"]\n"),
+				Members: map[string][]byte{
+					"a/Cargo.toml": []byte("[package]\nname = \"a\"\n# padding padding padding\n"),
+					"b/Cargo.toml": []byte("[package]\nname = \"b\"\n# padding padding padding\n"),
+				},
+			},
+			lim:    Limits{MaxBytes: 100, MaxNodes: 10, MaxEdges: 10},
+			status: resolve.StatusUnknown,
+			reason: resolve.ReasonTooLarge,
+			nodes:  []resolve.NodeID{},
+			edges:  []resolve.Edge{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -137,6 +154,9 @@ func TestParseUnsupported(t *testing.T) {
 	}
 	if m, ok := ManifestFor("sub/yarn.lock"); !ok || m != "package.json" {
 		t.Errorf("ManifestFor(sub/yarn.lock) = %q, %v; want package.json", m, ok)
+	}
+	if m, ok := ManifestFor("Cargo.lock"); !ok || m != "Cargo.toml" {
+		t.Errorf("ManifestFor(Cargo.lock) = %q, %v; want Cargo.toml: it names the workspace members", m, ok)
 	}
 }
 

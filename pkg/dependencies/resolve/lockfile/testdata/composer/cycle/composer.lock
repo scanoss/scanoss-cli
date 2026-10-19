@@ -1,0 +1,7 @@
+{
+    "packages": [
+        {"name": "farm/chicken", "version": "1.0.0", "require": {"farm/egg": "^1.0"}},
+        {"name": "farm/egg", "version": "1.0.0", "require": {"farm/chicken": "^1.0"}}
+    ],
+    "packages-dev": []
+}

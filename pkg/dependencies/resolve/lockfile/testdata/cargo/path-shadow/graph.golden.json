@@ -1,0 +1,60 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:cargo/helper@0.4.2",
+      "purl": "pkg:cargo/helper",
+      "version": "0.4.2"
+    },
+    {
+      "id": "pkg:cargo/itoa@1.0.11",
+      "purl": "pkg:cargo/itoa",
+      "version": "1.0.11"
+    },
+    {
+      "id": "pkg:cargo/serde@1.0.200",
+      "purl": "pkg:cargo/serde",
+      "version": "1.0.200"
+    },
+    {
+      "id": "pkg:cargo/user@2.0.0",
+      "purl": "pkg:cargo/user",
+      "version": "2.0.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "Cargo.toml",
+      "lockfile": "Cargo.lock",
+      "ecosystem": "cargo",
+      "status": "complete",
+      "members": [
+        {
+          "id": "pkg:cargo/helper@0.4.2",
+          "direct": true
+        },
+        {
+          "id": "pkg:cargo/itoa@1.0.11",
+          "direct": false
+        },
+        {
+          "id": "pkg:cargo/serde@1.0.200",
+          "direct": true
+        },
+        {
+          "id": "pkg:cargo/user@2.0.0",
+          "direct": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:cargo/helper@0.4.2",
+          "to": "pkg:cargo/itoa@1.0.11"
+        },
+        {
+          "from": "pkg:cargo/user@2.0.0",
+          "to": "pkg:cargo/helper@0.4.2"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:cargo/itoa@1.0.11",
+      "purl": "pkg:cargo/itoa",
+      "version": "1.0.11"
+    },
+    {
+      "id": "pkg:cargo/lib@0.1.0",
+      "purl": "pkg:cargo/lib",
+      "version": "0.1.0",
+      "local": true
+    },
+    {
+      "id": "pkg:cargo/rand@0.8.5",
+      "purl": "pkg:cargo/rand",
+      "version": "0.8.5"
+    },
+    {
+      "id": "pkg:cargo/rand_core@0.6.4",
+      "purl": "pkg:cargo/rand_core",
+      "version": "0.6.4"
+    },
+    {
+      "id": "pkg:cargo/serde@1.0.200",
+      "purl": "pkg:cargo/serde",
+      "version": "1.0.200"
+    },
+    {
+      "id": "pkg:cargo/skip@0.1.0",
+      "purl": "pkg:cargo/skip",
+      "version": "0.1.0",
+      "local": true
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "Cargo.toml",
+      "lockfile": "Cargo.lock",
+      "ecosystem": "cargo",
+      "status": "complete",
+      "members": [],
+      "edges": []
+    },
+    {
+      "manifest": "crates/app/Cargo.toml",
+      "lockfile": "Cargo.lock",
+      "ecosystem": "cargo",
+      "status": "complete",
+      "members": [
+        {
+          "id": "pkg:cargo/itoa@1.0.11",
+          "direct": false
+        },
+        {
+          "id": "pkg:cargo/lib@0.1.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:cargo/rand@0.8.5",
+          "direct": false
+        },
+        {
+          "id": "pkg:cargo/rand_core@0.6.4",
+          "direct": false
+        },
+        {
+          "id": "pkg:cargo/serde@1.0.200",
+          "direct": true
+        },
+        {
+          "id": "pkg:cargo/skip@0.1.0",
+          "direct": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:cargo/lib@0.1.0",
+          "to": "pkg:cargo/rand@0.8.5"
+        },
+        {
+          "from": "pkg:cargo/lib@0.1.0",
+          "to": "pkg:cargo/serde@1.0.200"
+        },
+        {
+          "from": "pkg:cargo/rand@0.8.5",
+          "to": "pkg:cargo/rand_core@0.6.4"
+        },
+        {
+          "from": "pkg:cargo/skip@0.1.0",
+          "to": "pkg:cargo/itoa@1.0.11"
+        }
+      ]
+    },
+    {
+      "manifest": "crates/lib/Cargo.toml",
+      "lockfile": "Cargo.lock",
+      "ecosystem": "cargo",
+      "status": "complete",
+      "members": [
+        {
+          "id": "pkg:cargo/rand@0.8.5",
+          "direct": true
+        },
+        {
+          "id": "pkg:cargo/rand_core@0.6.4",
+          "direct": false
+        },
+        {
+          "id": "pkg:cargo/serde@1.0.200",
+          "direct": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:cargo/rand@0.8.5",
+          "to": "pkg:cargo/rand_core@0.6.4"
+        }
+      ]
+    }
+  ]
+}

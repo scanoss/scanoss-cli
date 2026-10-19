@@ -267,7 +267,7 @@ for _, root := range g.Roots {
 
 - **Nodes** are `purl@version`, shared by every root.
 - **Local nodes** (`Node.Local`) are the project's own packages, such as a
-  workspace another workspace depends on. They keep their edges, so a root
+  workspace, path crate or `PATH` gem that something depends on. They keep their edges, so a root
   that depends on a sibling workspace reaches that workspace's dependencies.
   A local node may have no version. Skip local nodes to list only third-party
   packages.
@@ -287,6 +287,10 @@ and edges kept, and a bad lockfile is reported on its root, never as a panic.
 | `yarn.lock` (v1) | lockfile and `package.json` | project |
 | `yarn.lock` (berry) | lockfile only | every workspace |
 | `pnpm-lock.yaml` (5.x, 6.x, 9.x) | lockfile only | every importer |
+| `Cargo.lock` | lockfile, `Cargo.toml` and workspace member manifests | `Cargo.toml` and each workspace member; a path crate that something depends on is a local node |
+| `Gemfile.lock` | lockfile only | `Gemfile`; `PATH` gems are local nodes |
+| `poetry.lock` | lockfile and `pyproject.toml` | project; path dependencies are local nodes |
+| `composer.lock` | lockfile and `composer.json` | project; path repository packages are local nodes |
 
 ## Error Handling
 

@@ -1,0 +1,15 @@
+{
+  "nodes": [],
+  "roots": [
+    {
+      "manifest": "Cargo.toml",
+      "lockfile": "Cargo.lock",
+      "ecosystem": "cargo",
+      "status": "unknown",
+      "reason": "malformed",
+      "detail": "toml: unexpected character U+000A at start of value",
+      "members": [],
+      "edges": []
+    }
+  ]
+}

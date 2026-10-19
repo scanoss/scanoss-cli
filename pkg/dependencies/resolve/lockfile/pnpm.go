@@ -115,7 +115,7 @@ func splitAt(key string) (string, string) {
 // parsePnpmLock reads pnpm-lock.yaml 5.x, 6.x and 9.x. Each importer (each
 // workspace project) is a root. Packages that differ only by the peers they
 // were installed with are one node.
-func parsePnpmLock(b *builder, data, _ []byte) {
+func parsePnpmLock(b *builder, data, _ []byte, _ map[string][]byte) {
 	var lock pnpmLock
 	if err := yaml.Unmarshal(data, &lock); err != nil {
 		b.flag(resolve.ReasonMalformed, err.Error())

@@ -49,7 +49,7 @@ type yarnEntry struct {
 
 // parseYarnLock reads yarn.lock v1, whose direct dependencies are only in
 // package.json, and yarn berry, which records each workspace as an entry.
-func parseYarnLock(b *builder, data, manifest []byte) {
+func parseYarnLock(b *builder, data, manifest []byte, _ map[string][]byte) {
 	if bytes.HasPrefix(data, []byte("__metadata:")) || bytes.Contains(data, []byte("\n__metadata:")) {
 		parseYarnBerry(b, data)
 		return

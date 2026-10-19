@@ -1,0 +1,42 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:pypi/chicken@1.0.0",
+      "purl": "pkg:pypi/chicken",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pkg:pypi/egg@1.0.0",
+      "purl": "pkg:pypi/egg",
+      "version": "1.0.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "pyproject.toml",
+      "lockfile": "poetry.lock",
+      "ecosystem": "pypi",
+      "status": "complete",
+      "members": [
+        {
+          "id": "pkg:pypi/chicken@1.0.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:pypi/egg@1.0.0",
+          "direct": false
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:pypi/chicken@1.0.0",
+          "to": "pkg:pypi/egg@1.0.0"
+        },
+        {
+          "from": "pkg:pypi/egg@1.0.0",
+          "to": "pkg:pypi/chicken@1.0.0"
+        }
+      ]
+    }
+  ]
+}

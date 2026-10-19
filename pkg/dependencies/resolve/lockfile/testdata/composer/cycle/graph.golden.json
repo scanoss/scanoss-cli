@@ -1,0 +1,42 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:composer/farm/chicken@1.0.0",
+      "purl": "pkg:composer/farm/chicken",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pkg:composer/farm/egg@1.0.0",
+      "purl": "pkg:composer/farm/egg",
+      "version": "1.0.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "composer.json",
+      "lockfile": "composer.lock",
+      "ecosystem": "composer",
+      "status": "complete",
+      "members": [
+        {
+          "id": "pkg:composer/farm/chicken@1.0.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:composer/farm/egg@1.0.0",
+          "direct": false
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:composer/farm/chicken@1.0.0",
+          "to": "pkg:composer/farm/egg@1.0.0"
+        },
+        {
+          "from": "pkg:composer/farm/egg@1.0.0",
+          "to": "pkg:composer/farm/chicken@1.0.0"
+        }
+      ]
+    }
+  ]
+}

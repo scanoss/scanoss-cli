@@ -12,13 +12,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`pkg/dependencies/resolve`**, a dependency graph with edges: nodes are `purl@version`, and
   each manifest is a root with its members, its edges and a status (`complete`, `partial` or
   `unknown`) with a reason. `Member.Direct` tells declared packages from those only in the
-  lockfile. `Node.Local` marks the project's own packages, such as a workspace that another
-  workspace depends on; they keep their edges, so consumers skip them to list third-party
+  lockfile. `Node.Local` marks the project's own packages, such as a workspace, path crate or
+  `PATH` gem that another package depends on; they keep their edges, so consumers skip them to list third-party
   packages without losing what they pull in.
 - **`pkg/dependencies/resolve/lockfile`** builds that graph from `package-lock.json` (v2 and v3,
   including nested `node_modules` versions and workspaces), `yarn.lock` (v1 with `package.json`,
-  and berry with workspaces) and `pnpm-lock.yaml` (5.x, 6.x and 9.x). It runs no process, and
+  and berry with workspaces), `pnpm-lock.yaml` (5.x, 6.x and 9.x), `Cargo.lock` (with a root
+  per workspace member when the member manifests are available), `Gemfile.lock`, `poetry.lock`
+  (with `pyproject.toml`) and `composer.lock` (with `composer.json`). It runs no process, and
   caps the bytes, nodes and edges it accepts from a lockfile.
+
+### Changed
+
+- **`github.com/pelletier/go-toml/v2` updated to v2.4.3**; v2.2.4 panics on some malformed TOML.
 
 ## [0.11.0] - 2026-10-14
 

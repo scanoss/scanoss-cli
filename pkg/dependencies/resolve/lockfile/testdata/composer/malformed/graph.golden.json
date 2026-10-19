@@ -1,0 +1,15 @@
+{
+  "nodes": [],
+  "roots": [
+    {
+      "manifest": "composer.json",
+      "lockfile": "composer.lock",
+      "ecosystem": "composer",
+      "status": "unknown",
+      "reason": "malformed",
+      "detail": "unexpected end of JSON input",
+      "members": [],
+      "edges": []
+    }
+  ]
+}

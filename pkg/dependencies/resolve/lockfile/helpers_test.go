@@ -156,8 +156,8 @@ func checkStatus(t testing.TB, r resolve.Root) {
 	}
 }
 
-// loadCase reads the lockfile in dir, and its sibling manifest when the format
-// reads one and the case has it.
+// loadCase reads the lockfile in dir, its sibling manifest when the format
+// reads one and the case has it, and the member manifests the format collects.
 func loadCase(t testing.TB, dir string) Input {
 	t.Helper()
 	entries, err := os.ReadDir(dir)
@@ -177,6 +177,10 @@ func loadCase(t testing.TB, dir string) Input {
 			if err != nil && !os.IsNotExist(err) {
 				t.Fatal(err)
 			}
+		}
+		if f, _ := lookup(e.Name()); f.members != nil && in.Manifest != nil {
+			lim := DefaultLimits()
+			in.Members = f.members(os.DirFS(dir), ".", in.Manifest, lim.MaxBytes, lim.MaxNodes)
 		}
 		return in
 	}

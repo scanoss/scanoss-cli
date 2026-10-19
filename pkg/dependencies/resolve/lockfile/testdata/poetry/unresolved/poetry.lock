@@ -1,0 +1,6 @@
+[[package]]
+name = "plugin"
+version = "1.0.0"
+
+[package.dependencies]
+ghost = "^1.0"

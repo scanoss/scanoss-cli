@@ -1,0 +1,25 @@
+{
+    "packages": [
+        {
+            "name": "laravel/framework",
+            "version": "v10.48.4",
+            "require": {"psr/log": "^1.0 || ^2.0 || ^3.0", "Monolog/Monolog": "^3.0"},
+            "replace": {"illuminate/support": "self.version", "illuminate/collections": "self.version"}
+        },
+        {
+            "name": "monolog/monolog",
+            "version": "3.5.0",
+            "require": {"psr/log": "^2.0 || ^3.0"},
+            "provide": {"psr/log-implementation": "3.0.0"}
+        },
+        {"name": "psr/log", "version": "3.0.0"},
+        {
+            "name": "spatie/package",
+            "version": "dev-main",
+            "require": {"illuminate/support": "^10.0", "psr/log-implementation": "^1.0"}
+        }
+    ],
+    "packages-dev": [
+        {"name": "psr/log", "version": "1.1.4"}
+    ]
+}

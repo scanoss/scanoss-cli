@@ -133,7 +133,10 @@ func (b *builder) node(namespace, name, version string) (resolve.NodeID, bool) {
 }
 
 // local adds the project's own package namespace/name, as node does. A local
-// package may lack a version; its ID is then its versionless Package URL.
+// package may lack a version; its ID is then its versionless Package URL. A
+// local package with the ID of a registry package shares that node, which
+// stays a registry node, so a consumer that skips local nodes never drops a
+// third-party package.
 func (b *builder) local(namespace, name, version string) (resolve.NodeID, bool) {
 	return b.add(namespace, name, version, true)
 }
@@ -149,10 +152,8 @@ func (b *builder) add(namespace, name, version string, local bool) (resolve.Node
 		id = resolve.NodeID(parsers.BuildPURL(string(b.ecosystem), namespace, name, version, nil))
 	}
 	if n, ok := b.nodes[id]; ok {
-		if n.Local != local {
-			b.flag(resolve.ReasonInvalidEntry, fmt.Sprintf("%s is both a local and a registry package", id))
-			return "", false
-		}
+		n.Local = n.Local && local
+		b.nodes[id] = n
 		return id, true
 	}
 	if len(b.nodes) >= b.lim.MaxNodes {

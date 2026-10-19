@@ -1,0 +1,15 @@
+{
+  "nodes": [],
+  "roots": [
+    {
+      "manifest": "Gemfile",
+      "lockfile": "Gemfile.lock",
+      "ecosystem": "gem",
+      "status": "unknown",
+      "reason": "malformed",
+      "detail": "no GEM, GIT, PATH or DEPENDENCIES section",
+      "members": [],
+      "edges": []
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+    "packages": [
+        {"name": "acme/plugin", "version": "1.0.0", "require": {"acme/ghost": "^1.0", "lib-openssl": "*"}}
+    ]
+}

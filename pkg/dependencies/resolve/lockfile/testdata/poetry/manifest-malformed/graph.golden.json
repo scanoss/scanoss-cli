@@ -1,0 +1,62 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:pypi/bottom@1.2.3",
+      "purl": "pkg:pypi/bottom",
+      "version": "1.2.3"
+    },
+    {
+      "id": "pkg:pypi/left@1.0.0",
+      "purl": "pkg:pypi/left",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pkg:pypi/pytest@8.1.1",
+      "purl": "pkg:pypi/pytest",
+      "version": "8.1.1"
+    },
+    {
+      "id": "pkg:pypi/right@2.0.0",
+      "purl": "pkg:pypi/right",
+      "version": "2.0.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "pyproject.toml",
+      "lockfile": "poetry.lock",
+      "ecosystem": "pypi",
+      "status": "partial",
+      "reason": "manifest_malformed",
+      "detail": "toml: expected ']' to close table name",
+      "members": [
+        {
+          "id": "pkg:pypi/bottom@1.2.3",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/left@1.0.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/pytest@8.1.1",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/right@2.0.0",
+          "direct": false
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:pypi/left@1.0.0",
+          "to": "pkg:pypi/bottom@1.2.3"
+        },
+        {
+          "from": "pkg:pypi/right@2.0.0",
+          "to": "pkg:pypi/bottom@1.2.3"
+        }
+      ]
+    }
+  ]
+}

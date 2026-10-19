@@ -1,0 +1,73 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:gem/bottom@1.2.3",
+      "purl": "pkg:gem/bottom",
+      "version": "1.2.3"
+    },
+    {
+      "id": "pkg:gem/left@1.0.0",
+      "purl": "pkg:gem/left",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pkg:gem/rails@7.0.4",
+      "purl": "pkg:gem/rails",
+      "version": "7.0.4"
+    },
+    {
+      "id": "pkg:gem/right@2.0.0",
+      "purl": "pkg:gem/right",
+      "version": "2.0.0"
+    },
+    {
+      "id": "pkg:gem/rspec@3.13.0",
+      "purl": "pkg:gem/rspec",
+      "version": "3.13.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "Gemfile",
+      "lockfile": "Gemfile.lock",
+      "ecosystem": "gem",
+      "status": "complete",
+      "members": [
+        {
+          "id": "pkg:gem/bottom@1.2.3",
+          "direct": false
+        },
+        {
+          "id": "pkg:gem/left@1.0.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:gem/rails@7.0.4",
+          "direct": true
+        },
+        {
+          "id": "pkg:gem/right@2.0.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:gem/rspec@3.13.0",
+          "direct": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:gem/left@1.0.0",
+          "to": "pkg:gem/bottom@1.2.3"
+        },
+        {
+          "from": "pkg:gem/rails@7.0.4",
+          "to": "pkg:gem/left@1.0.0"
+        },
+        {
+          "from": "pkg:gem/right@2.0.0",
+          "to": "pkg:gem/bottom@1.2.3"
+        }
+      ]
+    }
+  ]
+}

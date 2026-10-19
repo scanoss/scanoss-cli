@@ -1,0 +1,26 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:gem/plugin@1.0.0",
+      "purl": "pkg:gem/plugin",
+      "version": "1.0.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "Gemfile",
+      "lockfile": "Gemfile.lock",
+      "ecosystem": "gem",
+      "status": "partial",
+      "reason": "unresolved_dependency",
+      "detail": "plugin requires ghost",
+      "members": [
+        {
+          "id": "pkg:gem/plugin@1.0.0",
+          "direct": true
+        }
+      ],
+      "edges": []
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    bottom (1.2.3)
+    left (1.0.0)
+      bottom (>= 1.0)
+    rails (7.0.4)
+      bundler (>= 1.15.0)
+      left (= 1.0.0)
+    right (2.0.0)
+      bottom (~> 1.2)
+    rspec (3.13.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  rails (~> 7.0)
+  right
+  rspec
+  tzinfo-data
+
+BUNDLED WITH
+   2.4.10
