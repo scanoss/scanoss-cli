@@ -1,0 +1,27 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:pypi/six@1.17.0",
+      "purl": "pkg:pypi/six",
+      "version": "1.17.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "Pipfile",
+      "lockfile": "Pipfile.lock",
+      "ecosystem": "pypi",
+      "status": "partial",
+      "reason": "unresolved_dependency",
+      "detail": "Pipfile requires missing",
+      "devKnown": true,
+      "members": [
+        {
+          "id": "pkg:pypi/six@1.17.0",
+          "direct": true
+        }
+      ],
+      "edges": []
+    }
+  ]
+}

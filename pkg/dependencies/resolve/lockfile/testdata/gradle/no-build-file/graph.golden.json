@@ -1,0 +1,27 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:maven/org.slf4j/slf4j-api@2.0.13",
+      "purl": "pkg:maven/org.slf4j/slf4j-api",
+      "version": "2.0.13"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "build.gradle",
+      "lockfile": "gradle.lockfile",
+      "ecosystem": "maven",
+      "status": "partial",
+      "reason": "edges_unknown",
+      "detail": "gradle.lockfile records no edges",
+      "devKnown": false,
+      "members": [
+        {
+          "id": "pkg:maven/org.slf4j/slf4j-api@2.0.13",
+          "direct": false
+        }
+      ],
+      "edges": []
+    }
+  ]
+}

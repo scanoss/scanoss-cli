@@ -1,0 +1,45 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:maven/com.squareup.okhttp3/okhttp@4.12.0",
+      "purl": "pkg:maven/com.squareup.okhttp3/okhttp",
+      "version": "4.12.0"
+    },
+    {
+      "id": "pkg:maven/com.squareup.okio/okio-jvm@3.6.0",
+      "purl": "pkg:maven/com.squareup.okio/okio-jvm",
+      "version": "3.6.0"
+    },
+    {
+      "id": "pkg:maven/com.squareup.okio/okio@3.6.0",
+      "purl": "pkg:maven/com.squareup.okio/okio",
+      "version": "3.6.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "build.gradle.kts",
+      "lockfile": "gradle.lockfile",
+      "ecosystem": "maven",
+      "status": "partial",
+      "reason": "edges_unknown",
+      "detail": "gradle.lockfile records no edges",
+      "devKnown": false,
+      "members": [
+        {
+          "id": "pkg:maven/com.squareup.okhttp3/okhttp@4.12.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/com.squareup.okio/okio-jvm@3.6.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/com.squareup.okio/okio@3.6.0",
+          "direct": false
+        }
+      ],
+      "edges": []
+    }
+  ]
+}

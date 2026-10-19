@@ -33,6 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   gives a root per workspace member at its `pyproject.toml`. `packages.lock.json` merges every
   target framework into one root named after the project file beside it, with the solution's
   other projects as local nodes; it does not record dev dependencies.
+- **`gradle.lockfile`, `Pipfile.lock` and `go.mod`** are resolved as module lists. They pin
+  every package but record no edges, so their roots are `partial` with the new reason
+  **`edges_unknown`**. `Pipfile.lock` reads the `Pipfile` for direct and dev dependencies, and
+  `go.mod` marks requirements without `// indirect` as direct and applies `replace`.
 - **`dependencies --extract-local --graph`** prints the dependency graph resolved from every
   lockfile under the path, merged into one JSON document, so the resolver can be tried on a
   real project.

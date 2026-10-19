@@ -1,0 +1,16 @@
+{
+  "nodes": [],
+  "roots": [
+    {
+      "manifest": "Pipfile",
+      "lockfile": "Pipfile.lock",
+      "ecosystem": "pypi",
+      "status": "unknown",
+      "reason": "malformed",
+      "detail": "unexpected end of JSON input",
+      "devKnown": false,
+      "members": [],
+      "edges": []
+    }
+  ]
+}

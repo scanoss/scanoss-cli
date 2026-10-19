@@ -1,0 +1,99 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:pypi/certifi@2025.8.3",
+      "purl": "pkg:pypi/certifi",
+      "version": "2025.8.3"
+    },
+    {
+      "id": "pkg:pypi/charset-normalizer@3.4.3",
+      "purl": "pkg:pypi/charset-normalizer",
+      "version": "3.4.3"
+    },
+    {
+      "id": "pkg:pypi/idna@3.10",
+      "purl": "pkg:pypi/idna",
+      "version": "3.10"
+    },
+    {
+      "id": "pkg:pypi/iniconfig@2.1.0",
+      "purl": "pkg:pypi/iniconfig",
+      "version": "2.1.0"
+    },
+    {
+      "id": "pkg:pypi/packaging@25.0",
+      "purl": "pkg:pypi/packaging",
+      "version": "25.0"
+    },
+    {
+      "id": "pkg:pypi/pluggy@1.6.0",
+      "purl": "pkg:pypi/pluggy",
+      "version": "1.6.0"
+    },
+    {
+      "id": "pkg:pypi/pytest@8.4.2",
+      "purl": "pkg:pypi/pytest",
+      "version": "8.4.2"
+    },
+    {
+      "id": "pkg:pypi/requests@2.32.5",
+      "purl": "pkg:pypi/requests",
+      "version": "2.32.5"
+    },
+    {
+      "id": "pkg:pypi/urllib3@2.5.0",
+      "purl": "pkg:pypi/urllib3",
+      "version": "2.5.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "Pipfile",
+      "lockfile": "Pipfile.lock",
+      "ecosystem": "pypi",
+      "status": "partial",
+      "reason": "manifest_malformed",
+      "detail": "toml: unexpected character U+000A at start of value",
+      "devKnown": false,
+      "members": [
+        {
+          "id": "pkg:pypi/certifi@2025.8.3",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/charset-normalizer@3.4.3",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/idna@3.10",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/iniconfig@2.1.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/packaging@25.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/pluggy@1.6.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/pytest@8.4.2",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/requests@2.32.5",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/urllib3@2.5.0",
+          "direct": false
+        }
+      ],
+      "edges": []
+    }
+  ]
+}

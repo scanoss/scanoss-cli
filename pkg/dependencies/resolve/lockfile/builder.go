@@ -48,6 +48,7 @@ var precedence = []resolve.Reason{
 	resolve.ReasonUnsupportedWorkspaces,
 	resolve.ReasonUnresolvedDependency,
 	resolve.ReasonInvalidEntry,
+	resolve.ReasonEdgesUnknown,
 }
 
 func isUnknown(r resolve.Reason) bool {
@@ -205,6 +206,14 @@ func (b *builder) root(dir string) *root {
 		b.roots[m] = r
 	}
 	return r
+}
+
+// nameRoot names the roots after the one file in members, for a format whose
+// manifest name varies; its members hook is sibling.
+func (b *builder) nameRoot(members map[string][]byte) {
+	if len(members) == 1 {
+		b.manifest = slices.Collect(maps.Keys(members))[0]
+	}
 }
 
 // flag records a problem that affects every root.

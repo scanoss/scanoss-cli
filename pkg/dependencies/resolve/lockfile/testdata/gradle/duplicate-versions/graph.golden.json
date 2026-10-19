@@ -1,0 +1,36 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:maven/com.google.guava/guava@31.1-jre",
+      "purl": "pkg:maven/com.google.guava/guava",
+      "version": "31.1-jre"
+    },
+    {
+      "id": "pkg:maven/com.google.guava/guava@32.1.3-jre",
+      "purl": "pkg:maven/com.google.guava/guava",
+      "version": "32.1.3-jre"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "build.gradle",
+      "lockfile": "gradle.lockfile",
+      "ecosystem": "maven",
+      "status": "partial",
+      "reason": "edges_unknown",
+      "detail": "gradle.lockfile records no edges",
+      "devKnown": false,
+      "members": [
+        {
+          "id": "pkg:maven/com.google.guava/guava@31.1-jre",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/com.google.guava/guava@32.1.3-jre",
+          "direct": false
+        }
+      ],
+      "edges": []
+    }
+  ]
+}

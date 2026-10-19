@@ -26,7 +26,6 @@ package lockfile
 import (
 	"encoding/json"
 	"fmt"
-	"io/fs"
 	"maps"
 	"path"
 	"slices"
@@ -53,9 +52,7 @@ type nugetEntry struct {
 // is named after the one project file in members, or after the lockfile
 // itself without one.
 func parseNuGetLock(b *builder, data, _ []byte, members map[string][]byte) {
-	if len(members) == 1 {
-		b.manifest = slices.Collect(maps.Keys(members))[0]
-	}
+	b.nameRoot(members)
 	var lock struct {
 		Version      int                              `json:"version"`
 		Dependencies map[string]map[string]nugetEntry `json:"dependencies"`
@@ -130,25 +127,12 @@ func parseNuGetLock(b *builder, data, _ []byte, members map[string][]byte) {
 	}
 }
 
-// nugetProject finds the project file beside packages.lock.json. Only its
-// name is used, so it is not read. It returns nothing unless there is
-// exactly one.
-func nugetProject(fsys fs.FS, dir string, _ []byte, _ int64, _ int) map[string][]byte {
-	entries, err := fs.ReadDir(fsys, dir)
-	if err != nil {
-		return nil
+// isProjectFile reports whether name is a .NET project file, which sits
+// beside its packages.lock.json.
+func isProjectFile(name string) bool {
+	switch path.Ext(name) {
+	case ".csproj", ".fsproj", ".vbproj":
+		return true
 	}
-	var found []string
-	for _, e := range entries {
-		switch path.Ext(e.Name()) {
-		case ".csproj", ".fsproj", ".vbproj":
-			if !e.IsDir() {
-				found = append(found, e.Name())
-			}
-		}
-	}
-	if len(found) != 1 {
-		return nil
-	}
-	return map[string][]byte{found[0]: nil}
+	return false
 }

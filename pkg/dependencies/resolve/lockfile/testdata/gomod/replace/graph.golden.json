@@ -1,0 +1,64 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:golang/example.com/lib",
+      "purl": "pkg:golang/example.com/lib",
+      "version": "",
+      "local": true
+    },
+    {
+      "id": "pkg:golang/github.com/new/name@v1.5.0",
+      "purl": "pkg:golang/github.com/new/name",
+      "version": "v1.5.0"
+    },
+    {
+      "id": "pkg:golang/github.com/pinned/mod@v1.0.1",
+      "purl": "pkg:golang/github.com/pinned/mod",
+      "version": "v1.0.1"
+    },
+    {
+      "id": "pkg:golang/github.com/quoted/mod@v0.3.0",
+      "purl": "pkg:golang/github.com/quoted/mod",
+      "version": "v0.3.0"
+    },
+    {
+      "id": "pkg:golang/github.com/unpinned/mod@v2.0.0+incompatible",
+      "purl": "pkg:golang/github.com/unpinned/mod",
+      "version": "v2.0.0+incompatible"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "go.mod",
+      "lockfile": "go.mod",
+      "ecosystem": "golang",
+      "status": "partial",
+      "reason": "edges_unknown",
+      "detail": "go.mod records no edges",
+      "devKnown": false,
+      "members": [
+        {
+          "id": "pkg:golang/example.com/lib",
+          "direct": true
+        },
+        {
+          "id": "pkg:golang/github.com/new/name@v1.5.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:golang/github.com/pinned/mod@v1.0.1",
+          "direct": true
+        },
+        {
+          "id": "pkg:golang/github.com/quoted/mod@v0.3.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:golang/github.com/unpinned/mod@v2.0.0+incompatible",
+          "direct": false
+        }
+      ],
+      "edges": []
+    }
+  ]
+}

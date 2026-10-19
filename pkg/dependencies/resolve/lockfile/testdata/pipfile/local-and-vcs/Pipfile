@@ -1,0 +1,14 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+app = {path = ".", editable = true}
+helper = {path = "./libs/helper", editable = true}
+pytest-cs = {git = "https://github.com/example/pytest-cs.git"}
+
+[dev-packages]
+
+[requires]
+python_version = "3.12"
