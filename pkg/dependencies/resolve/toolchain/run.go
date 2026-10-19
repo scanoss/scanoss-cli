@@ -36,9 +36,11 @@ import (
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/internal/build"
 )
 
+// output is what a run read from the tool before it exited or was stopped,
+// whatever the outcome: some tools, such as mvn, log their errors on stdout.
 type output struct {
 	stdout []byte
-	stderr []byte // its tail, kept when the tool failed
+	stderr []byte
 	reason resolve.Reason
 	detail string
 }
@@ -53,8 +55,6 @@ type runner struct {
 	maxOutput int64
 }
 
-const stderrKept = 4 << 10
-
 // waitDelay bounds how long Wait waits for the pipes after the tool exits or
 // is killed, in case something it started still holds them.
 const waitDelay = 2 * time.Second
@@ -68,24 +68,27 @@ func (r runner) run(name string, args ...string) output {
 	cmd.WaitDelay = waitDelay
 	killGroup(cmd)
 	stdout := &capped{max: r.maxOutput, overflow: cancel}
-	stderr := &tail{}
+	stderr := &capped{max: r.maxOutput, overflow: cancel}
 	cmd.Stdout, cmd.Stderr = stdout, stderr
 	err := cmd.Run()
 
 	label := strings.Join(append([]string{name}, args...), " ")
+	out := output{stdout: stdout.buf, stderr: stderr.buf}
 	switch {
-	case stdout.over:
-		return output{reason: resolve.ReasonTooLarge, detail: fmt.Sprintf("%s: output exceeds %d bytes", label, r.maxOutput)}
+	case stdout.over || stderr.over:
+		out.reason, out.detail = resolve.ReasonTooLarge, fmt.Sprintf("%s: output exceeds %d bytes", label, r.maxOutput)
 	case err == nil:
-		return output{stdout: stdout.buf}
 	case errors.Is(err, exec.ErrNotFound):
-		return output{reason: resolve.ReasonToolMissing, detail: fmt.Sprintf("%s: not found on PATH", name)}
+		out.reason, out.detail = resolve.ReasonToolMissing, fmt.Sprintf("%s: not found on PATH", name)
 	case r.ctx.Err() != nil:
-		return output{reason: resolve.ReasonTimeout, detail: fmt.Sprintf("%s: cancelled", label)}
+		out.reason, out.detail = resolve.ReasonTimeout, fmt.Sprintf("%s: cancelled", label)
 	case ctx.Err() != nil:
-		return output{reason: resolve.ReasonTimeout, detail: fmt.Sprintf("%s: no result after %s", label, r.timeout)}
+		out.reason, out.detail = resolve.ReasonTimeout, fmt.Sprintf("%s: no result after %s", label, r.timeout)
+	default:
+		out = failed(label, err, stderr.buf)
+		out.stdout = stdout.buf
 	}
-	return failed(label, err, stderr.buf)
+	return out
 }
 
 func failed(label string, err error, stderr []byte) output {
@@ -130,18 +133,6 @@ func (c *capped) Write(p []byte) (int, error) {
 	if !c.over {
 		c.over = true
 		c.overflow()
-	}
-	return len(p), nil
-}
-
-type tail struct {
-	buf []byte
-}
-
-func (t *tail) Write(p []byte) (int, error) {
-	t.buf = append(t.buf, p...)
-	if len(t.buf) > stderrKept {
-		t.buf = append(t.buf[:0], t.buf[len(t.buf)-stderrKept:]...)
 	}
 	return len(p), nil
 }

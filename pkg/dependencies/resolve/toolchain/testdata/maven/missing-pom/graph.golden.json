@@ -1,0 +1,36 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:maven/com.example.absent/absent@1.0.0",
+      "purl": "pkg:maven/com.example.absent/absent",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pkg:maven/org.slf4j/slf4j-api@2.0.13",
+      "purl": "pkg:maven/org.slf4j/slf4j-api",
+      "version": "2.0.13"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "pom.xml",
+      "lockfile": "pom.xml",
+      "ecosystem": "maven",
+      "status": "partial",
+      "reason": "unresolved_dependency",
+      "detail": "The POM for com.example.absent:absent:jar:1.0.0 is missing, no dependency information available",
+      "devKnown": true,
+      "members": [
+        {
+          "id": "pkg:maven/com.example.absent/absent@1.0.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:maven/org.slf4j/slf4j-api@2.0.13",
+          "direct": true
+        }
+      ],
+      "edges": []
+    }
+  ]
+}

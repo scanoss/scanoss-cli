@@ -64,3 +64,47 @@ func TestUnknownRootHasNoMembers(t *testing.T) {
 		t.Errorf("got  %+v\nwant %+v", g, want)
 	}
 }
+
+func TestMerge(t *testing.T) {
+	lim := build.Limits{MaxNodes: 10, MaxEdges: 10}
+	module := func(dir string, local bool) resolve.Graph {
+		b := build.New(dir+"/pom.xml", resolve.EcosystemMaven, "pom.xml", lim)
+		add := b.Node
+		if local {
+			add = b.Local
+		}
+		core, _ := add("com.example", "core", "1.0.0")
+		own, _ := b.Node("org.example", dir, "1.0")
+		b.Root("").Declare(core, false)
+		b.Root("").Declare(own, false)
+		return b.Graph()
+	}
+	core := resolve.NodeID("pkg:maven/com.example/core@1.0.0")
+	g := build.Merge(module("b", true), module("a", false), module("c", true))
+
+	var ids []resolve.NodeID
+	for _, n := range g.Nodes {
+		ids = append(ids, n.ID)
+		if n.ID == core && n.Local {
+			t.Error("core is a registry node in one graph, but the merge made it local")
+		}
+	}
+	wantIDs := []resolve.NodeID{core, "pkg:maven/org.example/a@1.0", "pkg:maven/org.example/b@1.0", "pkg:maven/org.example/c@1.0"}
+	if !reflect.DeepEqual(ids, wantIDs) {
+		t.Errorf("nodes %v, want %v", ids, wantIDs)
+	}
+	var manifests []string
+	for _, r := range g.Roots {
+		manifests = append(manifests, r.Manifest+" "+r.Lockfile)
+	}
+	if want := []string{"a/pom.xml a/pom.xml", "b/pom.xml b/pom.xml", "c/pom.xml c/pom.xml"}; !reflect.DeepEqual(manifests, want) {
+		t.Errorf("roots %v, want %v", manifests, want)
+	}
+
+	if both := build.Merge(module("b", true), module("c", true)); both.Nodes[0].ID != core || !both.Nodes[0].Local {
+		t.Errorf("core is local in every graph, but the merge has %+v", both.Nodes[0])
+	}
+	if empty := build.Merge(); empty.Nodes == nil || empty.Roots == nil {
+		t.Errorf("Merge() = %+v, want empty slices", empty)
+	}
+}

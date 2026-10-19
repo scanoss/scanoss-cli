@@ -134,7 +134,7 @@ func TestGoListFailureIsUnknown(t *testing.T) {
 }
 
 func TestSupported(t *testing.T) {
-	if !Supported("sub/go.mod") || Supported("go.sum") || Supported("pom.xml") {
+	if !Supported("sub/go.mod") || !Supported("sub/pom.xml") || Supported("go.sum") || Supported("build.gradle") {
 		t.Error("Supported does not match the table")
 	}
 	if _, err := Resolve(t.Context(), t.TempDir(), "go.sum", Options{}); !errors.Is(err, ErrUnsupported) {

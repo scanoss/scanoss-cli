@@ -1,0 +1,36 @@
+{
+  "nodes": [],
+  "roots": [
+    {
+      "manifest": "app/pom.xml",
+      "lockfile": "app/pom.xml",
+      "ecosystem": "maven",
+      "status": "partial",
+      "reason": "registry_unreachable",
+      "detail": "skipped after core failed",
+      "devKnown": false,
+      "members": [],
+      "edges": []
+    },
+    {
+      "manifest": "core/pom.xml",
+      "lockfile": "core/pom.xml",
+      "ecosystem": "maven",
+      "status": "partial",
+      "reason": "registry_unreachable",
+      "detail": "Failed to execute goal on project core: Could not resolve dependencies for project com.example:core:jar:1.0.0: Failed to collect dependencies at com.google.guava:guava:jar:33.0.0-jre: Failed to read artifact descriptor for com.google.guava:guava:jar:33.0.0...",
+      "devKnown": false,
+      "members": [],
+      "edges": []
+    },
+    {
+      "manifest": "pom.xml",
+      "lockfile": "pom.xml",
+      "ecosystem": "maven",
+      "status": "complete",
+      "devKnown": true,
+      "members": [],
+      "edges": []
+    }
+  ]
+}

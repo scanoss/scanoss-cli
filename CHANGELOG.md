@@ -18,7 +18,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`unknown`), or **`registry_unreachable`** (`partial`, with the modules the tool resolved
   without the registry). The tools run on files the scanned repository controls, so callers
   run them in an isolated sandbox. They need no credentials, take the registry or mirror from
-  `Options.Env`, and each run has a timeout and capped output. Only Go is resolved for now.
+  `Options.Env`, and each run has a timeout and capped output.
+- **`pom.xml`** is resolved with `mvn` from `PATH` (never the repository's `mvnw`) and the
+  verbose tree of `maven-dependency-plugin` 3.8.1, as one root per module of the reactor, each
+  with the versions that module resolves and its own `pom.xml` as `Lockfile`. Edges
+  to the nodes Maven omits for a duplicate, a conflict or a cycle are kept, sibling modules are
+  local nodes, and `test` dependencies are dev. A module that fails is `unknown`
+  (`tool_failed`), or `partial` (`registry_unreachable`) when Maven could not reach the
+  repository, and so is a module Maven skipped because of it; the others keep their graph. A
+  dependency whose POM is missing makes the roots that reach it `partial`
+  (`unresolved_dependency`). Maven reads its mirrors from the caller's `settings.xml`, and the
+  run writes a hidden tree file into each module's directory, which `Resolve` removes.
 
 ## [0.12.0] - 2026-10-19
 

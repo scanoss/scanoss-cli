@@ -1,0 +1,52 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:maven/commons-logging/commons-logging@1.2",
+      "purl": "pkg:maven/commons-logging/commons-logging",
+      "version": "1.2"
+    },
+    {
+      "id": "pkg:maven/org.example/a@1.0",
+      "purl": "pkg:maven/org.example/a",
+      "version": "1.0"
+    },
+    {
+      "id": "pkg:maven/org.example/b@1.0",
+      "purl": "pkg:maven/org.example/b",
+      "version": "1.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "pom.xml",
+      "lockfile": "pom.xml",
+      "ecosystem": "maven",
+      "status": "complete",
+      "devKnown": true,
+      "members": [
+        {
+          "id": "pkg:maven/commons-logging/commons-logging@1.2",
+          "direct": true
+        },
+        {
+          "id": "pkg:maven/org.example/a@1.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:maven/org.example/b@1.0",
+          "direct": false
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:maven/org.example/a@1.0",
+          "to": "pkg:maven/org.example/b@1.0"
+        },
+        {
+          "from": "pkg:maven/org.example/b@1.0",
+          "to": "pkg:maven/org.example/a@1.0"
+        }
+      ]
+    }
+  ]
+}

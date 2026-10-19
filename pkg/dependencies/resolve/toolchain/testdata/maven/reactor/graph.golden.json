@@ -1,0 +1,223 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:maven/com.example/core@1.0.0",
+      "purl": "pkg:maven/com.example/core",
+      "version": "1.0.0",
+      "local": true
+    },
+    {
+      "id": "pkg:maven/com.google.code.findbugs/jsr305@3.0.2",
+      "purl": "pkg:maven/com.google.code.findbugs/jsr305",
+      "version": "3.0.2"
+    },
+    {
+      "id": "pkg:maven/com.google.errorprone/error_prone_annotations@2.23.0",
+      "purl": "pkg:maven/com.google.errorprone/error_prone_annotations",
+      "version": "2.23.0"
+    },
+    {
+      "id": "pkg:maven/com.google.guava/failureaccess@1.0.2",
+      "purl": "pkg:maven/com.google.guava/failureaccess",
+      "version": "1.0.2"
+    },
+    {
+      "id": "pkg:maven/com.google.guava/guava@33.0.0-jre",
+      "purl": "pkg:maven/com.google.guava/guava",
+      "version": "33.0.0-jre"
+    },
+    {
+      "id": "pkg:maven/com.google.guava/listenablefuture@9999.0-empty-to-avoid-conflict-with-guava",
+      "purl": "pkg:maven/com.google.guava/listenablefuture",
+      "version": "9999.0-empty-to-avoid-conflict-with-guava"
+    },
+    {
+      "id": "pkg:maven/com.google.j2objc/j2objc-annotations@2.8",
+      "purl": "pkg:maven/com.google.j2objc/j2objc-annotations",
+      "version": "2.8"
+    },
+    {
+      "id": "pkg:maven/junit/junit@4.13.2",
+      "purl": "pkg:maven/junit/junit",
+      "version": "4.13.2"
+    },
+    {
+      "id": "pkg:maven/org.apache.commons/commons-lang3@3.14.0",
+      "purl": "pkg:maven/org.apache.commons/commons-lang3",
+      "version": "3.14.0"
+    },
+    {
+      "id": "pkg:maven/org.checkerframework/checker-qual@3.41.0",
+      "purl": "pkg:maven/org.checkerframework/checker-qual",
+      "version": "3.41.0"
+    },
+    {
+      "id": "pkg:maven/org.hamcrest/hamcrest-core@1.3",
+      "purl": "pkg:maven/org.hamcrest/hamcrest-core",
+      "version": "1.3"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "app/pom.xml",
+      "lockfile": "app/pom.xml",
+      "ecosystem": "maven",
+      "status": "complete",
+      "devKnown": true,
+      "members": [
+        {
+          "id": "pkg:maven/com.example/core@1.0.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:maven/com.google.code.findbugs/jsr305@3.0.2",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/com.google.errorprone/error_prone_annotations@2.23.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/com.google.guava/failureaccess@1.0.2",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/com.google.guava/guava@33.0.0-jre",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/com.google.guava/listenablefuture@9999.0-empty-to-avoid-conflict-with-guava",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/com.google.j2objc/j2objc-annotations@2.8",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/org.apache.commons/commons-lang3@3.14.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:maven/org.checkerframework/checker-qual@3.41.0",
+          "direct": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:maven/com.example/core@1.0.0",
+          "to": "pkg:maven/com.google.guava/guava@33.0.0-jre"
+        },
+        {
+          "from": "pkg:maven/com.google.guava/guava@33.0.0-jre",
+          "to": "pkg:maven/com.google.code.findbugs/jsr305@3.0.2"
+        },
+        {
+          "from": "pkg:maven/com.google.guava/guava@33.0.0-jre",
+          "to": "pkg:maven/com.google.errorprone/error_prone_annotations@2.23.0"
+        },
+        {
+          "from": "pkg:maven/com.google.guava/guava@33.0.0-jre",
+          "to": "pkg:maven/com.google.guava/failureaccess@1.0.2"
+        },
+        {
+          "from": "pkg:maven/com.google.guava/guava@33.0.0-jre",
+          "to": "pkg:maven/com.google.guava/listenablefuture@9999.0-empty-to-avoid-conflict-with-guava"
+        },
+        {
+          "from": "pkg:maven/com.google.guava/guava@33.0.0-jre",
+          "to": "pkg:maven/com.google.j2objc/j2objc-annotations@2.8"
+        },
+        {
+          "from": "pkg:maven/com.google.guava/guava@33.0.0-jre",
+          "to": "pkg:maven/org.checkerframework/checker-qual@3.41.0"
+        }
+      ]
+    },
+    {
+      "manifest": "core/pom.xml",
+      "lockfile": "core/pom.xml",
+      "ecosystem": "maven",
+      "status": "complete",
+      "devKnown": true,
+      "members": [
+        {
+          "id": "pkg:maven/com.google.code.findbugs/jsr305@3.0.2",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/com.google.errorprone/error_prone_annotations@2.23.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/com.google.guava/failureaccess@1.0.2",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/com.google.guava/guava@33.0.0-jre",
+          "direct": true
+        },
+        {
+          "id": "pkg:maven/com.google.guava/listenablefuture@9999.0-empty-to-avoid-conflict-with-guava",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/com.google.j2objc/j2objc-annotations@2.8",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/junit/junit@4.13.2",
+          "direct": true,
+          "dev": true
+        },
+        {
+          "id": "pkg:maven/org.checkerframework/checker-qual@3.41.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/org.hamcrest/hamcrest-core@1.3",
+          "direct": false,
+          "dev": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:maven/com.google.guava/guava@33.0.0-jre",
+          "to": "pkg:maven/com.google.code.findbugs/jsr305@3.0.2"
+        },
+        {
+          "from": "pkg:maven/com.google.guava/guava@33.0.0-jre",
+          "to": "pkg:maven/com.google.errorprone/error_prone_annotations@2.23.0"
+        },
+        {
+          "from": "pkg:maven/com.google.guava/guava@33.0.0-jre",
+          "to": "pkg:maven/com.google.guava/failureaccess@1.0.2"
+        },
+        {
+          "from": "pkg:maven/com.google.guava/guava@33.0.0-jre",
+          "to": "pkg:maven/com.google.guava/listenablefuture@9999.0-empty-to-avoid-conflict-with-guava"
+        },
+        {
+          "from": "pkg:maven/com.google.guava/guava@33.0.0-jre",
+          "to": "pkg:maven/com.google.j2objc/j2objc-annotations@2.8"
+        },
+        {
+          "from": "pkg:maven/com.google.guava/guava@33.0.0-jre",
+          "to": "pkg:maven/org.checkerframework/checker-qual@3.41.0"
+        },
+        {
+          "from": "pkg:maven/junit/junit@4.13.2",
+          "to": "pkg:maven/org.hamcrest/hamcrest-core@1.3"
+        }
+      ]
+    },
+    {
+      "manifest": "pom.xml",
+      "lockfile": "pom.xml",
+      "ecosystem": "maven",
+      "status": "complete",
+      "devKnown": true,
+      "members": [],
+      "edges": []
+    }
+  ]
+}

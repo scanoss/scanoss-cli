@@ -1,0 +1,14 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -----------------------< com.example:classifier >-----------------------
+[INFO] Building classifier 1.0.0
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- maven-dependency-plugin:3.8.1:tree (default-cli) @ classifier ---
+[INFO] Wrote dependency tree to: /work/classifier/tree.txt
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  1.362 s
+[INFO] Finished at: 2026-10-20T00:45:24+02:00
+[INFO] ------------------------------------------------------------------------

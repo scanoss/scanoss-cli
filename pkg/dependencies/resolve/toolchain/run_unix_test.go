@@ -41,7 +41,7 @@ import (
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
 )
 
-func fakeGo(t *testing.T, body string, cmds ...string) {
+func fakeTool(t *testing.T, name, body string, cmds ...string) {
 	t.Helper()
 	for _, c := range cmds {
 		p, err := exec.LookPath(c)
@@ -51,7 +51,7 @@ func fakeGo(t *testing.T, body string, cmds ...string) {
 		body = strings.ReplaceAll(body, "{"+c+"}", p)
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go"), []byte("#!/bin/sh\n"+body+"\n"), 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, name), []byte("#!/bin/sh\n"+body+"\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("PATH", dir)
@@ -71,7 +71,7 @@ func resolveRoot(t *testing.T, ctx context.Context, opts Options) resolve.Root {
 
 func TestRunTimeoutKillsTheProcessGroup(t *testing.T) {
 	pidFile := filepath.Join(t.TempDir(), "pid")
-	fakeGo(t, fmt.Sprintf("{sleep} 30 &\necho $! > %s\nwait", pidFile), "sleep")
+	fakeTool(t, "go", fmt.Sprintf("{sleep} 30 &\necho $! > %s\nwait", pidFile), "sleep")
 
 	start := time.Now()
 	r := resolveRoot(t, t.Context(), Options{Timeout: 200 * time.Millisecond})
@@ -103,7 +103,7 @@ func TestRunTimeoutKillsTheProcessGroup(t *testing.T) {
 }
 
 func TestRunCancelled(t *testing.T) {
-	fakeGo(t, "{sleep} 30", "sleep")
+	fakeTool(t, "go", "{sleep} 30", "sleep")
 	ctx, cancel := context.WithCancel(t.Context())
 	time.AfterFunc(100*time.Millisecond, cancel)
 	r := resolveRoot(t, ctx, Options{})
@@ -113,7 +113,7 @@ func TestRunCancelled(t *testing.T) {
 }
 
 func TestRunToolFailed(t *testing.T) {
-	fakeGo(t, "echo 'go: errors parsing go.mod' >&2\nexit 1")
+	fakeTool(t, "go", "echo 'go: errors parsing go.mod' >&2\nexit 1")
 	r := resolveRoot(t, t.Context(), Options{})
 	if r.Status != resolve.StatusUnknown || r.Reason != resolve.ReasonToolFailed {
 		t.Errorf("root is %s (%s), want unknown (tool_failed)", r.Status, r.Reason)
@@ -124,7 +124,7 @@ func TestRunToolFailed(t *testing.T) {
 }
 
 func TestRunStderrTailInDetail(t *testing.T) {
-	fakeGo(t, "i=0\nwhile [ $i -lt 500 ]; do echo 'noise noise noise' >&2; i=$((i+1)); done\necho 'go: the real error' >&2\nexit 1")
+	fakeTool(t, "go", "i=0\nwhile [ $i -lt 500 ]; do echo 'noise noise noise' >&2; i=$((i+1)); done\necho 'go: the real error' >&2\nexit 1")
 	r := resolveRoot(t, t.Context(), Options{})
 	if r.Reason != resolve.ReasonToolFailed || !strings.HasSuffix(r.Detail, "go: the real error") {
 		t.Errorf("root is %s: %q, want tool_failed ending with the last stderr line", r.Reason, r.Detail)
@@ -140,19 +140,51 @@ func TestRunToolMissing(t *testing.T) {
 }
 
 func TestRunOutputTooLarge(t *testing.T) {
-	fakeGo(t, "while :; do echo '{\"Path\": \"example.com/app\", \"Main\": true}'; done")
-	lim := DefaultLimits()
-	lim.MaxOutput = 1 << 10
-	r := resolveRoot(t, t.Context(), Options{Limits: lim})
-	if r.Status != resolve.StatusUnknown || r.Reason != resolve.ReasonTooLarge {
-		t.Errorf("root is %s (%s), want unknown (too_large): %s", r.Status, r.Reason, r.Detail)
+	for stream, redirect := range map[string]string{"stdout": "", "stderr": " >&2"} {
+		t.Run(stream, func(t *testing.T) {
+			fakeTool(t, "go", "while :; do echo '{\"Path\": \"example.com/app\", \"Main\": true}'"+redirect+"; done")
+			lim := DefaultLimits()
+			lim.MaxOutput = 1 << 10
+			r := resolveRoot(t, t.Context(), Options{Limits: lim})
+			if r.Status != resolve.StatusUnknown || r.Reason != resolve.ReasonTooLarge {
+				t.Errorf("root is %s (%s), want unknown (too_large): %s", r.Status, r.Reason, r.Detail)
+			}
+		})
 	}
 }
 
 func TestRunEnvCallerWins(t *testing.T) {
-	fakeGo(t, `echo "$GOFLAGS|$GOTOOLCHAIN" >&2; exit 1`)
+	fakeTool(t, "go", `echo "$GOFLAGS|$GOTOOLCHAIN" >&2; exit 1`)
 	r := resolveRoot(t, t.Context(), Options{Env: []string{"GOFLAGS=-mod=mod"}})
 	if !strings.HasSuffix(r.Detail, "-mod=mod|local") {
 		t.Errorf("detail %q: want the caller's GOFLAGS and the default GOTOOLCHAIN", r.Detail)
+	}
+}
+
+func TestMavenTimeoutKeepsFinishedModules(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.CopyFS(dir, os.DirFS(filepath.Join("testdata", "maven", "reactor"))); err != nil {
+		t.Fatal(err)
+	}
+	fakeTool(t, "mvn", `for a in "$@"; do case "$a" in -DoutputFile=*) f="${a#-DoutputFile=}";; esac; done
+echo 'com.example:parent:pom:1.0.0' > "$f"
+echo 'com.example:core:jar:1.0.0' > "core/$f"
+echo '+- junit:junit:jar:4.13.2:test' >> "core/$f"
+echo '[INFO] Building app 1.0.0'
+{sleep} 30`, "sleep")
+
+	g, err := Resolve(t.Context(), dir, "pom.xml", Options{Timeout: 300 * time.Millisecond})
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkNoTrees(t, dir)
+	if r := mavenRoot(t, g, "core/pom.xml"); r.Status != resolve.StatusComplete || len(r.Members) != 1 || !r.Members[0].Dev {
+		t.Errorf("core is %s (%s) with %+v, want complete with junit as dev", r.Status, r.Reason, r.Members)
+	}
+	if r := mavenRoot(t, g, "pom.xml"); r.Status != resolve.StatusComplete {
+		t.Errorf("the parent is %s (%s), want complete", r.Status, r.Reason)
+	}
+	if r := mavenRoot(t, g, "app/pom.xml"); r.Status != resolve.StatusUnknown || r.Reason != resolve.ReasonTimeout {
+		t.Errorf("app is %s (%s): %s, want unknown (timeout)", r.Status, r.Reason, r.Detail)
 	}
 }
