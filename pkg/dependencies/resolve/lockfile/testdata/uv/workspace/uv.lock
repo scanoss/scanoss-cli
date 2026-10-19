@@ -1,0 +1,141 @@
+version = 1
+revision = 3
+requires-python = ">=3.11"
+
+[manifest]
+members = [
+    "app",
+    "lib",
+    "ws",
+]
+
+[[package]]
+name = "app"
+source = { editable = "packages/app" }
+dependencies = [
+    { name = "click" },
+    { name = "lib" },
+    { name = "localdir" },
+    { name = "wheelpkg" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "click" },
+    { name = "lib" },
+    { name = "localdir" },
+    { name = "wheelpkg" },
+]
+
+[[package]]
+name = "attrs"
+version = "25.3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/11/attrs-25.3.0.tar.gz", hash = "sha256:645d4b71a0382d9301f821ab2eaac660490e92215c9d146bb9507231a81355f2", size = 1185 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/11/attrs-25.3.0-py3-none-any.whl", hash = "sha256:498f17088ae3f9f005c5fe8a4e50716e8a203afffb500cd83bf72728bc87f7ef", size = 945 },
+]
+
+[[package]]
+name = "click"
+version = "8.3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e5/click-8.3.0.tar.gz", hash = "sha256:f7255a0444a06b8acad55de6454f5458497ab9d9609e4e7fc1a299eeb9c043f1", size = 1185 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e5/click-8.3.0-py3-none-any.whl", hash = "sha256:0ff4c7494d5695d09f54bd498d0f9052858b0b7b89382fb9730dbb48eee53068", size = 945 },
+]
+
+[[package]]
+name = "lib"
+version = "1.0.0"
+source = { editable = "packages/lib" }
+dependencies = [
+    { name = "attrs" },
+    { name = "vendored" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "attrs" },
+    { name = "vendored" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest" }]
+
+[[package]]
+name = "localdir"
+version = "0.2.0"
+source = { directory = "libs/localdir" }
+dependencies = [
+    { name = "six" },
+]
+
+[[package]]
+name = "pytest"
+version = "8.4.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/2b/pytest-8.4.2.tar.gz", hash = "sha256:ad1bab8943cdc1363fb38a1a20e0ead110e41aab8ad179c901ce3edf46c9f6e7", size = 1222 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2b/pytest-8.4.2-py3-none-any.whl", hash = "sha256:392158eb612dd750e437ca1cd966f3c5f2821d8988550ffd7a58529a277f8bfe", size = 974 },
+]
+
+[[package]]
+name = "ruff"
+version = "0.13.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ac/ruff-0.13.0.tar.gz", hash = "sha256:438b159b15a1775a72751ec6232e549cef5ff5d6133504e0b305ef153c0915e4", size = 1148 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ac/ruff-0.13.0-py3-none-any.whl", hash = "sha256:8ef25acbe53103aab6b77dd7012bf7b86aa33cb19252b759bc541bccba1af443", size = 916 },
+]
+
+[[package]]
+name = "six"
+version = "1.17.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/44/six-1.17.0.tar.gz", hash = "sha256:bbf433f784a44a2e62246146fea350f08e1607d8fe404b04c1aedf15cf8af03b", size = 1111 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/44/six-1.17.0-py3-none-any.whl", hash = "sha256:6a6f2035ac8b1b0190113a20e7c04a1c7aa105ab4991f1a36e7a8dd9f23374b5", size = 887 },
+]
+
+[[package]]
+name = "vendored"
+version = "0.3.0"
+source = { editable = "../vendored" }
+dependencies = [
+    { name = "six" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "six" },
+]
+
+[[package]]
+name = "wheelpkg"
+version = "3.0.0"
+source = { path = "vendor/wheelpkg-3.0.0-py3-none-any.whl" }
+dependencies = [
+    { name = "attrs" },
+]
+
+[[package]]
+name = "ws"
+version = "0.0.0"
+source = { virtual = "." }
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest" }, { name = "ruff" }]

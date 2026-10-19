@@ -1,0 +1,90 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:pypi/iniconfig@2.1.0",
+      "purl": "pkg:pypi/iniconfig",
+      "version": "2.1.0"
+    },
+    {
+      "id": "pkg:pypi/markdown-it-py@4.0.0",
+      "purl": "pkg:pypi/markdown-it-py",
+      "version": "4.0.0"
+    },
+    {
+      "id": "pkg:pypi/pygments@2.19.2",
+      "purl": "pkg:pypi/pygments",
+      "version": "2.19.2"
+    },
+    {
+      "id": "pkg:pypi/pytest@8.4.2",
+      "purl": "pkg:pypi/pytest",
+      "version": "8.4.2"
+    },
+    {
+      "id": "pkg:pypi/rich@14.1.0",
+      "purl": "pkg:pypi/rich",
+      "version": "14.1.0"
+    },
+    {
+      "id": "pkg:pypi/ruff@0.13.0",
+      "purl": "pkg:pypi/ruff",
+      "version": "0.13.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "pyproject.toml",
+      "lockfile": "uv.lock",
+      "ecosystem": "pypi",
+      "status": "complete",
+      "devKnown": true,
+      "members": [
+        {
+          "id": "pkg:pypi/iniconfig@2.1.0",
+          "direct": false,
+          "dev": true
+        },
+        {
+          "id": "pkg:pypi/markdown-it-py@4.0.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/pygments@2.19.2",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/pytest@8.4.2",
+          "direct": true,
+          "dev": true
+        },
+        {
+          "id": "pkg:pypi/rich@14.1.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:pypi/ruff@0.13.0",
+          "direct": true,
+          "dev": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:pypi/pytest@8.4.2",
+          "to": "pkg:pypi/iniconfig@2.1.0"
+        },
+        {
+          "from": "pkg:pypi/pytest@8.4.2",
+          "to": "pkg:pypi/pygments@2.19.2"
+        },
+        {
+          "from": "pkg:pypi/rich@14.1.0",
+          "to": "pkg:pypi/markdown-it-py@4.0.0"
+        },
+        {
+          "from": "pkg:pypi/rich@14.1.0",
+          "to": "pkg:pypi/pygments@2.19.2"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+version = 1
+revision = 3
+requires-python = ">=3.11"
+resolution-markers = [
+    "python_full_version >= '3.12'",
+    "python_full_version < '3.12'",
+]
+
+[[package]]
+name = "app"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "pandas" },
+    { name = "scipy" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "scipy" },
+]
+
+[[package]]
+name = "numpy"
+version = "2.2.6"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version < '3.12'",
+]
+sdist = { url = "https://files.pythonhosted.org/packages/73/numpy-2.2.6.tar.gz", hash = "sha256:8f4b45f21841a7a29e996aee1ea54f18d77adac2929c586ed3de088fa4476dc4", size = 1185 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/73/numpy-2.2.6-py3-none-any.whl", hash = "sha256:74473aa76321a8f5329f927e859017dfa78f4c1744b1027c945d521ecc182634", size = 945 },
+]
+
+[[package]]
+name = "numpy"
+version = "2.3.3"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.12'",
+]
+sdist = { url = "https://files.pythonhosted.org/packages/73/numpy-2.3.3.tar.gz", hash = "sha256:0962cd5653aec0452a32efa9924ed3fc2f62f23fe9092f74d15b47d3131ad609", size = 1185 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/73/numpy-2.3.3-py3-none-any.whl", hash = "sha256:e8e23d42fffdc7623d4dda84f332eb4de7743f34c9615c87996aafaab0386ed1", size = 945 },
+]
+
+[[package]]
+name = "pandas"
+version = "2.3.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ae/pandas-2.3.2.tar.gz", hash = "sha256:355bcf8904cf4d352245a5dbc8bb2988b972ab1a009d4054a5c6f896c226957c", size = 1222 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ae/pandas-2.3.2-py3-none-any.whl", hash = "sha256:da6aac552649ee9e0e01fb124dc391a356ebad36086521bf8d8639cad356cf98", size = 974 },
+]
+
+[[package]]
+name = "scipy"
+version = "1.16.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b9/scipy-1.16.2.tar.gz", hash = "sha256:4cdd0136312400b541952e83550b63cad713d079cbaf6e8864451c5e956880eb", size = 1185 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b9/scipy-1.16.2-py3-none-any.whl", hash = "sha256:2f325345cc8394e2e35914bf6f8f9d8a889e6f9d633d455b2d0277970aa1fbcc", size = 945 },
+]

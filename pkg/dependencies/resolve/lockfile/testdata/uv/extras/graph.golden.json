@@ -1,0 +1,61 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:pypi/click@8.3.0",
+      "purl": "pkg:pypi/click",
+      "version": "8.3.0"
+    },
+    {
+      "id": "pkg:pypi/h2@4.3.0",
+      "purl": "pkg:pypi/h2",
+      "version": "4.3.0"
+    },
+    {
+      "id": "pkg:pypi/hpack@4.1.0",
+      "purl": "pkg:pypi/hpack",
+      "version": "4.1.0"
+    },
+    {
+      "id": "pkg:pypi/httpx@0.28.1",
+      "purl": "pkg:pypi/httpx",
+      "version": "0.28.1"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "pyproject.toml",
+      "lockfile": "uv.lock",
+      "ecosystem": "pypi",
+      "status": "complete",
+      "devKnown": true,
+      "members": [
+        {
+          "id": "pkg:pypi/click@8.3.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:pypi/h2@4.3.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/hpack@4.1.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/httpx@0.28.1",
+          "direct": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:pypi/h2@4.3.0",
+          "to": "pkg:pypi/hpack@4.1.0"
+        },
+        {
+          "from": "pkg:pypi/httpx@0.28.1",
+          "to": "pkg:pypi/h2@4.3.0"
+        }
+      ]
+    }
+  ]
+}

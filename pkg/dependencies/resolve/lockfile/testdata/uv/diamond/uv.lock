@@ -1,0 +1,51 @@
+version = 1
+revision = 3
+requires-python = ">=3.11"
+
+[[package]]
+name = "app"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "left" },
+    { name = "right" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "left" },
+    { name = "right" },
+]
+
+[[package]]
+name = "bottom"
+version = "1.2.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/be/bottom-1.2.3.tar.gz", hash = "sha256:4ca74d19046e08772a998508078ddc89a582e98b2042a15dd0ef7201fbf9b3c5", size = 1222 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/be/bottom-1.2.3-py3-none-any.whl", hash = "sha256:5b4080c1ee8ecc48f92272f81a9d3188054ad8e8448c68a38239bac2e6e8e414", size = 974 },
+]
+
+[[package]]
+name = "left"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "bottom" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/36/left-1.0.0.tar.gz", hash = "sha256:5df61d767c4e61106ea3a111e14f07fe6c37ce52ea89ba4b083b1b81d53ecd0b", size = 1148 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/36/left-1.0.0-py3-none-any.whl", hash = "sha256:cf4f52ced88f317830d2b4869a231eebdfcd19ce86d6625a137df29c0173356c", size = 916 },
+]
+
+[[package]]
+name = "right"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "bottom" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/27/right-2.0.0.tar.gz", hash = "sha256:82045a1b2b0ceb889395150bf9e67944099796a75a81f4f9b5a42e00bb08b614", size = 1185 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/27/right-2.0.0-py3-none-any.whl", hash = "sha256:35f70c37cd416334d1fb24bc090beb2985b4326c25ef05140ef4fcff9a750ff7", size = 945 },
+]

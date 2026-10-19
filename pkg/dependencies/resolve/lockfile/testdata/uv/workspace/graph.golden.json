@@ -1,0 +1,166 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:pypi/attrs@25.3.0",
+      "purl": "pkg:pypi/attrs",
+      "version": "25.3.0"
+    },
+    {
+      "id": "pkg:pypi/click@8.3.0",
+      "purl": "pkg:pypi/click",
+      "version": "8.3.0"
+    },
+    {
+      "id": "pkg:pypi/lib@1.0.0",
+      "purl": "pkg:pypi/lib",
+      "version": "1.0.0",
+      "local": true
+    },
+    {
+      "id": "pkg:pypi/localdir@0.2.0",
+      "purl": "pkg:pypi/localdir",
+      "version": "0.2.0",
+      "local": true
+    },
+    {
+      "id": "pkg:pypi/pytest@8.4.2",
+      "purl": "pkg:pypi/pytest",
+      "version": "8.4.2"
+    },
+    {
+      "id": "pkg:pypi/ruff@0.13.0",
+      "purl": "pkg:pypi/ruff",
+      "version": "0.13.0"
+    },
+    {
+      "id": "pkg:pypi/six@1.17.0",
+      "purl": "pkg:pypi/six",
+      "version": "1.17.0"
+    },
+    {
+      "id": "pkg:pypi/vendored@0.3.0",
+      "purl": "pkg:pypi/vendored",
+      "version": "0.3.0",
+      "local": true
+    },
+    {
+      "id": "pkg:pypi/wheelpkg@3.0.0",
+      "purl": "pkg:pypi/wheelpkg",
+      "version": "3.0.0",
+      "local": true
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "packages/app/pyproject.toml",
+      "lockfile": "uv.lock",
+      "ecosystem": "pypi",
+      "status": "complete",
+      "devKnown": true,
+      "members": [
+        {
+          "id": "pkg:pypi/attrs@25.3.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/click@8.3.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:pypi/lib@1.0.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:pypi/localdir@0.2.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:pypi/six@1.17.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/vendored@0.3.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/wheelpkg@3.0.0",
+          "direct": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:pypi/lib@1.0.0",
+          "to": "pkg:pypi/attrs@25.3.0"
+        },
+        {
+          "from": "pkg:pypi/lib@1.0.0",
+          "to": "pkg:pypi/vendored@0.3.0"
+        },
+        {
+          "from": "pkg:pypi/localdir@0.2.0",
+          "to": "pkg:pypi/six@1.17.0"
+        },
+        {
+          "from": "pkg:pypi/vendored@0.3.0",
+          "to": "pkg:pypi/six@1.17.0"
+        },
+        {
+          "from": "pkg:pypi/wheelpkg@3.0.0",
+          "to": "pkg:pypi/attrs@25.3.0"
+        }
+      ]
+    },
+    {
+      "manifest": "packages/lib/pyproject.toml",
+      "lockfile": "uv.lock",
+      "ecosystem": "pypi",
+      "status": "complete",
+      "devKnown": true,
+      "members": [
+        {
+          "id": "pkg:pypi/attrs@25.3.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:pypi/pytest@8.4.2",
+          "direct": true,
+          "dev": true
+        },
+        {
+          "id": "pkg:pypi/six@1.17.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:pypi/vendored@0.3.0",
+          "direct": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:pypi/vendored@0.3.0",
+          "to": "pkg:pypi/six@1.17.0"
+        }
+      ]
+    },
+    {
+      "manifest": "pyproject.toml",
+      "lockfile": "uv.lock",
+      "ecosystem": "pypi",
+      "status": "complete",
+      "devKnown": true,
+      "members": [
+        {
+          "id": "pkg:pypi/pytest@8.4.2",
+          "direct": true,
+          "dev": true
+        },
+        {
+          "id": "pkg:pypi/ruff@0.13.0",
+          "direct": true,
+          "dev": true
+        }
+      ],
+      "edges": []
+    }
+  ]
+}

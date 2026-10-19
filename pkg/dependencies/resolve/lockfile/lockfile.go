@@ -32,7 +32,8 @@
 //
 // Each format names its roots after the manifest beside the lockfile, joined
 // with the workspace directory for formats that record workspaces
-// (package-lock.json, npm-shrinkwrap.json, yarn.lock, pnpm-lock.yaml).
+// (package-lock.json, npm-shrinkwrap.json, yarn.lock, pnpm-lock.yaml,
+// uv.lock).
 // Cargo.lock does not record where its workspace members live, so their
 // roots come from the member manifests in Input.Members. A workspace, path or link package that
 // something depends on is a local node, with its own dependencies as edges.
@@ -96,6 +97,7 @@ var formats = map[string]format{
 	"Cargo.lock":          {resolve.EcosystemCargo, "Cargo.toml", true, parseCargoLock, cargoMembers},
 	"Gemfile.lock":        {resolve.EcosystemGem, "Gemfile", true, parseGemfileLock, nil},
 	"poetry.lock":         {resolve.EcosystemPyPI, "pyproject.toml", true, parsePoetryLock, nil},
+	"uv.lock":             {resolve.EcosystemPyPI, "pyproject.toml", false, parseUvLock, nil},
 	"composer.lock":       {resolve.EcosystemComposer, "composer.json", true, parseComposerLock, nil},
 }
 

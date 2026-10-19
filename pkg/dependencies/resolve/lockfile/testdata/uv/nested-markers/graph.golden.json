@@ -1,0 +1,65 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:pypi/numpy@2.2.6",
+      "purl": "pkg:pypi/numpy",
+      "version": "2.2.6"
+    },
+    {
+      "id": "pkg:pypi/numpy@2.3.3",
+      "purl": "pkg:pypi/numpy",
+      "version": "2.3.3"
+    },
+    {
+      "id": "pkg:pypi/pandas@2.3.2",
+      "purl": "pkg:pypi/pandas",
+      "version": "2.3.2"
+    },
+    {
+      "id": "pkg:pypi/scipy@1.16.2",
+      "purl": "pkg:pypi/scipy",
+      "version": "1.16.2"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "pyproject.toml",
+      "lockfile": "uv.lock",
+      "ecosystem": "pypi",
+      "status": "complete",
+      "devKnown": true,
+      "members": [
+        {
+          "id": "pkg:pypi/numpy@2.2.6",
+          "direct": true
+        },
+        {
+          "id": "pkg:pypi/numpy@2.3.3",
+          "direct": true
+        },
+        {
+          "id": "pkg:pypi/pandas@2.3.2",
+          "direct": true
+        },
+        {
+          "id": "pkg:pypi/scipy@1.16.2",
+          "direct": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:pypi/pandas@2.3.2",
+          "to": "pkg:pypi/numpy@2.3.3"
+        },
+        {
+          "from": "pkg:pypi/scipy@1.16.2",
+          "to": "pkg:pypi/numpy@2.2.6"
+        },
+        {
+          "from": "pkg:pypi/scipy@1.16.2",
+          "to": "pkg:pypi/numpy@2.3.3"
+        }
+      ]
+    }
+  ]
+}

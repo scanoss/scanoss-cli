@@ -1,0 +1,40 @@
+version = 1
+revision = 3
+requires-python = ">=3.11"
+
+[[package]]
+name = "app"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "ping" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ping" },
+]
+
+[[package]]
+name = "ping"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pong" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/75/ping-1.0.0.tar.gz", hash = "sha256:8c22f12df45e7cd45e06d4fd555126227aa93d8a0ac725b795845cd9689e0746", size = 1148 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/75/ping-1.0.0-py3-none-any.whl", hash = "sha256:8cddb1f94ef492eddd064daf31976028fcf0d314fadb7c81de5bfe91b17ad060", size = 916 },
+]
+
+[[package]]
+name = "pong"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "ping" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/97/pong-1.0.0.tar.gz", hash = "sha256:28e8906e47ed4ad35fb5f6122abf747e0ccf0deec44fabdc12df538735a033d3", size = 1148 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/97/pong-1.0.0-py3-none-any.whl", hash = "sha256:a0911f84a7d3ed616e998521eff096a6b48330e97a4e63d4912bf5f67c874190", size = 916 },
+]

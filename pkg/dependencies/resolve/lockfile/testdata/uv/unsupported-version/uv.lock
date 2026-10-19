@@ -1,0 +1,25 @@
+version = 2
+revision = 3
+requires-python = ">=3.11"
+
+[[package]]
+name = "app"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "left" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "left" },
+]
+
+[[package]]
+name = "left"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/36/left-1.0.0.tar.gz", hash = "sha256:5df61d767c4e61106ea3a111e14f07fe6c37ce52ea89ba4b083b1b81d53ecd0b", size = 1148 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/36/left-1.0.0-py3-none-any.whl", hash = "sha256:cf4f52ced88f317830d2b4869a231eebdfcd19ce86d6625a137df29c0173356c", size = 916 },
+]
