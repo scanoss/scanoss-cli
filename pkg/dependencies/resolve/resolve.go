@@ -76,6 +76,7 @@ const (
 	EcosystemPyPI     Ecosystem = "pypi"
 	EcosystemComposer Ecosystem = "composer"
 	EcosystemNuGet    Ecosystem = "nuget"
+	EcosystemMaven    Ecosystem = "maven"
 )
 
 // Status says how much of a root's graph is known.
@@ -112,8 +113,13 @@ const (
 	ReasonManifestMissing       Reason = "manifest_missing"
 	ReasonManifestMalformed     Reason = "manifest_malformed"
 	ReasonUnsupportedWorkspaces Reason = "unsupported_workspaces"
-	ReasonUnresolvedDependency  Reason = "unresolved_dependency"
-	ReasonInvalidEntry          Reason = "invalid_entry"
+	// ReasonEdgesUnknown means the lockfile pins exact versions but records
+	// no edges, such as gradle.lockfile, Pipfile.lock or go.mod: the members
+	// are known and the edges are not, so a member that is not direct is
+	// unattributed.
+	ReasonEdgesUnknown         Reason = "edges_unknown"
+	ReasonUnresolvedDependency Reason = "unresolved_dependency"
+	ReasonInvalidEntry         Reason = "invalid_entry"
 )
 
 // Graph is the dependency graph of one or more lockfiles.

@@ -101,7 +101,8 @@ var formats = map[string]format{
 	"Gemfile.lock":        {resolve.EcosystemGem, "Gemfile", true, parseGemfileLock, nil},
 	"poetry.lock":         {resolve.EcosystemPyPI, "pyproject.toml", true, parsePoetryLock, nil},
 	"uv.lock":             {resolve.EcosystemPyPI, "pyproject.toml", false, parseUvLock, nil},
-	"packages.lock.json":  {resolve.EcosystemNuGet, "packages.lock.json", false, parseNuGetLock, nugetProject},
+	"packages.lock.json":  {resolve.EcosystemNuGet, "packages.lock.json", false, parseNuGetLock, sibling(isProjectFile)},
+	"gradle.lockfile":     {resolve.EcosystemMaven, "build.gradle", false, parseGradleLockfile, sibling(isGradleBuild)},
 	"composer.lock":       {resolve.EcosystemComposer, "composer.json", true, parseComposerLock, nil},
 }
 
@@ -180,6 +181,29 @@ func ParseFS(fsys fs.FS, p string, lim Limits) (resolve.Graph, error) {
 		in.Members = f.members(fsys, path.Dir(p), in.Manifest, lim.MaxBytes-int64(len(in.Manifest)), lim.MaxNodes)
 	}
 	return Parse(in, lim)
+}
+
+// sibling returns a members hook that finds the one file beside the lockfile
+// that match accepts, for a format whose manifest name varies. Only the name
+// is used, so the file is not read. It finds nothing unless exactly one file
+// matches.
+func sibling(match func(name string) bool) func(fs.FS, string, []byte, int64, int) map[string][]byte {
+	return func(fsys fs.FS, dir string, _ []byte, _ int64, _ int) map[string][]byte {
+		entries, err := fs.ReadDir(fsys, dir)
+		if err != nil {
+			return nil
+		}
+		var found []string
+		for _, e := range entries {
+			if !e.IsDir() && match(e.Name()) {
+				found = append(found, e.Name())
+			}
+		}
+		if len(found) != 1 {
+			return nil
+		}
+		return map[string][]byte{found[0]: nil}
+	}
 }
 
 func readCapped(fsys fs.FS, name string, maxBytes int64) ([]byte, error) {

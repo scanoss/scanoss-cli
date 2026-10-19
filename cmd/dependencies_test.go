@@ -53,6 +53,7 @@ func TestDependenciesGraphFindsEveryLockfile(t *testing.T) {
 	copyFixture(t, filepath.Join(tree, "shrink"), "npm-shrinkwrap/dev-scope")
 	copyFixture(t, filepath.Join(tree, "uv"), "uv/diamond")
 	copyFixture(t, filepath.Join(tree, "dotnet"), "nuget/diamond")
+	copyFixture(t, filepath.Join(tree, "java"), "gradle/kotlin-dsl")
 	copyFixture(t, filepath.Join(tree, "node_modules", "dep"), "package-lock/diamond")
 	unreadable := filepath.Join(tree, "broken", "Gemfile.lock")
 	if err := os.MkdirAll(filepath.Dir(unreadable), 0o755); err != nil {
@@ -86,6 +87,7 @@ func TestDependenciesGraphFindsEveryLockfile(t *testing.T) {
 	want := []string{
 		"app/package.json complete",
 		"dotnet/App.csproj complete",
+		"java/build.gradle.kts partial",
 		"package.json complete",
 		"php/composer.json complete",
 		"py/pyproject.toml complete",

@@ -182,7 +182,7 @@ func checkStatus(t testing.TB, r resolve.Root) {
 	partial := []resolve.Reason{
 		resolve.ReasonNodeLimit, resolve.ReasonEdgeLimit, resolve.ReasonManifestMissing,
 		resolve.ReasonManifestMalformed, resolve.ReasonUnsupportedWorkspaces,
-		resolve.ReasonUnresolvedDependency, resolve.ReasonInvalidEntry,
+		resolve.ReasonEdgesUnknown, resolve.ReasonUnresolvedDependency, resolve.ReasonInvalidEntry,
 	}
 	ok := false
 	switch r.Status {

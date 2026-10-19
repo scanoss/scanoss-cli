@@ -1,0 +1,63 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:maven/com.google.code.findbugs/jsr305@3.0.2",
+      "purl": "pkg:maven/com.google.code.findbugs/jsr305",
+      "version": "3.0.2"
+    },
+    {
+      "id": "pkg:maven/com.google.guava/failureaccess@1.0.1",
+      "purl": "pkg:maven/com.google.guava/failureaccess",
+      "version": "1.0.1"
+    },
+    {
+      "id": "pkg:maven/com.google.guava/guava@31.1-jre",
+      "purl": "pkg:maven/com.google.guava/guava",
+      "version": "31.1-jre"
+    },
+    {
+      "id": "pkg:maven/junit/junit@4.13.2",
+      "purl": "pkg:maven/junit/junit",
+      "version": "4.13.2"
+    },
+    {
+      "id": "pkg:maven/org.hamcrest/hamcrest-core@1.3",
+      "purl": "pkg:maven/org.hamcrest/hamcrest-core",
+      "version": "1.3"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "build.gradle",
+      "lockfile": "gradle.lockfile",
+      "ecosystem": "maven",
+      "status": "partial",
+      "reason": "edges_unknown",
+      "detail": "gradle.lockfile records no edges",
+      "devKnown": false,
+      "members": [
+        {
+          "id": "pkg:maven/com.google.code.findbugs/jsr305@3.0.2",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/com.google.guava/failureaccess@1.0.1",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/com.google.guava/guava@31.1-jre",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/junit/junit@4.13.2",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/org.hamcrest/hamcrest-core@1.3",
+          "direct": false
+        }
+      ],
+      "edges": []
+    }
+  ]
+}

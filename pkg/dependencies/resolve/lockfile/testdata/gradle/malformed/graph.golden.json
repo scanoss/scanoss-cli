@@ -1,0 +1,16 @@
+{
+  "nodes": [],
+  "roots": [
+    {
+      "manifest": "build.gradle",
+      "lockfile": "gradle.lockfile",
+      "ecosystem": "maven",
+      "status": "unknown",
+      "reason": "malformed",
+      "detail": "line \"org.slf4j:slf4j-api:2.0.13\" has no configurations",
+      "devKnown": false,
+      "members": [],
+      "edges": []
+    }
+  ]
+}
