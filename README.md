@@ -109,7 +109,7 @@ Stdout stays reserved for results, so logs never corrupt `--output` or piped JSO
 | `results <scan-id>` | Resume or poll a scan by its id. |
 | `sbom <input>` | Produce an SBOM from a raw inventory, or convert between formats, offline (cyclonedx/spdx). |
 | `enrich <input>` | Add purl-keyed layers (vulns/licenses/crypto/geo) to a `raw` or SBOM file. |
-| `dependencies [path]` | Extract local dependencies, or query direct/transitive deps for a PURL. |
+| `dependencies [path]` | Extract local dependencies (`--format raw`/`cyclonedx`/`spdx` renders the lockfile dependency graph as an SBOM, offline), or query direct/transitive deps for a PURL. |
 | `vulnerabilities` | Known vulnerabilities / CPEs for components. |
 | `cryptography` | Algorithms, library hints, and version ranges. |
 | `licenses` | Declared licenses, attribution files, per-file evidence. |
