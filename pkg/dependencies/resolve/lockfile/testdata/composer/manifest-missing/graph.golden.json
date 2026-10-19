@@ -1,0 +1,62 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:composer/acme/bottom@1.2.3",
+      "purl": "pkg:composer/acme/bottom",
+      "version": "1.2.3"
+    },
+    {
+      "id": "pkg:composer/acme/left@v1.0.0",
+      "purl": "pkg:composer/acme/left",
+      "version": "v1.0.0"
+    },
+    {
+      "id": "pkg:composer/acme/right@2.0.0",
+      "purl": "pkg:composer/acme/right",
+      "version": "2.0.0"
+    },
+    {
+      "id": "pkg:composer/phpunit/phpunit@10.5.0",
+      "purl": "pkg:composer/phpunit/phpunit",
+      "version": "10.5.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "composer.json",
+      "lockfile": "composer.lock",
+      "ecosystem": "composer",
+      "status": "partial",
+      "reason": "manifest_missing",
+      "detail": "composer.json not found",
+      "members": [
+        {
+          "id": "pkg:composer/acme/bottom@1.2.3",
+          "direct": false
+        },
+        {
+          "id": "pkg:composer/acme/left@v1.0.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:composer/acme/right@2.0.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:composer/phpunit/phpunit@10.5.0",
+          "direct": false
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:composer/acme/left@v1.0.0",
+          "to": "pkg:composer/acme/bottom@1.2.3"
+        },
+        {
+          "from": "pkg:composer/acme/right@2.0.0",
+          "to": "pkg:composer/acme/bottom@1.2.3"
+        }
+      ]
+    }
+  ]
+}

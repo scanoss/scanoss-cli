@@ -1,0 +1,26 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:composer/acme/plugin@1.0.0",
+      "purl": "pkg:composer/acme/plugin",
+      "version": "1.0.0"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "composer.json",
+      "lockfile": "composer.lock",
+      "ecosystem": "composer",
+      "status": "partial",
+      "reason": "unresolved_dependency",
+      "detail": "acme/plugin requires acme/ghost",
+      "members": [
+        {
+          "id": "pkg:composer/acme/plugin@1.0.0",
+          "direct": true
+        }
+      ],
+      "edges": []
+    }
+  ]
+}

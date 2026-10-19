@@ -84,6 +84,7 @@ var formats = map[string]format{
 	"Cargo.lock":        {resolve.EcosystemCargo, "Cargo.toml", false, parseCargoLock},
 	"Gemfile.lock":      {resolve.EcosystemGem, "Gemfile", false, parseGemfileLock},
 	"poetry.lock":       {resolve.EcosystemPyPI, "pyproject.toml", true, parsePoetryLock},
+	"composer.lock":     {resolve.EcosystemComposer, "composer.json", true, parseComposerLock},
 }
 
 // Supported reports whether path's base name is a lockfile this package

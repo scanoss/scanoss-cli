@@ -1,0 +1,81 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:composer/laravel/framework@v10.48.4",
+      "purl": "pkg:composer/laravel/framework",
+      "version": "v10.48.4"
+    },
+    {
+      "id": "pkg:composer/monolog/monolog@3.5.0",
+      "purl": "pkg:composer/monolog/monolog",
+      "version": "3.5.0"
+    },
+    {
+      "id": "pkg:composer/psr/log@1.1.4",
+      "purl": "pkg:composer/psr/log",
+      "version": "1.1.4"
+    },
+    {
+      "id": "pkg:composer/psr/log@3.0.0",
+      "purl": "pkg:composer/psr/log",
+      "version": "3.0.0"
+    },
+    {
+      "id": "pkg:composer/spatie/package@dev-main",
+      "purl": "pkg:composer/spatie/package",
+      "version": "dev-main"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "composer.json",
+      "lockfile": "composer.lock",
+      "ecosystem": "composer",
+      "status": "complete",
+      "members": [
+        {
+          "id": "pkg:composer/laravel/framework@v10.48.4",
+          "direct": true
+        },
+        {
+          "id": "pkg:composer/monolog/monolog@3.5.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:composer/psr/log@1.1.4",
+          "direct": false
+        },
+        {
+          "id": "pkg:composer/psr/log@3.0.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:composer/spatie/package@dev-main",
+          "direct": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:composer/laravel/framework@v10.48.4",
+          "to": "pkg:composer/monolog/monolog@3.5.0"
+        },
+        {
+          "from": "pkg:composer/laravel/framework@v10.48.4",
+          "to": "pkg:composer/psr/log@3.0.0"
+        },
+        {
+          "from": "pkg:composer/monolog/monolog@3.5.0",
+          "to": "pkg:composer/psr/log@3.0.0"
+        },
+        {
+          "from": "pkg:composer/spatie/package@dev-main",
+          "to": "pkg:composer/laravel/framework@v10.48.4"
+        },
+        {
+          "from": "pkg:composer/spatie/package@dev-main",
+          "to": "pkg:composer/monolog/monolog@3.5.0"
+        }
+      ]
+    }
+  ]
+}
