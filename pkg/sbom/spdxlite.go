@@ -43,9 +43,23 @@ const spdxTimeFormat = "2006-01-02T15:04:05Z"
 // (a CRC64), which has no standard SPDX checksum algorithm.
 const scanossURLHashRef = "scanoss-url-hash"
 
+// SPDX has no property bag, so what CycloneDX carries as scanoss properties goes in the package
+// comment, under the same namespace. A reader matches on the prefix.
+const (
+	scanossLocalComment   = "scanoss:local"
+	scanossProjectComment = "scanoss:project"
+	scanossRootComment    = "scanoss:root"
+)
+
 // buildSPDXLite renders the inventory as an SPDX 2.3 JSON document (restricted to the
 // SPDX Lite field subset) via the official tools-golang library. Vulnerabilities and
 // file evidence do not apply to SPDX.
+//
+// When the inventory carries a dependency graph, the document also describes a project package
+// that DEPENDS_ON one package per root, each root DEPENDS_ON the members its manifest declares,
+// and a package DEPENDS_ON its edges. The components keep their DESCRIBES relationship either
+// way, so a package the graph does not reach (a scan match, a flat-parsed manifest entry) is
+// still attached to the document.
 func buildSPDXLite(inv Inventory, o options) (string, error) {
 	doc := &v2_3.Document{
 		SPDXVersion:       v2_3.Version,
@@ -68,12 +82,11 @@ func buildSPDXLite(inv Inventory, o options) (string, error) {
 		doc.Packages = append(doc.Packages, pkg)
 		// Each package is described by the document. SPDX requires at least one
 		// DESCRIBES relationship when a document has multiple packages.
-		doc.Relationships = append(doc.Relationships, &v2_3.Relationship{
-			RefA:         common.MakeDocElementID("", "DOCUMENT"),
-			RefB:         common.MakeDocElementID("", string(pkg.PackageSPDXIdentifier)),
-			Relationship: common.TypeRelationshipDescribe,
-		})
+		doc.Relationships = append(doc.Relationships, spdxRelationship("DOCUMENT", pkg.PackageSPDXIdentifier, common.TypeRelationshipDescribe))
 		doc.OtherLicenses = append(doc.OtherLicenses, extractedLicenses(comp.Licenses, seenLicenseRefs)...)
+	}
+	if len(inv.Dependencies) > 0 {
+		spdxGraph(doc, inv, o.projectName)
 	}
 
 	var buf bytes.Buffer
@@ -104,7 +117,7 @@ func spdxPackage(comp Component) *v2_3.Package {
 
 	pkg := &v2_3.Package{
 		PackageName:               comp.DisplayName(),
-		PackageSPDXIdentifier:     common.ElementID(md5Hash(comp.Purl + "@" + comp.Version)),
+		PackageSPDXIdentifier:     spdxPackageID(comp),
 		PackageVersion:            versionInfo,
 		PackageSupplier:           spdxSupplier(comp),
 		PackageDownloadLocation:   downloadLocation,
@@ -126,8 +139,83 @@ func spdxPackage(comp Component) *v2_3.Package {
 			Locator:  comp.URLHash,
 		})
 	}
+	if comp.Local {
+		pkg.PackageComment = scanossLocalComment
+	}
 
 	return pkg
+}
+
+// spdxGraph adds the project package, one package per root and the DEPENDS_ON relationships.
+// A relationship is written once however many roots share the edge.
+func spdxGraph(doc *v2_3.Document, inv Inventory, projectName string) {
+	project := spdxPlaceholderPackage(projectName, md5Hash(projectName), scanossProjectComment)
+	doc.Packages = append(doc.Packages, project)
+	doc.Relationships = append(doc.Relationships, spdxRelationship("DOCUMENT", project.PackageSPDXIdentifier, common.TypeRelationshipDescribe))
+
+	ids := make(map[string]common.ElementID, len(inv.Components))
+	for _, c := range inv.Components {
+		ids[c.Ref()] = spdxPackageID(c)
+	}
+	seen := map[string]bool{}
+	depends := func(from, to common.ElementID) {
+		key := string(from) + ">" + string(to)
+		if !seen[key] {
+			seen[key] = true
+			doc.Relationships = append(doc.Relationships, spdxRelationship(from, to, common.TypeRelationshipDependsOn))
+		}
+	}
+	dependsOn := inv.dependsOn()
+	for _, r := range inv.Dependencies {
+		comment := fmt.Sprintf("%s lockfile=%s status=%s", scanossRootComment, r.Lockfile, r.Status)
+		if r.Reason != "" {
+			comment += " reason=" + r.Reason
+		}
+		root := spdxPlaceholderPackage(r.Manifest, md5Hash(r.Ref()), comment)
+		doc.Packages = append(doc.Packages, root)
+		depends(project.PackageSPDXIdentifier, root.PackageSPDXIdentifier)
+		for _, ref := range inv.DirectMembers(r) {
+			depends(root.PackageSPDXIdentifier, ids[ref])
+		}
+	}
+	for _, c := range inv.Components {
+		for _, to := range dependsOn[c.Ref()] {
+			depends(ids[c.Ref()], ids[to])
+		}
+	}
+}
+
+// spdxPlaceholderPackage is a package that stands for something other than a third-party
+// component, the project or a manifest, so every field SPDX requires is NOASSERTION and the
+// comment says what it is.
+func spdxPlaceholderPackage(name, id, comment string) *v2_3.Package {
+	return &v2_3.Package{
+		PackageName:             name,
+		PackageSPDXIdentifier:   common.ElementID(id),
+		PackageVersion:          noAssertion,
+		PackageSupplier:         &common.Supplier{Supplier: noAssertion},
+		PackageDownloadLocation: noAssertion,
+		FilesAnalyzed:           false,
+		PackageHomePage:         noAssertion,
+		PackageLicenseDeclared:  noAssertion,
+		PackageLicenseConcluded: noAssertion,
+		PackageCopyrightText:    noAssertion,
+		PackageComment:          comment,
+	}
+}
+
+func spdxRelationship(a, b common.ElementID, kind string) *v2_3.Relationship {
+	return &v2_3.Relationship{
+		RefA:         common.MakeDocElementID("", string(a)),
+		RefB:         common.MakeDocElementID("", string(b)),
+		Relationship: kind,
+	}
+}
+
+// spdxPackageID is the one rule for a component's SPDX identifier, shared by the package and
+// the relationships that point at it.
+func spdxPackageID(comp Component) common.ElementID {
+	return common.ElementID(md5Hash(comp.Purl + "@" + comp.Version))
 }
 
 // purlExternalRefs emits one PACKAGE-MANAGER purl reference per component PURL (SPDX

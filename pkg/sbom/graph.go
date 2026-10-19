@@ -23,6 +23,8 @@
 
 package sbom
 
+import "slices"
+
 // GraphStatus says how much of a root's dependency graph the lockfile gave.
 type GraphStatus string
 
@@ -74,7 +76,7 @@ func (r DependencyRoot) Ref() string {
 // DirectMembers returns the refs of the components root declares, in inventory order: the
 // ones carrying "declared" evidence for its manifest.
 func (inv Inventory) DirectMembers(root DependencyRoot) []string {
-	var refs []string
+	refs := []string{}
 	for _, c := range inv.Components {
 		for _, e := range c.Evidence {
 			if e.MatchType == "declared" && e.Path == root.Manifest {
@@ -84,4 +86,29 @@ func (inv Inventory) DirectMembers(root DependencyRoot) []string {
 		}
 	}
 	return refs
+}
+
+// dependsOn returns, for every component ref, the sorted refs it depends on across every root.
+// An edge end that is not a component is dropped: the components are the truth of what the
+// document contains, and an edge into something absent (a hand-edited raw document) would make
+// the rendered SBOM invalid. Every component gets an entry, empty when nothing is known to
+// depend on it, so a writer can say "no dependencies" rather than stay silent.
+func (inv Inventory) dependsOn() map[string][]string {
+	out := make(map[string][]string, len(inv.Components))
+	for _, c := range inv.Components {
+		out[c.Ref()] = []string{}
+	}
+	for _, r := range inv.Dependencies {
+		for _, e := range r.Edges {
+			targets, ok := out[e.From]
+			if _, toOK := out[e.To]; !ok || !toOK || slices.Contains(targets, e.To) {
+				continue
+			}
+			out[e.From] = append(targets, e.To)
+		}
+	}
+	for _, targets := range out {
+		slices.Sort(targets)
+	}
+	return out
 }

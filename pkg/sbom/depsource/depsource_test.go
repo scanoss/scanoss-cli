@@ -29,7 +29,12 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
+
+	cdx "github.com/CycloneDX/cyclonedx-go"
+	spdxjson "github.com/spdx/tools-golang/json"
+	"github.com/spdx/tools-golang/spdxlib"
 
 	"github.com/scanoss/scanoss.go/pkg/dependencies/parsers"
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
@@ -368,5 +373,113 @@ func TestMerge(t *testing.T) {
 	}
 	if !slices.Equal(manifests, []string{"a/package.json", "z/package.json"}) {
 		t.Errorf("roots: %v", manifests)
+	}
+}
+
+// The graph rendered as CycloneDX, exactly: the diamond's shared leaf is listed once per
+// dependant, the cycle keeps both edges, the dev subtree and every edge into it are gone, the
+// package both dev- and runtime-reachable keeps only its runtime edge, the local node keeps its
+// child, and the three roots state their completeness.
+func TestGraphRendersCycloneDX(t *testing.T) {
+	out, err := sbom.Generate(Graph(sampleGraph()), sbom.FormatCycloneDX, sbom.WithProjectName("proj"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var bom cdx.BOM
+	if err := cdx.NewBOMDecoder(strings.NewReader(out), cdx.BOMFileFormatJSON).Decode(&bom); err != nil {
+		t.Fatal(err)
+	}
+
+	got := map[string][]string{}
+	for _, d := range *bom.Dependencies {
+		targets := []string{}
+		if d.Dependencies != nil {
+			targets = append(targets, *d.Dependencies...)
+		}
+		got[d.Ref] = targets
+	}
+	want := map[string][]string{
+		"proj": {"broken/package.json@broken/package-lock.json", "package.json@package-lock.json", "web/package.json@web/yarn.lock"},
+		"broken/package.json@broken/package-lock.json": {},
+		"package.json@package-lock.json":               {"pkg:npm/a@1.0.0", "pkg:npm/cyc1@1.0.0", "pkg:npm/left@1.0.0", "pkg:npm/tool"},
+		"web/package.json@web/yarn.lock":               {},
+		"pkg:npm/a@1.0.0":                              {"pkg:npm/b@1.0.0", "pkg:npm/c@1.0.0"},
+		"pkg:npm/b@1.0.0":                              {"pkg:npm/d@1.0.0"},
+		"pkg:npm/c@1.0.0":                              {"pkg:npm/d@1.0.0"},
+		"pkg:npm/d@1.0.0":                              {},
+		"pkg:npm/cyc1@1.0.0":                           {"pkg:npm/cyc2@1.0.0"},
+		"pkg:npm/cyc2@1.0.0":                           {"pkg:npm/cyc1@1.0.0"},
+		"pkg:npm/left@1.0.0":                           {"pkg:npm/shared@1.0.0"},
+		"pkg:npm/shared@1.0.0":                         {},
+		"pkg:npm/tool":                                 {"pkg:npm/toolchild@1.0.0"},
+		"pkg:npm/toolchild@1.0.0":                      {},
+		"pkg:npm/p1@1.0.0":                             {"pkg:npm/p2@1.0.0"},
+		"pkg:npm/p2@1.0.0":                             {},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("dependencies:\n got %v\nwant %v", got, want)
+	}
+	if strings.Contains(out, "jest") {
+		t.Error("dev packages must not appear anywhere in the document")
+	}
+
+	if bom.Compositions == nil {
+		t.Fatal("want one composition per root")
+	}
+	var compositions []string
+	for _, c := range *bom.Compositions {
+		compositions = append(compositions, string(c.Aggregate)+" "+string((*c.Dependencies)[0]))
+	}
+	wantCompositions := []string{
+		"unknown broken/package.json@broken/package-lock.json",
+		"complete package.json@package-lock.json",
+		"incomplete web/package.json@web/yarn.lock",
+	}
+	if !slices.Equal(compositions, wantCompositions) {
+		t.Errorf("compositions = %q, want %q", compositions, wantCompositions)
+	}
+}
+
+func TestGraphRendersSPDX(t *testing.T) {
+	out, err := sbom.Generate(Graph(sampleGraph()), sbom.FormatSPDX, sbom.WithProjectName("proj"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc, err := spdxjson.Read(strings.NewReader(out))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := spdxlib.ValidateDocument(doc); err != nil {
+		t.Errorf("spdxlib.ValidateDocument: %v", err)
+	}
+	names := map[string]string{"DOCUMENT": "DOCUMENT"}
+	for _, p := range doc.Packages {
+		names[string(p.PackageSPDXIdentifier)] = p.PackageName
+	}
+	var depends []string
+	for _, r := range doc.Relationships {
+		if r.Relationship == "DEPENDS_ON" {
+			depends = append(depends, names[string(r.RefA.ElementRefID)]+" -> "+names[string(r.RefB.ElementRefID)])
+		}
+	}
+	want := []string{
+		"proj -> broken/package.json",
+		"proj -> package.json",
+		"package.json -> a", "package.json -> cyc1", "package.json -> left", "package.json -> tool",
+		"proj -> web/package.json",
+		"a -> b", "a -> c",
+		"b -> d",
+		"c -> d",
+		"cyc1 -> cyc2",
+		"cyc2 -> cyc1",
+		"left -> shared",
+		"tool -> toolchild",
+		"p1 -> p2",
+	}
+	if !slices.Equal(depends, want) {
+		t.Errorf("DEPENDS_ON:\n got %q\nwant %q", depends, want)
+	}
+	if strings.Contains(out, "jest") {
+		t.Error("dev packages must not appear anywhere in the document")
 	}
 }

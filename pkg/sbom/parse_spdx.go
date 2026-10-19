@@ -36,6 +36,10 @@ import (
 // of buildSPDXLite: packages, licenses and checksums are mapped back. SPDX 2.3 has no
 // vulnerability model, so the Inventory carries no vulnerabilities. Fields outside the
 // Inventory model are not preserved (best-effort).
+//
+// The dependency graph is not read back: the project and root packages the writer adds for
+// it are skipped, by their comment, and the DEPENDS_ON relationships are ignored. Like
+// match_index, the graph survives a round trip through the raw format only.
 func ParseSPDX(data []byte) (Inventory, error) {
 	doc, err := spdxjson.Read(bytes.NewReader(data))
 	if err != nil {
@@ -44,7 +48,7 @@ func ParseSPDX(data []byte) (Inventory, error) {
 
 	var inv Inventory
 	for _, pkg := range doc.Packages {
-		if pkg == nil {
+		if pkg == nil || isGraphPlaceholder(pkg.PackageComment) {
 			continue
 		}
 		inv.Components = append(inv.Components, spdxToComponent(pkg))
@@ -52,9 +56,14 @@ func ParseSPDX(data []byte) (Inventory, error) {
 	return inv, nil
 }
 
+// isGraphPlaceholder reports whether a package comment marks the project or a root package.
+func isGraphPlaceholder(comment string) bool {
+	return comment == scanossProjectComment || strings.HasPrefix(comment, scanossRootComment+" ")
+}
+
 // spdxToComponent maps one SPDX package back to a neutral Component.
 func spdxToComponent(pkg *v2_3.Package) Component {
-	comp := Component{Version: normalizeAssertion(pkg.PackageVersion)}
+	comp := Component{Version: normalizeAssertion(pkg.PackageVersion), Local: pkg.PackageComment == scanossLocalComment}
 
 	// PURLs live in the PACKAGE-MANAGER externalRefs (first is canonical, rest are aliases);
 	// the scanoss url_hash is carried in an OTHER externalRef; PackageName is the canonical

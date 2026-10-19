@@ -43,6 +43,18 @@ const scanossURLHashProp = "scanoss:url_hash"
 // to put it at all — the raw output is where it is stated plainly.
 const scanossIdentifiedProp = "scanoss:identified"
 
+// scanossLocalProp marks a component that is the project's own package rather than a third-party
+// one. CycloneDX has no field for the distinction; a reader skipping it lists third-party packages.
+const scanossLocalProp = "scanoss:local"
+
+// scanossLockfileProp names, on a dependency root component, the lockfile its graph came from.
+// It is also what tells a root apart from a package when the document is read back.
+const scanossLockfileProp = "scanoss:lockfile"
+
+// scanossReasonProp carries why a root's graph is not complete; compositions say that it is not,
+// but have no field for the reason.
+const scanossReasonProp = "scanoss:reason"
+
 // buildCycloneDX renders the inventory as a CycloneDX 1.7 JSON document using the
 // official cyclonedx-go encoder, whose version-aware serialization keeps the output
 // schema-valid.
@@ -62,17 +74,29 @@ func buildCycloneDX(inv Inventory, o options) (string, error) {
 			}},
 		},
 		Component: &cdx.Component{
+			// The bom-ref is what the dependency graph hangs the roots from, and it
+			// is always set so a consumer can address the project either way.
+			BOMRef:  o.projectName,
 			Type:    cdx.ComponentTypeApplication,
 			Name:    o.projectName,
 			Version: noAssertion,
 		},
 	}
 
-	comps := make([]cdx.Component, 0, len(inv.Components))
+	comps := make([]cdx.Component, 0, len(inv.Components)+len(inv.Dependencies))
 	for _, c := range inv.Components {
 		comps = append(comps, cycloneDXComponent(c))
 	}
+	for _, r := range inv.Dependencies {
+		comps = append(comps, cycloneDXRoot(r))
+	}
 	bom.Components = &comps
+
+	if len(inv.Dependencies) > 0 {
+		deps, compositions := cycloneDXGraph(inv, o.projectName)
+		bom.Dependencies = &deps
+		bom.Compositions = &compositions
+	}
 
 	if vulns := cycloneDXVulnerabilities(inv); len(vulns) > 0 {
 		bom.Vulnerabilities = &vulns
@@ -143,11 +167,81 @@ func cycloneDXComponent(comp Component) cdx.Component {
 	if comp.Identified {
 		props = append(props, cdx.Property{Name: scanossIdentifiedProp, Value: "true"})
 	}
+	if comp.Local {
+		props = append(props, cdx.Property{Name: scanossLocalProp, Value: "true"})
+	}
 	if len(props) > 0 {
 		c.Properties = &props
 	}
 
 	return c
+}
+
+// cycloneDXRoot renders a dependency root as an application component named by its manifest,
+// the shape SBOM tools give a lockfile's project so the packages hang off something a reader
+// can find. The lockfile and the reason travel as properties: compositions carry the status but
+// have nowhere for either.
+func cycloneDXRoot(r DependencyRoot) cdx.Component {
+	props := []cdx.Property{{Name: scanossLockfileProp, Value: r.Lockfile}}
+	if r.Reason != "" {
+		props = append(props, cdx.Property{Name: scanossReasonProp, Value: r.Reason})
+	}
+	return cdx.Component{
+		BOMRef:     r.Ref(),
+		Type:       cdx.ComponentTypeApplication,
+		Name:       r.Manifest,
+		Properties: &props,
+	}
+}
+
+// cycloneDXGraph renders the dependency graph: the project depends on every root, a root on the
+// members its manifest declares, and a package on its edges. Every component gets an entry even
+// when nothing depends on it, because in CycloneDX a missing entry means "unknown" while an
+// entry with only a ref is the spec's empty element for "none". (The encoder writes an empty
+// dependsOn in that form: its copy of the BOM goes through gob, which drops empty lists.)
+//
+// One composition per root states how complete that root's graph is, listing the root under
+// compositions.dependencies: the spec's field for "the dependency relationships of these
+// elements are complete/incomplete/unknown". Only the root is listed, since the assertion does
+// not cascade and a package shared by a complete root and a partial one would otherwise get two
+// contradicting assertions.
+func cycloneDXGraph(inv Inventory, projectRef string) ([]cdx.Dependency, []cdx.Composition) {
+	dependsOn := inv.dependsOn()
+	deps := make([]cdx.Dependency, 0, len(inv.Components)+len(inv.Dependencies)+1)
+	compositions := make([]cdx.Composition, 0, len(inv.Dependencies))
+
+	roots := make([]string, 0, len(inv.Dependencies))
+	for _, r := range inv.Dependencies {
+		roots = append(roots, r.Ref())
+	}
+	deps = append(deps, cdx.Dependency{Ref: projectRef, Dependencies: &roots})
+
+	for _, r := range inv.Dependencies {
+		direct := inv.DirectMembers(r)
+		deps = append(deps, cdx.Dependency{Ref: r.Ref(), Dependencies: &direct})
+		compositions = append(compositions, cdx.Composition{
+			Aggregate:    cycloneDXAggregate(r.Status),
+			Dependencies: &[]cdx.BOMReference{cdx.BOMReference(r.Ref())},
+		})
+	}
+	for _, c := range inv.Components {
+		targets := dependsOn[c.Ref()]
+		deps = append(deps, cdx.Dependency{Ref: c.Ref(), Dependencies: &targets})
+	}
+	return deps, compositions
+}
+
+// cycloneDXAggregate maps a root's status to the composition aggregate: a partial graph is
+// usable but incomplete, an unreadable lockfile leaves the graph unknown.
+func cycloneDXAggregate(s GraphStatus) cdx.CompositionAggregate {
+	switch s {
+	case GraphComplete:
+		return cdx.CompositionAggregateComplete
+	case GraphPartial:
+		return cdx.CompositionAggregateIncomplete
+	default:
+		return cdx.CompositionAggregateUnknown
+	}
 }
 
 // purlIdentities returns one purl evidence-identity per component PURL (with version
@@ -203,10 +297,15 @@ func cdxAcknowledgement(ack LicenseAcknowledgement) cdx.LicenseAcknowledgement {
 
 // cycloneDXOccurrences turns matched files into evidence occurrences. Snippet matches
 // carry the start line and the full matched ranges in additionalContext (CycloneDX
-// occurrences have no native range field).
+// occurrences have no native range field). Transitive evidence is left out: the component
+// does not occur in that manifest, its lockfile pulls it in, and the dependencies section is
+// where that relationship is stated.
 func cycloneDXOccurrences(files []FileEvidence) []cdx.EvidenceOccurrence {
 	occurrences := make([]cdx.EvidenceOccurrence, 0, len(files))
 	for _, f := range files {
+		if f.MatchType == "transitive" {
+			continue
+		}
 		o := cdx.EvidenceOccurrence{Location: f.Path}
 		if f.MatchType == "snippet" {
 			if len(f.InputLineRanges) > 0 {

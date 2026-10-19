@@ -36,6 +36,11 @@ import (
 // accepts) into a neutral Inventory. It is the inverse of buildCycloneDX: components,
 // licenses and vulnerabilities are mapped back. Fields outside the Inventory model — file
 // evidence occurrences, hashes, component type — are not preserved (best-effort).
+//
+// The dependency graph is not read back: the dependencies and compositions sections are
+// skipped, and so are the application components without a purl that stand for a lockfile
+// root (ours, and the ones other SBOM tools write), which are not packages. Like match_index,
+// the graph survives a round trip through the raw format only.
 func ParseCycloneDX(data []byte) (Inventory, error) {
 	var bom cdx.BOM
 	dec := cdx.NewBOMDecoder(bytes.NewReader(data), cdx.BOMFileFormatJSON)
@@ -47,6 +52,9 @@ func ParseCycloneDX(data []byte) (Inventory, error) {
 	refToPurl := make(map[string]string)
 	if bom.Components != nil {
 		for _, c := range *bom.Components {
+			if c.Type == cdx.ComponentTypeApplication && c.PackageURL == "" {
+				continue
+			}
 			comp := cycloneDXToComponent(c)
 			if c.BOMRef != "" {
 				refToPurl[c.BOMRef] = comp.Purl
@@ -112,9 +120,11 @@ func cycloneDXToComponent(c cdx.Component) Component {
 
 	if c.Properties != nil {
 		for _, p := range *c.Properties {
-			if p.Name == scanossURLHashProp {
+			switch p.Name {
+			case scanossURLHashProp:
 				comp.URLHash = p.Value
-				break
+			case scanossLocalProp:
+				comp.Local = p.Value == "true"
 			}
 		}
 	}
