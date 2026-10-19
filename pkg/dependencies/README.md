@@ -274,6 +274,13 @@ for _, root := range g.Roots {
 - **Roots** are manifests: the project and, where the lockfile records them,
   each workspace. A root lists its members and its node-to-node edges.
   `Member.Direct` marks the packages the manifest declares.
+- **Dev members** (`Member.Dev`) are the ones the root reaches only through
+  its dev dependencies: test, lint and build tooling its users never install.
+  A member that any runtime dependency reaches is not dev, so a package can be
+  dev in one root and runtime in another. `Root.DevKnown` says whether the
+  manifests say which direct dependencies are dev; when it is false no member
+  is dev, and every member must be treated as runtime. Per-entry flags such as
+  `dev: true` in `package-lock.json` are not used.
 - **Status** is `complete`, `partial` (usable but missing something) or
   `unknown` (no members), with a `Reason` such as `manifest_missing` or
   `malformed`.
@@ -281,16 +288,16 @@ for _, root := range g.Roots {
 Lockfiles are treated as untrusted: `Limits` caps the bytes read and the nodes
 and edges kept, and a bad lockfile is reported on its root, never as a panic.
 
-| Lockfile | Reads | Roots |
-|----------|-------|-------|
-| `package-lock.json` (v2, v3) | lockfile only | project and workspace folders |
-| `yarn.lock` (v1) | lockfile and `package.json` | project |
-| `yarn.lock` (berry) | lockfile only | every workspace |
-| `pnpm-lock.yaml` (5.x, 6.x, 9.x) | lockfile only | every importer |
-| `Cargo.lock` | lockfile, `Cargo.toml` and workspace member manifests | `Cargo.toml` and each workspace member; a path crate that something depends on is a local node |
-| `Gemfile.lock` | lockfile only | `Gemfile`; `PATH` gems are local nodes |
-| `poetry.lock` | lockfile and `pyproject.toml` | project; path dependencies are local nodes |
-| `composer.lock` | lockfile and `composer.json` | project; path repository packages are local nodes |
+| Lockfile | Reads | Roots | Dev dependencies |
+|----------|-------|-------|------------------|
+| `package-lock.json` (v2, v3) | lockfile only | project and workspace folders | each root's `devDependencies` |
+| `yarn.lock` (v1) | lockfile and `package.json` | project | `devDependencies` in `package.json`; unknown without it |
+| `yarn.lock` (berry) | lockfile, and `package.json` when present | every workspace | the root workspace's `devDependencies` in `package.json`; unknown for other workspaces |
+| `pnpm-lock.yaml` (5.x, 6.x, 9.x) | lockfile only | every importer | each importer's `devDependencies` |
+| `Cargo.lock` | lockfile, `Cargo.toml` and workspace member manifests | `Cargo.toml` and each workspace member; a path crate that something depends on is a local node | unknown |
+| `Gemfile.lock` | lockfile only | `Gemfile`; `PATH` gems are local nodes | unknown |
+| `poetry.lock` | lockfile and `pyproject.toml` | project; path dependencies are local nodes | unknown |
+| `composer.lock` | lockfile and `composer.json` | project; path repository packages are local nodes | unknown |
 
 ## Error Handling
 

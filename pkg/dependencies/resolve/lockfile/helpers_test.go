@@ -126,10 +126,52 @@ func checkGraph(t testing.TB, in Input, lim Limits, g resolve.Graph) {
 				t.Errorf("root %q: edge %+v has an end that is not a member", r.Manifest, e)
 			}
 		}
+		checkDev(t, r)
 	}
 	for id := range nodes {
 		if !inSomeRoot[id] {
 			t.Errorf("node %q is in no root", id)
+		}
+	}
+}
+
+// checkDev checks the dev marks of r: none unless DevKnown, no runtime member
+// depends on a dev one, and every dev member is reached from a dev direct.
+func checkDev(t testing.TB, r resolve.Root) {
+	t.Helper()
+	dev := map[resolve.NodeID]bool{}
+	var queue []resolve.NodeID
+	for _, m := range r.Members {
+		if m.Dev {
+			dev[m.ID] = true
+			if m.Direct {
+				queue = append(queue, m.ID)
+			}
+		}
+	}
+	if len(dev) > 0 && !r.DevKnown {
+		t.Errorf("root %q: dev members although DevKnown is false", r.Manifest)
+	}
+	out := map[resolve.NodeID][]resolve.NodeID{}
+	for _, e := range r.Edges {
+		if !dev[e.From] && dev[e.To] {
+			t.Errorf("root %q: runtime %q depends on dev %q", r.Manifest, e.From, e.To)
+		}
+		out[e.From] = append(out[e.From], e.To)
+	}
+	reached := map[resolve.NodeID]bool{}
+	for len(queue) > 0 {
+		id := queue[0]
+		queue = queue[1:]
+		if reached[id] {
+			continue
+		}
+		reached[id] = true
+		queue = append(queue, out[id]...)
+	}
+	for id := range dev {
+		if !reached[id] {
+			t.Errorf("root %q: dev %q is not reached from a dev direct dependency", r.Manifest, id)
 		}
 	}
 }

@@ -29,6 +29,7 @@
       "status": "partial",
       "reason": "manifest_missing",
       "detail": "package.json not found",
+      "devKnown": false,
       "members": [
         {
           "id": "pkg:npm/@test/runner@3.1.0",

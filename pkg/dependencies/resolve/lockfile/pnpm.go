@@ -217,12 +217,20 @@ func parsePnpmLock(b *builder, data, _ []byte, _ map[string][]byte) {
 	}
 	for _, dir := range slices.Sorted(maps.Keys(importers)) {
 		r, imp := b.root(dir), importers[dir]
-		found, missing := deps(dir, refs(imp.OptionalDependencies), refs(imp.Dependencies), refs(imp.DevDependencies), refs(imp.OptionalDependencies))
-		for _, id := range found {
-			r.declare(id)
-		}
-		for _, m := range missing {
-			r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("importer %q requires %s", dir, m))
+		r.devKnown = true
+		optional := refs(imp.OptionalDependencies)
+		for _, dev := range []bool{false, true} {
+			groups := []map[string]string{refs(imp.Dependencies), optional}
+			if dev {
+				groups = []map[string]string{refs(imp.DevDependencies)}
+			}
+			found, missing := deps(dir, optional, groups...)
+			for _, id := range found {
+				r.declare(id, dev)
+			}
+			for _, m := range missing {
+				r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("importer %q requires %s", dir, m))
+			}
 		}
 	}
 	for i := 0; i < len(linked); i++ {

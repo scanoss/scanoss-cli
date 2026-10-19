@@ -140,7 +140,7 @@ func parseCargoLock(b *builder, data, manifest []byte, members map[string][]byte
 				continue
 			}
 			if r != nil {
-				r.declare(ids[to])
+				r.declare(ids[to], false)
 			}
 			b.edge(ids[i], ids[to])
 		}

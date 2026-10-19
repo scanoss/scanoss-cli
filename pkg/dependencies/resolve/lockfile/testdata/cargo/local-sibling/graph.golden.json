@@ -23,6 +23,7 @@
       "lockfile": "Cargo.lock",
       "ecosystem": "cargo",
       "status": "complete",
+      "devKnown": false,
       "members": [
         {
           "id": "pkg:cargo/lib@0.2.0",

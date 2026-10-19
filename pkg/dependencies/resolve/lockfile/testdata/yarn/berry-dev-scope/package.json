@@ -1,0 +1,7 @@
+{
+  "name": "app",
+  "workspaces": ["packages/*"],
+  "dependencies": { "left": "^1.0.0" },
+  "peerDependencies": { "both": "^1.0.0" },
+  "devDependencies": { "both": "^1.0.0", "jest": "^29.0.0" }
+}

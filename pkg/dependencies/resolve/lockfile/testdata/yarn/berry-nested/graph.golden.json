@@ -24,6 +24,7 @@
       "status": "partial",
       "reason": "unresolved_dependency",
       "detail": "tool@npm:^1.0.0 requires ghost@npm:^9.0.0",
+      "devKnown": false,
       "members": [
         {
           "id": "pkg:npm/lib@1.1.0",

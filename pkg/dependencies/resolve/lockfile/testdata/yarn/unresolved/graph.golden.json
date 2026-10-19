@@ -14,6 +14,7 @@
       "status": "partial",
       "reason": "unresolved_dependency",
       "detail": "package.json requires absent@^2.0.0",
+      "devKnown": true,
       "members": [
         {
           "id": "pkg:npm/plugin@1.0.0",

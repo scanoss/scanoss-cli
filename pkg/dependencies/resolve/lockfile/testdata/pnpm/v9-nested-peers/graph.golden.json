@@ -38,6 +38,7 @@
       "lockfile": "pnpm-lock.yaml",
       "ecosystem": "npm",
       "status": "complete",
+      "devKnown": true,
       "members": [
         {
           "id": "pkg:npm/lib@1.1.0",
@@ -92,6 +93,7 @@
       "lockfile": "pnpm-lock.yaml",
       "ecosystem": "npm",
       "status": "complete",
+      "devKnown": true,
       "members": [
         {
           "id": "pkg:npm/lib@2.0.0",

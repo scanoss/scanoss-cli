@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   lockfile. `Node.Local` marks the project's own packages, such as a workspace, path crate or
   `PATH` gem that another package depends on; they keep their edges, so consumers skip them to list third-party
   packages without losing what they pull in.
+- **`Member.Dev` and `Root.DevKnown`** tell dev dependencies from runtime ones, per root: a
+  member is dev when the root reaches it only through its dev dependencies, so it can be left
+  out of an SBOM. `DevKnown` is false when the manifests do not say which direct dependencies
+  are dev, and then no member is dev. `package-lock.json`, `yarn.lock` and `pnpm-lock.yaml`
+  read `devDependencies`.
 - **`pkg/dependencies/resolve/lockfile`** builds that graph from `package-lock.json` (v2 and v3,
   including nested `node_modules` versions and workspaces), `yarn.lock` (v1 with `package.json`,
   and berry with workspaces), `pnpm-lock.yaml` (5.x, 6.x and 9.x), `Cargo.lock` (with a root

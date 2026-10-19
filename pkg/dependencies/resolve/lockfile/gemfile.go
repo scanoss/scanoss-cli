@@ -97,7 +97,7 @@ func parseGemfileLock(b *builder, data, _ []byte, _ map[string][]byte) {
 	r := b.root("")
 	for _, name := range directs {
 		if id, ok := byName[name]; ok {
-			r.declare(id)
+			r.declare(id, false)
 		}
 	}
 }

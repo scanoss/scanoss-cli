@@ -26,6 +26,7 @@ package lockfile
 import (
 	"cmp"
 	"fmt"
+	"maps"
 	"path"
 	"slices"
 	"strings"
@@ -82,15 +83,23 @@ func (i *issue) add(o issue) {
 }
 
 // root collects what a format knows about one manifest: the nodes it declares
-// and its own problems. Members and edges are derived in graph.
+// and its own problems. Members, edges and dev marks are derived in graph.
 type root struct {
-	direct map[resolve.NodeID]bool
+	direct  map[resolve.NodeID]bool // declared nodes
+	runtime map[resolve.NodeID]bool // declared nodes that are not dev dependencies
+	// devKnown is set by a format whose manifests say which declared nodes
+	// are dev dependencies.
+	devKnown bool
 	issue
 }
 
-// declare records id as declared by the root's manifest.
-func (r *root) declare(id resolve.NodeID) {
+// declare records id as declared by the root's manifest, as a dev dependency
+// when dev is set. A node declared both ways is a runtime dependency.
+func (r *root) declare(id resolve.NodeID, dev bool) {
 	r.direct[id] = true
+	if !dev {
+		r.runtime[id] = true
+	}
 }
 
 func (r *root) flag(reason resolve.Reason, detail string) {
@@ -192,7 +201,7 @@ func (b *builder) root(dir string) *root {
 	m := path.Join(path.Dir(b.lockfile), dir, b.manifest)
 	r, ok := b.roots[m]
 	if !ok {
-		r = &root{direct: map[resolve.NodeID]bool{}}
+		r = &root{direct: map[resolve.NodeID]bool{}, runtime: map[resolve.NodeID]bool{}}
 		b.roots[m] = r
 	}
 	return r
@@ -217,24 +226,23 @@ func (b *builder) graph() resolve.Graph {
 	if isUnknown(b.problem.reason) {
 		return resolve.Graph{
 			Nodes: []resolve.Node{},
-			Roots: []resolve.Root{b.emit(mainName, b.problem, map[resolve.NodeID]bool{})},
+			Roots: []resolve.Root{b.emit(mainName, b.problem, map[resolve.NodeID]bool{}, nil)},
 		}
 	}
 
-	members := map[string]map[resolve.NodeID]bool{}
+	starts := map[string]map[resolve.NodeID]bool{}
 	reached := map[resolve.NodeID]bool{}
 	for name, r := range b.roots {
-		members[name] = b.reach(r.direct)
-		for id := range members[name] {
+		starts[name] = maps.Clone(r.direct)
+		for id := range b.reach(r.direct) {
 			reached[id] = true
 		}
 	}
 	for id := range b.nodes {
 		if !reached[id] {
-			members[mainName][id] = false
+			starts[mainName][id] = false
 		}
 	}
-	members[mainName] = b.reach(members[mainName])
 
 	g := resolve.Graph{Nodes: make([]resolve.Node, 0, len(b.nodes)), Roots: make([]resolve.Root, 0, len(b.roots))}
 	for _, n := range b.nodes {
@@ -242,12 +250,25 @@ func (b *builder) graph() resolve.Graph {
 	}
 	slices.SortFunc(g.Nodes, func(x, y resolve.Node) int { return cmp.Compare(x.ID, y.ID) })
 	for name, r := range b.roots {
+		members := b.reach(starts[name])
 		is := r.issue
 		is.add(b.problem)
-		for id := range members[name] {
+		for id := range members {
 			is.add(b.problems[id])
 		}
-		g.Roots = append(g.Roots, b.emit(name, is, members[name]))
+		// Only what dev dependencies alone reach is dev; the rest of starts,
+		// unattributed nodes included, counts as runtime.
+		var runtime map[resolve.NodeID]bool
+		if r.devKnown {
+			runtime = map[resolve.NodeID]bool{}
+			for id, direct := range starts[name] {
+				if !direct || r.runtime[id] {
+					runtime[id] = true
+				}
+			}
+			runtime = b.reach(runtime)
+		}
+		g.Roots = append(g.Roots, b.emit(name, is, members, runtime))
 	}
 	slices.SortFunc(g.Roots, func(x, y resolve.Root) int {
 		return cmp.Or(cmp.Compare(x.Manifest, y.Manifest), cmp.Compare(x.Lockfile, y.Lockfile))
@@ -277,7 +298,9 @@ func (b *builder) reach(start map[resolve.NodeID]bool) map[resolve.NodeID]bool {
 	return out
 }
 
-func (b *builder) emit(manifest string, is issue, members map[resolve.NodeID]bool) resolve.Root {
+// emit builds a root from its members. runtime holds the members that runtime
+// dependencies reach; nil means the root does not know its dev dependencies.
+func (b *builder) emit(manifest string, is issue, members, runtime map[resolve.NodeID]bool) resolve.Root {
 	r := resolve.Root{
 		Manifest:  manifest,
 		Lockfile:  b.lockfile,
@@ -285,6 +308,7 @@ func (b *builder) emit(manifest string, is issue, members map[resolve.NodeID]boo
 		Status:    resolve.StatusComplete,
 		Reason:    is.reason,
 		Detail:    is.detail,
+		DevKnown:  runtime != nil,
 		Members:   make([]resolve.Member, 0, len(members)),
 		Edges:     []resolve.Edge{},
 	}
@@ -295,7 +319,8 @@ func (b *builder) emit(manifest string, is issue, members map[resolve.NodeID]boo
 		r.Status = resolve.StatusPartial
 	}
 	for id, direct := range members {
-		r.Members = append(r.Members, resolve.Member{ID: id, Direct: direct})
+		_, rt := runtime[id]
+		r.Members = append(r.Members, resolve.Member{ID: id, Direct: direct, Dev: runtime != nil && !rt})
 		for to := range b.adj[id] {
 			r.Edges = append(r.Edges, resolve.Edge{From: id, To: to})
 		}

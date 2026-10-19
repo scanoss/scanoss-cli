@@ -24,6 +24,7 @@
       "status": "partial",
       "reason": "unresolved_dependency",
       "detail": "app requires \"ghost\"",
+      "devKnown": false,
       "members": [
         {
           "id": "pkg:cargo/dual@1.0.0",

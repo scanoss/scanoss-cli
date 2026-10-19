@@ -8,6 +8,7 @@
       "status": "unknown",
       "reason": "malformed",
       "detail": "yaml: line 4: did not find expected ',' or ']'",
+      "devKnown": false,
       "members": [],
       "edges": []
     }

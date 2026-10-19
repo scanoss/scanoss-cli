@@ -114,7 +114,7 @@ func pyprojectDirects(r *root, manifest []byte, byName map[string][]resolve.Node
 			r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("pyproject.toml requires %s", dep))
 		}
 		for _, id := range ids {
-			r.declare(id)
+			r.declare(id, false)
 		}
 	}
 	poetry := py.Tool.Poetry

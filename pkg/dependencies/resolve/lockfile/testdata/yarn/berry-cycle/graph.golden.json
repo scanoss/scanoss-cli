@@ -17,6 +17,7 @@
       "lockfile": "yarn.lock",
       "ecosystem": "npm",
       "status": "complete",
+      "devKnown": false,
       "members": [
         {
           "id": "pkg:npm/chicken@1.0.0",

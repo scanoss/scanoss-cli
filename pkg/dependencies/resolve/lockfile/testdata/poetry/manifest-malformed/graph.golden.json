@@ -29,6 +29,7 @@
       "status": "partial",
       "reason": "manifest_malformed",
       "detail": "toml: expected ']' to close table name",
+      "devKnown": false,
       "members": [
         {
           "id": "pkg:pypi/bottom@1.2.3",

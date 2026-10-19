@@ -44,6 +44,16 @@
 // only signal that the manifest declares a package: a member that is not
 // direct and has no incoming edge is unattributed.
 //
+// A dev dependency is one the project needs only to develop it (tests, lint,
+// build tooling), which its users never install. Member.Dev marks a member
+// the root reaches only through its dev dependencies; a member that any
+// runtime dependency reaches is not Dev, so the same node can be Dev in one
+// root and not in another. Root.DevKnown says whether the manifests say which
+// direct dependencies are dev. When it is false no member is Dev and a
+// consumer must treat them all as runtime. An unattributed member is never
+// Dev, and a local node's edges never include its own dev dependencies, since
+// a dependent never installs them.
+//
 // The graph describes the lockfile as written, so cycles are kept and callers
 // decide what to drop. A root whose Status is not complete carries a Reason;
 // an unknown root has no members and no edges. Every slice is sorted, so the
@@ -129,6 +139,7 @@ type Root struct {
 	Status    Status    `json:"status"`
 	Reason    Reason    `json:"reason,omitempty"`
 	Detail    string    `json:"detail,omitempty"` // free text that explains Reason
+	DevKnown  bool      `json:"devKnown"`         // the manifests say which direct dependencies are dev; false means no member is Dev
 	Members   []Member  `json:"members"`          // sorted by ID, unique
 	Edges     []Edge    `json:"edges"`            // sorted by From then To, unique, both ends are Members
 }
@@ -136,7 +147,8 @@ type Root struct {
 // Member is a node that belongs to a root.
 type Member struct {
 	ID     NodeID `json:"id"`
-	Direct bool   `json:"direct"` // declared by the manifest; false means only in the lockfile
+	Direct bool   `json:"direct"`        // declared by the manifest; false means only in the lockfile
+	Dev    bool   `json:"dev,omitempty"` // the root reaches it only through dev dependencies
 }
 
 // Edge says that From depends on To.

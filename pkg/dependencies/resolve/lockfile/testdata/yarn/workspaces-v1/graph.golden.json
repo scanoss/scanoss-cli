@@ -29,10 +29,12 @@
       "status": "partial",
       "reason": "unsupported_workspaces",
       "detail": "yarn.lock v1 does not record which workspace declares what",
+      "devKnown": true,
       "members": [
         {
           "id": "pkg:npm/@test/runner@3.1.0",
-          "direct": true
+          "direct": true,
+          "dev": true
         },
         {
           "id": "pkg:npm/bottom@1.2.3",

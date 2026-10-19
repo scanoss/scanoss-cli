@@ -39,6 +39,7 @@
       "lockfile": "Cargo.lock",
       "ecosystem": "cargo",
       "status": "complete",
+      "devKnown": false,
       "members": [],
       "edges": []
     },
@@ -47,6 +48,7 @@
       "lockfile": "Cargo.lock",
       "ecosystem": "cargo",
       "status": "complete",
+      "devKnown": false,
       "members": [
         {
           "id": "pkg:cargo/itoa@1.0.11",
@@ -97,6 +99,7 @@
       "lockfile": "Cargo.lock",
       "ecosystem": "cargo",
       "status": "complete",
+      "devKnown": false,
       "members": [
         {
           "id": "pkg:cargo/rand@0.8.5",

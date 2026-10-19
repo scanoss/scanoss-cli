@@ -139,12 +139,15 @@ func parsePackageLock(b *builder, data, _ []byte, _ map[string][]byte) {
 			continue
 		}
 		r := b.root(key)
-		found, missing := npmDeps(lock.Packages, target, key, e, true)
-		for _, id := range found {
-			r.declare(id)
-		}
-		for _, name := range missing {
-			r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("%q requires %q", key, name))
+		r.devKnown = true
+		for _, dev := range []bool{false, true} {
+			found, missing := npmDeps(lock.Packages, target, key, e, dev)
+			for _, id := range found {
+				r.declare(id, dev)
+			}
+			for _, name := range missing {
+				r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("%q requires %q", key, name))
+			}
 		}
 	}
 	for i := 0; i < len(folders); i++ {
@@ -158,7 +161,7 @@ func isInstalled(key string) bool {
 	return strings.HasPrefix(key, nodeModules) || strings.Contains(key, "/"+nodeModules)
 }
 
-// npmDeps resolves the dependencies of the entry at key, and its dev
+// npmDeps resolves the dependencies of the entry at key, or only its dev
 // dependencies when dev is set. A missing optional or peer dependency is
 // expected, so only missing required ones are returned.
 func npmDeps(pkgs map[string]npmEntry, target func(at string) (resolve.NodeID, bool), key string, e npmEntry, dev bool) (found []resolve.NodeID, missing []string) {
@@ -168,7 +171,7 @@ func npmDeps(pkgs map[string]npmEntry, target func(at string) (resolve.NodeID, b
 	}
 	groups := []group{{e.Dependencies, false}, {e.OptionalDependencies, true}, {e.PeerDependencies, true}}
 	if dev {
-		groups = append(groups, group{e.DevDependencies, false})
+		groups = []group{{e.DevDependencies, false}}
 	}
 	for _, g := range groups {
 		for _, name := range slices.Sorted(maps.Keys(g.deps)) {

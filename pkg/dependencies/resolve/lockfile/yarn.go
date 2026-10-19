@@ -51,7 +51,7 @@ type yarnEntry struct {
 // package.json, and yarn berry, which records each workspace as an entry.
 func parseYarnLock(b *builder, data, manifest []byte, _ map[string][]byte) {
 	if bytes.HasPrefix(data, []byte("__metadata:")) || bytes.Contains(data, []byte("\n__metadata:")) {
-		parseYarnBerry(b, data)
+		parseYarnBerry(b, data, manifest)
 		return
 	}
 	entries, err := parseYarnV1(data)
@@ -89,36 +89,52 @@ func parseYarnLock(b *builder, data, manifest []byte, _ map[string][]byte) {
 			}
 		}
 	}
-	yarnDirects(b.root(""), manifest, index)
-}
-
-func yarnDirects(r *root, manifest []byte, index map[string]resolve.NodeID) {
+	r := b.root("")
 	if manifest == nil {
 		r.flag(resolve.ReasonManifestMissing, "package.json not found")
 		return
 	}
-	var pkg struct {
-		Dependencies         map[string]string `json:"dependencies"`
-		DevDependencies      map[string]string `json:"devDependencies"`
-		OptionalDependencies map[string]string `json:"optionalDependencies"`
-		Workspaces           json.RawMessage   `json:"workspaces"`
-	}
-	if err := json.Unmarshal(manifest, &pkg); err != nil {
+	pkg, err := parsePackageJSON(manifest)
+	if err != nil {
 		r.flag(resolve.ReasonManifestMalformed, err.Error())
 		return
 	}
 	if len(pkg.Workspaces) > 0 && string(pkg.Workspaces) != "null" {
 		r.flag(resolve.ReasonUnsupportedWorkspaces, "yarn.lock v1 does not record which workspace declares what")
 	}
+	r.devKnown = true
 	for _, deps := range []map[string]string{pkg.Dependencies, pkg.DevDependencies, pkg.OptionalDependencies} {
 		for _, name := range slices.Sorted(maps.Keys(deps)) {
 			if id, ok := index[name+"@"+deps[name]]; ok {
-				r.declare(id)
+				r.declare(id, pkg.dev(name))
 			} else if _, optional := pkg.OptionalDependencies[name]; !optional {
 				r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("package.json requires %s@%s", name, deps[name]))
 			}
 		}
 	}
+}
+
+type packageJSON struct {
+	Dependencies         map[string]string `json:"dependencies"`
+	DevDependencies      map[string]string `json:"devDependencies"`
+	OptionalDependencies map[string]string `json:"optionalDependencies"`
+	PeerDependencies     map[string]string `json:"peerDependencies"`
+	Workspaces           json.RawMessage   `json:"workspaces"`
+}
+
+func parsePackageJSON(data []byte) (packageJSON, error) {
+	var pkg packageJSON
+	err := json.Unmarshal(data, &pkg)
+	return pkg, err
+}
+
+// dev reports whether package.json lists name only as a dev dependency.
+func (p packageJSON) dev(name string) bool {
+	_, dev := p.DevDependencies[name]
+	_, runtime := p.Dependencies[name]
+	_, optional := p.OptionalDependencies[name]
+	_, peer := p.PeerDependencies[name]
+	return dev && !runtime && !optional && !peer
 }
 
 // parseYarnV1 reads the indented v1 format: an unindented header listing the
@@ -212,8 +228,11 @@ const berryLocal = "0.0.0-use.local"
 
 // parseYarnBerry reads the YAML lockfile of yarn 2 and later. Workspace
 // entries ("name@workspace:path") are roots. A workspace or soft link
-// (link:, portal:) that something depends on is also a local node.
-func parseYarnBerry(b *builder, data []byte) {
+// (link:, portal:) that something depends on is also a local node. Berry
+// merges a workspace's dev dependencies into its entry's dependencies, so
+// only the root workspace, whose package.json is the manifest, knows which
+// are dev.
+func parseYarnBerry(b *builder, data, manifest []byte) {
 	var lock map[string]berryEntry
 	if err := yaml.Unmarshal(data, &lock); err != nil {
 		b.flag(resolve.ReasonMalformed, err.Error())
@@ -251,6 +270,7 @@ func parseYarnBerry(b *builder, data []byte) {
 
 	ids := map[string]resolve.NodeID{}
 	roots := map[string]*root{}
+	devs := map[string]packageJSON{}
 	for _, key := range keys {
 		e := lock[key]
 		name, rng := splitDescriptor(e.Resolution)
@@ -258,6 +278,12 @@ func parseYarnBerry(b *builder, data []byte) {
 		dir, workspace := strings.CutPrefix(rng, "workspace:")
 		if workspace {
 			roots[key] = b.root(dir)
+		}
+		if workspace && dir == "." && manifest != nil {
+			if pkg, err := parsePackageJSON(manifest); err == nil {
+				roots[key].devKnown = true
+				devs[key] = pkg
+			}
 		}
 		if !workspace && e.LinkType != "soft" {
 			if id, ok := b.node(ns, n, e.Version); ok {
@@ -295,7 +321,7 @@ func parseYarnBerry(b *builder, data []byte) {
 				continue
 			}
 			if r != nil {
-				r.declare(to)
+				r.declare(to, devs[key].dev(name))
 			}
 			if from != "" {
 				b.edge(from, to)

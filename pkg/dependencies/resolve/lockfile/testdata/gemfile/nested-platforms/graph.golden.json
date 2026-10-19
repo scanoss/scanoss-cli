@@ -34,6 +34,7 @@
       "lockfile": "Gemfile.lock",
       "ecosystem": "gem",
       "status": "complete",
+      "devKnown": false,
       "members": [
         {
           "id": "pkg:gem/myapp-core@0.1.0",

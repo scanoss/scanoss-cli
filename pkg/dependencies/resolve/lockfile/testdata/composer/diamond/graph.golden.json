@@ -27,6 +27,7 @@
       "lockfile": "composer.lock",
       "ecosystem": "composer",
       "status": "complete",
+      "devKnown": false,
       "members": [
         {
           "id": "pkg:composer/acme/bottom@1.2.3",

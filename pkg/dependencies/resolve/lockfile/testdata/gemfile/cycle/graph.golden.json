@@ -17,6 +17,7 @@
       "lockfile": "Gemfile.lock",
       "ecosystem": "gem",
       "status": "complete",
+      "devKnown": false,
       "members": [
         {
           "id": "pkg:gem/chicken@1.0.0",
