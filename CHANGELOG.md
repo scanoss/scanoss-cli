@@ -31,20 +31,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`dependencies --extract-local --graph`** prints the dependency graph resolved from every
   lockfile under the path, merged into one JSON document, so the resolver can be tried on a
   real project.
-- **`scan --include deps` resolves the dependency graph from the lockfiles.** Where
-  `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `Cargo.lock`, `Gemfile.lock`, `poetry.lock`
-  or `composer.lock` covers a manifest, the output lists every runtime package the lockfile
-  resolved, direct and transitive, with its edges, in place of the manifest's flat range entries.
-  Dev dependencies are left out of every format. Manifests no lockfile covers (`pom.xml`,
-  `go.mod`, `requirements.txt`, …) keep their flat declared entries.
 - **`dependencies --extract-local --format raw|cyclonedx|spdx`** renders a project's dependencies
   as the same inventory `scan --include deps` writes, with no API call. Without `--format` the
   command prints the flat per-file list it always did.
 - **The dependency graph in every output format.** `raw` (`schema_version` `2.1`) adds a
   `dependencies` list with one root per resolved manifest (lockfile, ecosystem, status, reason,
-  `dev_known`, edges), marks the components a root pulls in transitively with the `transitive`
-  match type, and marks the project's own packages with `local`. CycloneDX gives
-  `metadata.component` a `bom-ref`, adds an `application` component per root, a `dependencies`
+  `dev_known`, `direct`, edges), marks the components a root pulls in transitively with the `transitive`
+  match type, and marks the project's own packages with `local`. CycloneDX adds an
+  `application` component per root, a `dependencies`
   entry for every component and a `compositions` entry per root (`complete`, `incomplete` or
   `unknown`), and a `scanoss:local` property. SPDX adds a project package the document
   `DESCRIBES`, a package per root and `DEPENDS_ON` relationships, and a `scanoss:local` comment.
@@ -54,6 +48,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`scan --include deps` lists the lockfile-resolved versions in place of the manifests' range
+  entries.** Where `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `Cargo.lock`,
+  `Gemfile.lock`, `poetry.lock` or `composer.lock` covers a manifest, the output lists every
+  runtime package the lockfile resolved, direct and transitive, with its edges, instead of
+  entries such as `pkg:npm/left@^1.0.0`. Dev dependencies are left out of every format. A
+  lockfile that cannot be read gives an `unknown` root with no packages. Manifests no lockfile
+  covers (`pom.xml`, `go.mod`, `requirements.txt`, …) keep their flat declared entries.
 - **`github.com/pelletier/go-toml/v2` updated to v2.4.3**; v2.2.4 panics on some malformed TOML.
 - **CycloneDX `metadata.component` always carries a `bom-ref`** (the project name), so the
   dependency graph has something to hang from and a consumer can address the project.
