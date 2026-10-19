@@ -21,13 +21,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   are dev, and then no member is dev. `package-lock.json`, `yarn.lock` and `pnpm-lock.yaml`
   read `devDependencies`, `Cargo.lock` the member manifests' `[dev-dependencies]`,
   `Gemfile.lock` the `development` and `test` groups of the `Gemfile`, which it now reads,
-  `poetry.lock` the dev groups of `pyproject.toml`, and `composer.lock` `require-dev`.
+  `poetry.lock` the dev groups of `pyproject.toml`, `uv.lock` each root's `dev-dependencies`
+  groups, and `composer.lock` `require-dev`.
 - **`pkg/dependencies/resolve/lockfile`** builds that graph from `package-lock.json` (v2 and v3,
   including nested `node_modules` versions and workspaces), `yarn.lock` (v1 with `package.json`,
   and berry with workspaces), `pnpm-lock.yaml` (5.x, 6.x and 9.x), `Cargo.lock` (with a root
   per workspace member when the member manifests are available), `Gemfile.lock`, `poetry.lock`
   (with `pyproject.toml`) and `composer.lock` (with `composer.json`). It runs no process, and
   caps the bytes, nodes and edges it accepts from a lockfile.
+- **`npm-shrinkwrap.json`, `uv.lock` and NuGet `packages.lock.json`** are resolved too. `uv.lock`
+  gives a root per workspace member at its `pyproject.toml`. `packages.lock.json` merges every
+  target framework into one root named after the project file beside it, with the solution's
+  other projects as local nodes; it does not record dev dependencies.
 - **`dependencies --extract-local --graph`** prints the dependency graph resolved from every
   lockfile under the path, merged into one JSON document, so the resolver can be tried on a
   real project.
