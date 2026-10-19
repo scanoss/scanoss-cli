@@ -80,6 +80,7 @@ type format struct {
 var formats = map[string]format{
 	"package-lock.json": {resolve.EcosystemNPM, "package.json", false, parsePackageLock},
 	"yarn.lock":         {resolve.EcosystemNPM, "package.json", true, parseYarnLock},
+	"pnpm-lock.yaml":    {resolve.EcosystemNPM, "package.json", false, parsePnpmLock},
 }
 
 // Supported reports whether path's base name is a lockfile this package

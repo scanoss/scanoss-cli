@@ -1,0 +1,48 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      left:
+        specifier: ^1.0.0
+        version: 1.0.0
+      right:
+        specifier: ^2.0.0
+        version: 2.0.0
+    devDependencies:
+      '@test/runner':
+        specifier: ^3.0.0
+        version: 3.1.0
+
+packages:
+
+  '@test/runner@3.1.0':
+    resolution: {integrity: sha512-aaa}
+
+  bottom@1.2.3:
+    resolution: {integrity: sha512-bbb}
+
+  left@1.0.0:
+    resolution: {integrity: sha512-ccc}
+
+  right@2.0.0:
+    resolution: {integrity: sha512-ddd}
+
+snapshots:
+
+  '@test/runner@3.1.0': {}
+
+  bottom@1.2.3: {}
+
+  left@1.0.0:
+    dependencies:
+      bottom: 1.2.3
+
+  right@2.0.0:
+    dependencies:
+      bottom: 1.2.3

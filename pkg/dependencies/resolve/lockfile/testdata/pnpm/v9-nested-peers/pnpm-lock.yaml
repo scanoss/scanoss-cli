@@ -1,0 +1,66 @@
+lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    dependencies:
+      lib:
+        specifier: ^1.0.0
+        version: 1.1.0
+      renamed:
+        specifier: npm:lib@^2.0.0
+        version: lib@2.0.0
+      tool:
+        specifier: ^1.0.0
+        version: 1.0.0(react@17.0.2)
+      shared:
+        specifier: workspace:*
+        version: link:packages/shared
+
+  packages/shared:
+    dependencies:
+      react:
+        specifier: ^18.0.0
+        version: 18.2.0
+      tool:
+        specifier: ^1.0.0
+        version: 1.0.0(react@18.2.0)
+
+packages:
+
+  lib@1.1.0:
+    resolution: {integrity: sha512-aaa}
+
+  lib@2.0.0:
+    resolution: {integrity: sha512-bbb}
+
+  react@17.0.2:
+    resolution: {integrity: sha512-ccc}
+
+  react@18.2.0:
+    resolution: {integrity: sha512-ddd}
+
+  tool@1.0.0:
+    resolution: {integrity: sha512-eee}
+    peerDependencies:
+      react: '*'
+
+snapshots:
+
+  lib@1.1.0: {}
+
+  lib@2.0.0: {}
+
+  react@17.0.2: {}
+
+  react@18.2.0: {}
+
+  tool@1.0.0(react@17.0.2):
+    dependencies:
+      lib: 2.0.0
+      react: 17.0.2
+
+  tool@1.0.0(react@18.2.0):
+    dependencies:
+      lib: 2.0.0
+      react: 18.2.0

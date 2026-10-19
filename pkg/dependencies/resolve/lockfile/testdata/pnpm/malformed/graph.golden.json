@@ -1,0 +1,15 @@
+{
+  "nodes": [],
+  "roots": [
+    {
+      "manifest": "package.json",
+      "lockfile": "pnpm-lock.yaml",
+      "ecosystem": "npm",
+      "status": "unknown",
+      "reason": "malformed",
+      "detail": "yaml: line 4: did not find expected node content",
+      "members": [],
+      "edges": []
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    dependencies:
+      chicken:
+        specifier: ^1.0.0
+        version: 1.0.0
+
+packages:
+
+  chicken@1.0.0:
+    resolution: {integrity: sha512-aaa}
+
+  egg@1.0.0:
+    resolution: {integrity: sha512-bbb}
+
+snapshots:
+
+  chicken@1.0.0:
+    dependencies:
+      egg: 1.0.0
+
+  egg@1.0.0:
+    dependencies:
+      chicken: 1.0.0

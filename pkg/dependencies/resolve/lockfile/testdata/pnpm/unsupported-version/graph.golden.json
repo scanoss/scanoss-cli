@@ -1,0 +1,15 @@
+{
+  "nodes": [],
+  "roots": [
+    {
+      "manifest": "package.json",
+      "lockfile": "pnpm-lock.yaml",
+      "ecosystem": "npm",
+      "status": "unknown",
+      "reason": "unsupported_version",
+      "detail": "lockfileVersion \"3.9\"",
+      "members": [],
+      "edges": []
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+lockfileVersion: 5.4
+
+specifiers:
+  '@scope/util': ^1.0.0
+  left: ^1.0.0
+  right: ^2.0.0
+
+dependencies:
+  '@scope/util': 1.0.0
+  left: 1.0.0_react@17.0.2
+  right: 2.0.0
+
+packages:
+
+  /@scope/util/1.0.0:
+    resolution: {integrity: sha512-aaa}
+    dependencies:
+      bottom: 1.2.3
+    dev: false
+
+  /bottom/1.2.3:
+    resolution: {integrity: sha512-bbb}
+    dev: false
+
+  /left/1.0.0_react@17.0.2:
+    resolution: {integrity: sha512-ccc}
+    peerDependencies:
+      react: '*'
+    dependencies:
+      bottom: 1.2.3
+      react: 17.0.2
+    dev: false
+
+  /react/17.0.2:
+    resolution: {integrity: sha512-ddd}
+    dev: false
+
+  /right/2.0.0:
+    resolution: {integrity: sha512-eee}
+    dependencies:
+      bottom: 1.2.3
+      left: 1.0.0_react@17.0.2
+    dev: false
