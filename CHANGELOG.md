@@ -13,12 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ecosystem's own tools on a manifest, for projects whose lockfile does not record the whole
   graph. It resolves `go.mod` with `go list -m all` and `go mod graph`: the members are the
   modules the build selects, the edges run between those selected versions, and `replace` is
-  applied as for the `go.mod` lockfile. A tool problem never fails the call; it is reported on
-  the root with the new reasons **`tool_missing`**, **`tool_failed`** and **`timeout`**
-  (`unknown`), or **`registry_unreachable`** (`partial`, with the modules the tool resolved
-  without the registry). The tools run on files the scanned repository controls, so callers
-  run them in an isolated sandbox. They need no credentials, take the registry or mirror from
-  `Options.Env`, and each run has a timeout and capped output.
+  applied as for the `go.mod` lockfile. A `go.work` is ignored (`GOWORK=off`), so each module
+  resolves on its own: the other workspace modules are not local nodes, but the versions
+  `go.mod` requires, or local nodes only through a directory `replace`. A tool problem never
+  fails the call; it is reported on the root with the new reasons **`tool_missing`**,
+  **`tool_failed`** and **`timeout`** (`unknown`), or **`registry_unreachable`** (`partial`,
+  with the modules the tool resolved without the registry). The tools run on files the scanned
+  repository controls, so callers run them in an isolated sandbox. They need no credentials,
+  take the registry or mirror from `Options.Env`, and each run has a timeout and capped output.
 - **`pom.xml`** is resolved with `mvn` from `PATH` (never the repository's `mvnw`) and the
   verbose tree of `maven-dependency-plugin` 3.8.1, as one root per module of the reactor, each
   with the versions that module resolves and its own `pom.xml` as `Lockfile`. Edges

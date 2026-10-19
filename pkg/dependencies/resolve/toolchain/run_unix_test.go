@@ -161,6 +161,38 @@ func TestRunEnvCallerWins(t *testing.T) {
 	}
 }
 
+func TestRunGoDefaultEnv(t *testing.T) {
+	t.Setenv("GOFLAGS", "-mod=mod")
+	t.Setenv("GOWORK", "/elsewhere/go.work")
+	t.Setenv("GOTOOLCHAIN", "auto")
+	fakeTool(t, "go", `echo "$GOFLAGS|$GOWORK|$GOTOOLCHAIN" >&2; exit 1`)
+	r := resolveRoot(t, t.Context(), Options{})
+	if !strings.HasSuffix(r.Detail, "-mod=readonly|off|local") {
+		t.Errorf("detail %q: want GOFLAGS=-mod=readonly, GOWORK=off and GOTOOLCHAIN=local", r.Detail)
+	}
+}
+
+func TestRunWaitDelayStopsWaitingForTheToolsChild(t *testing.T) {
+	pidFile := filepath.Join(t.TempDir(), "pid")
+	fakeTool(t, "go", fmt.Sprintf("{sleep} 30 &\necho $! > %s\nexit 1", pidFile), "sleep")
+	t.Cleanup(func() {
+		if data, err := os.ReadFile(pidFile); err == nil {
+			if pid, err := strconv.Atoi(strings.TrimSpace(string(data))); err == nil {
+				_ = syscall.Kill(pid, syscall.SIGKILL)
+			}
+		}
+	})
+
+	start := time.Now()
+	r := resolveRoot(t, t.Context(), Options{})
+	if elapsed := time.Since(start); elapsed > waitDelay+3*time.Second {
+		t.Errorf("Resolve took %s waiting for a child that holds the tool's output", elapsed)
+	}
+	if r.Status != resolve.StatusUnknown || r.Reason != resolve.ReasonToolFailed {
+		t.Errorf("root is %s (%s), want unknown (tool_failed): %s", r.Status, r.Reason, r.Detail)
+	}
+}
+
 func TestMavenTimeoutKeepsFinishedModules(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.CopyFS(dir, os.DirFS(filepath.Join("testdata", "maven", "reactor"))); err != nil {

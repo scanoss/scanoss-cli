@@ -37,6 +37,10 @@
 // Manifest and Lockfile are both the manifest's path, since the tool, not a
 // lockfile, resolved it. A Maven reactor has one root per module, each with
 // the module's pom.xml as both.
+//
+// A go.work is ignored (GOWORK=off): each go.mod resolves on its own, and the
+// workspace's other modules are not local nodes. They appear as the versions
+// go.mod requires, or as local nodes only through a directory replace.
 package toolchain
 
 import (
