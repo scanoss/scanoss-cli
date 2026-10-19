@@ -1,0 +1,41 @@
+{
+    "_meta": {
+        "hash": {
+            "sha256": "16024e0e6786f9b52a745abe35e3e3d532a61c9622c616d7744852bc5fc2b67c"
+        },
+        "pipfile-spec": 6,
+        "requires": {
+            "python_version": "3.12"
+        },
+        "sources": [
+            {
+                "name": "pypi",
+                "url": "https://pypi.org/simple",
+                "verify_ssl": true
+            }
+        ]
+    },
+    "default": {
+        "app": {
+            "editable": true,
+            "path": "."
+        },
+        "helper": {
+            "editable": true,
+            "path": "./libs/helper"
+        },
+        "pytest-cs": {
+            "git": "https://github.com/example/pytest-cs.git",
+            "ref": "df835beabc539be7f7f627b21caa0d6ad333daae"
+        },
+        "six": {
+            "hashes": [
+                "sha256:125048865c61f5c1bbf481e24f6aa0331dee80017150e5addef8d88bd05fbc82",
+                "sha256:6b5826eb08e96a8c8f1371ae2204a41df294ac49c19aec84a084a78c14efeb40"
+            ],
+            "index": "pypi",
+            "version": "==1.17.0"
+        }
+    },
+    "develop": {}
+}

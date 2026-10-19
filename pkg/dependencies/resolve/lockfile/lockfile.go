@@ -101,6 +101,7 @@ var formats = map[string]format{
 	"Gemfile.lock":        {resolve.EcosystemGem, "Gemfile", true, parseGemfileLock, nil},
 	"poetry.lock":         {resolve.EcosystemPyPI, "pyproject.toml", true, parsePoetryLock, nil},
 	"uv.lock":             {resolve.EcosystemPyPI, "pyproject.toml", false, parseUvLock, nil},
+	"Pipfile.lock":        {resolve.EcosystemPyPI, "Pipfile", true, parsePipfileLock, nil},
 	"packages.lock.json":  {resolve.EcosystemNuGet, "packages.lock.json", false, parseNuGetLock, sibling(isProjectFile)},
 	"gradle.lockfile":     {resolve.EcosystemMaven, "build.gradle", false, parseGradleLockfile, sibling(isGradleBuild)},
 	"composer.lock":       {resolve.EcosystemComposer, "composer.json", true, parseComposerLock, nil},
