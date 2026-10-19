@@ -32,8 +32,10 @@
 //
 // Each format names its roots after the manifest beside the lockfile, joined
 // with the workspace directory for formats that record workspaces
-// (package-lock.json, yarn.lock, pnpm-lock.yaml). Lockfile entries that no
-// root reaches become non-direct members of the root beside the lockfile.
+// (package-lock.json, yarn.lock, pnpm-lock.yaml). A workspace or link that
+// something depends on is also a local node, with its own dependencies as
+// edges. Lockfile entries that no root reaches become non-direct members of
+// the root beside the lockfile.
 package lockfile
 
 import (

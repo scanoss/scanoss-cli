@@ -1,6 +1,12 @@
 {
   "nodes": [
     {
+      "id": "pkg:npm/@acme/lib",
+      "purl": "pkg:npm/@acme/lib",
+      "version": "",
+      "local": true
+    },
+    {
       "id": "pkg:npm/@test/runner@3.1.0",
       "purl": "pkg:npm/@test/runner",
       "version": "3.1.0"
@@ -42,6 +48,10 @@
       "status": "complete",
       "members": [
         {
+          "id": "pkg:npm/@acme/lib",
+          "direct": true
+        },
+        {
           "id": "pkg:npm/bottom@1.2.3",
           "direct": false
         },
@@ -55,6 +65,10 @@
         }
       ],
       "edges": [
+        {
+          "from": "pkg:npm/@acme/lib",
+          "to": "pkg:npm/bottom@1.2.3"
+        },
         {
           "from": "pkg:npm/left@1.0.0",
           "to": "pkg:npm/bottom@1.2.3"

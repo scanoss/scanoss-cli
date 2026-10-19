@@ -70,8 +70,10 @@ func checkGraph(t testing.TB, in Input, lim Limits, g resolve.Graph) {
 		if i > 0 && g.Nodes[i-1].ID >= n.ID {
 			t.Errorf("nodes not sorted and unique at %q", n.ID)
 		}
-		if n.Version == "" || string(n.ID) != n.PURL+"@"+n.Version {
-			t.Errorf("node %+v: ID is not PURL@Version", n)
+		versioned := n.Version != "" && string(n.ID) == n.PURL+"@"+n.Version
+		versionless := n.Local && n.Version == "" && string(n.ID) == n.PURL
+		if !versioned && !versionless {
+			t.Errorf("node %+v: ID is not PURL@Version, nor the PURL of a local node without a version", n)
 		}
 		nodes[n.ID] = true
 	}

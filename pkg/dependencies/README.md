@@ -266,6 +266,11 @@ for _, root := range g.Roots {
 ```
 
 - **Nodes** are `purl@version`, shared by every root.
+- **Local nodes** (`Node.Local`) are the project's own packages, such as a
+  workspace another workspace depends on. They keep their edges, so a root
+  that depends on a sibling workspace reaches that workspace's dependencies.
+  A local node may have no version. Skip local nodes to list only third-party
+  packages.
 - **Roots** are manifests: the project and, where the lockfile records them,
   each workspace. A root lists its members and its node-to-node edges.
   `Member.Direct` marks the packages the manifest declares.

@@ -207,9 +207,12 @@ type berryEntry struct {
 	LinkType     string            `yaml:"linkType"`
 }
 
+// berryLocal is the placeholder version yarn gives workspaces and soft links.
+const berryLocal = "0.0.0-use.local"
+
 // parseYarnBerry reads the YAML lockfile of yarn 2 and later. Workspace
-// entries ("name@workspace:path") are roots; soft links are local and
-// skipped; every other entry is a package.
+// entries ("name@workspace:path") are roots. A workspace or soft link
+// (link:, portal:) that something depends on is also a local node.
 func parseYarnBerry(b *builder, data []byte) {
 	var lock map[string]berryEntry
 	if err := yaml.Unmarshal(data, &lock); err != nil {
@@ -219,25 +222,53 @@ func parseYarnBerry(b *builder, data []byte) {
 	delete(lock, "__metadata")
 	keys := slices.Sorted(maps.Keys(lock))
 
-	ids := map[string]resolve.NodeID{}
-	roots := map[string]*root{}
 	index := map[string]string{}
 	for _, key := range keys {
-		e := lock[key]
 		for _, d := range strings.Split(key, ",") {
 			// Relative protocols (link:, portal:, file:) carry the locator of the
 			// workspace that declared them, which dependency ranges omit.
 			d, _, _ = strings.Cut(strings.TrimSpace(d), "::")
 			index[d] = key
 		}
+	}
+	// target returns the entry a dependency of key resolves to.
+	target := func(key, name string) (string, string, bool) {
+		rng := lock[key].Dependencies[name]
+		if !strings.Contains(rng, ":") {
+			rng = "npm:" + rng
+		}
+		t, ok := index[name+"@"+rng]
+		return t, rng, ok
+	}
+	depended := map[string]bool{}
+	for _, key := range keys {
+		for name := range lock[key].Dependencies {
+			if t, _, ok := target(key, name); ok {
+				depended[t] = true
+			}
+		}
+	}
+
+	ids := map[string]resolve.NodeID{}
+	roots := map[string]*root{}
+	for _, key := range keys {
+		e := lock[key]
 		name, rng := splitDescriptor(e.Resolution)
-		switch dir, ok := strings.CutPrefix(rng, "workspace:"); {
-		case ok:
+		ns, n := parsers.GetScopedPackage(name)
+		dir, workspace := strings.CutPrefix(rng, "workspace:")
+		if workspace {
 			roots[key] = b.root(dir)
-		case e.LinkType == "soft":
-		default:
-			ns, n := parsers.GetScopedPackage(name)
+		}
+		if !workspace && e.LinkType != "soft" {
 			if id, ok := b.node(ns, n, e.Version); ok {
+				ids[key] = id
+			}
+		} else if depended[key] {
+			version := e.Version
+			if version == berryLocal {
+				version = ""
+			}
+			if id, ok := b.local(ns, n, version); ok {
 				ids[key] = id
 			}
 		}
@@ -248,23 +279,25 @@ func parseYarnBerry(b *builder, data []byte) {
 		if r == nil && from == "" {
 			continue
 		}
-		deps := lock[key].Dependencies
-		for _, name := range slices.Sorted(maps.Keys(deps)) {
-			rng := deps[name]
-			if !strings.Contains(rng, ":") {
-				rng = "npm:" + rng
+		for _, name := range slices.Sorted(maps.Keys(lock[key].Dependencies)) {
+			t, rng, found := target(key, name)
+			if !found {
+				detail := fmt.Sprintf("%s requires %s@%s", key, name, rng)
+				if r != nil {
+					r.flag(resolve.ReasonUnresolvedDependency, detail)
+				} else {
+					b.flagNode(from, resolve.ReasonUnresolvedDependency, detail)
+				}
+				continue
 			}
-			target, found := index[name+"@"+rng]
-			to, isNode := ids[target]
-			switch {
-			case !found && r != nil:
-				r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %s@%s", key, name, rng))
-			case !found:
-				b.flagNode(from, resolve.ReasonUnresolvedDependency, fmt.Sprintf("%s requires %s@%s", key, name, rng))
-			case !isNode:
-			case r != nil:
+			to, isNode := ids[t]
+			if !isNode {
+				continue
+			}
+			if r != nil {
 				r.declare(to)
-			default:
+			}
+			if from != "" {
 				b.edge(from, to)
 			}
 		}

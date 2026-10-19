@@ -21,6 +21,12 @@
       "version": "18.2.0"
     },
     {
+      "id": "pkg:npm/shared",
+      "purl": "pkg:npm/shared",
+      "version": "",
+      "local": true
+    },
+    {
       "id": "pkg:npm/tool@1.0.0",
       "purl": "pkg:npm/tool",
       "version": "1.0.0"
@@ -50,11 +56,23 @@
           "direct": false
         },
         {
+          "id": "pkg:npm/shared",
+          "direct": true
+        },
+        {
           "id": "pkg:npm/tool@1.0.0",
           "direct": true
         }
       ],
       "edges": [
+        {
+          "from": "pkg:npm/shared",
+          "to": "pkg:npm/react@18.2.0"
+        },
+        {
+          "from": "pkg:npm/shared",
+          "to": "pkg:npm/tool@1.0.0"
+        },
         {
           "from": "pkg:npm/tool@1.0.0",
           "to": "pkg:npm/lib@2.0.0"

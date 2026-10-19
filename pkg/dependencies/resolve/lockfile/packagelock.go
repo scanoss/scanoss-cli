@@ -43,6 +43,7 @@ type npmEntry struct {
 	Name                 string            `json:"name"`
 	Version              string            `json:"version"`
 	Link                 bool              `json:"link"`
+	Resolved             string            `json:"resolved"`
 	Dependencies         map[string]string `json:"dependencies"`
 	OptionalDependencies map[string]string `json:"optionalDependencies"`
 	PeerDependencies     map[string]string `json:"peerDependencies"`
@@ -86,32 +87,68 @@ func parsePackageLock(b *builder, data, _ []byte) {
 		}
 	}
 
-	for _, key := range keys {
-		e := lock.Packages[key]
-		if e.Link {
-			continue
+	// target returns the node at location at. A link points at a workspace
+	// folder, which becomes a local node the first time something depends on
+	// it; its dependencies are resolved after the other entries'.
+	var folders []string
+	target := func(at string) (resolve.NodeID, bool) {
+		e := lock.Packages[at]
+		if !e.Link {
+			id, ok := ids[at]
+			return id, ok
 		}
-		found, missing := npmDeps(lock.Packages, ids, key, e)
-		if !isInstalled(key) {
-			r := b.root(key)
-			for _, id := range found {
-				r.declare(id)
-			}
-			for _, name := range missing {
-				r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("%q requires %q", key, name))
-			}
-			continue
+		dir := e.Resolved
+		if id, ok := ids[dir]; ok {
+			return id, true
 		}
-		from, ok := ids[key]
-		if !ok {
-			continue
+		f, ok := lock.Packages[dir]
+		if !ok || f.Link || isInstalled(dir) {
+			return "", false
 		}
+		name := f.Name
+		if name == "" {
+			name = at[strings.LastIndex(at, nodeModules)+len(nodeModules):]
+		}
+		ns, n := parsers.GetScopedPackage(name)
+		id, ok := b.local(ns, n, f.Version)
+		if ok {
+			ids[dir] = id
+			folders = append(folders, dir)
+		}
+		return id, ok
+	}
+	edges := func(from resolve.NodeID, key string, e npmEntry) {
+		found, missing := npmDeps(lock.Packages, target, key, e, false)
 		for _, to := range found {
 			b.edge(from, to)
 		}
 		for _, name := range missing {
 			b.flagNode(from, resolve.ReasonUnresolvedDependency, fmt.Sprintf("%q requires %q", key, name))
 		}
+	}
+
+	for _, key := range keys {
+		e := lock.Packages[key]
+		if e.Link {
+			continue
+		}
+		if isInstalled(key) {
+			if from, ok := ids[key]; ok {
+				edges(from, key, e)
+			}
+			continue
+		}
+		r := b.root(key)
+		found, missing := npmDeps(lock.Packages, target, key, e, true)
+		for _, id := range found {
+			r.declare(id)
+		}
+		for _, name := range missing {
+			r.flag(resolve.ReasonUnresolvedDependency, fmt.Sprintf("%q requires %q", key, name))
+		}
+	}
+	for i := 0; i < len(folders); i++ {
+		edges(ids[folders[i]], folders[i], lock.Packages[folders[i]])
 	}
 }
 
@@ -121,16 +158,16 @@ func isInstalled(key string) bool {
 	return strings.HasPrefix(key, nodeModules) || strings.Contains(key, "/"+nodeModules)
 }
 
-// npmDeps resolves the dependencies of the entry at key. A missing optional or
-// peer dependency is expected, so only missing required ones are returned.
-// Dependencies that resolve to a link (a workspace) are neither.
-func npmDeps(pkgs map[string]npmEntry, ids map[string]resolve.NodeID, key string, e npmEntry) (found []resolve.NodeID, missing []string) {
+// npmDeps resolves the dependencies of the entry at key, and its dev
+// dependencies when dev is set. A missing optional or peer dependency is
+// expected, so only missing required ones are returned.
+func npmDeps(pkgs map[string]npmEntry, target func(at string) (resolve.NodeID, bool), key string, e npmEntry, dev bool) (found []resolve.NodeID, missing []string) {
 	type group struct {
 		deps     map[string]string
 		optional bool
 	}
 	groups := []group{{e.Dependencies, false}, {e.OptionalDependencies, true}, {e.PeerDependencies, true}}
-	if !isInstalled(key) {
+	if dev {
 		groups = append(groups, group{e.DevDependencies, false})
 	}
 	for _, g := range groups {
@@ -142,7 +179,7 @@ func npmDeps(pkgs map[string]npmEntry, ids map[string]resolve.NodeID, key string
 				}
 				continue
 			}
-			if id, ok := ids[at]; ok {
+			if id, ok := target(at); ok {
 				found = append(found, id)
 			}
 		}
