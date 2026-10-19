@@ -15,8 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   lockfile.
 - **`pkg/dependencies/resolve/lockfile`** builds that graph from `package-lock.json` (v2 and v3,
   including nested `node_modules` versions and workspaces), `yarn.lock` (v1 with `package.json`,
-  and berry with workspaces) and `pnpm-lock.yaml` (5.x, 6.x and 9.x). It runs no process, and
-  caps the bytes, nodes and edges it accepts from a lockfile.
+  and berry with workspaces), `pnpm-lock.yaml` (5.x, 6.x and 9.x), `Cargo.lock`, `Gemfile.lock`,
+  `poetry.lock` (with `pyproject.toml`) and `composer.lock` (with `composer.json`). It runs no
+  process, and caps the bytes, nodes and edges it accepts from a lockfile.
+
+### Changed
+
+- **`github.com/pelletier/go-toml/v2` updated to v2.4.3**; v2.2.4 panics on some malformed TOML.
 
 ## [0.11.0] - 2026-10-14
 

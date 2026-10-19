@@ -282,6 +282,10 @@ and edges kept, and a bad lockfile is reported on its root, never as a panic.
 | `yarn.lock` (v1) | lockfile and `package.json` | project |
 | `yarn.lock` (berry) | lockfile only | every workspace |
 | `pnpm-lock.yaml` (5.x, 6.x, 9.x) | lockfile only | every importer |
+| `Cargo.lock` | lockfile only | `Cargo.toml`; workspace and path crates are folded in |
+| `Gemfile.lock` | lockfile only | `Gemfile`; `PATH` gems are folded in |
+| `poetry.lock` | lockfile and `pyproject.toml` | project |
+| `composer.lock` | lockfile and `composer.json` | project |
 
 ## Error Handling
 
