@@ -1,0 +1,6 @@
+com.example:invalid-entry:jar:1.0.0
++- org.apache.httpcomponents:httpclient:jar:4.5.14:compile
+|  \- org.apache.httpcomponents:httpcore:jar:4.4.16:compile
++- commons-codec:commons-codec:1.16.0
+|  \- org.example:orphan:jar:1.0:compile
+\- commons-logging:commons-logging:jar:1.2:compile

@@ -1,0 +1,38 @@
+{
+  "nodes": [],
+  "roots": [
+    {
+      "manifest": "app/pom.xml",
+      "lockfile": "app/pom.xml",
+      "ecosystem": "maven",
+      "status": "partial",
+      "reason": "registry_unreachable",
+      "detail": "Plugin org.apache.maven.plugins:maven-dependency-plugin:3.8.1 or one of its dependencies could not be resolved: Failed to read artifact descriptor for org.apache.maven.plugins:maven-dependency-plugin:jar:3.8.1: Could not transfer artifact org.apache.maven....",
+      "devKnown": false,
+      "members": [],
+      "edges": []
+    },
+    {
+      "manifest": "core/pom.xml",
+      "lockfile": "core/pom.xml",
+      "ecosystem": "maven",
+      "status": "partial",
+      "reason": "registry_unreachable",
+      "detail": "Plugin org.apache.maven.plugins:maven-dependency-plugin:3.8.1 or one of its dependencies could not be resolved: Failed to read artifact descriptor for org.apache.maven.plugins:maven-dependency-plugin:jar:3.8.1: Could not transfer artifact org.apache.maven....",
+      "devKnown": false,
+      "members": [],
+      "edges": []
+    },
+    {
+      "manifest": "pom.xml",
+      "lockfile": "pom.xml",
+      "ecosystem": "maven",
+      "status": "partial",
+      "reason": "registry_unreachable",
+      "detail": "Plugin org.apache.maven.plugins:maven-dependency-plugin:3.8.1 or one of its dependencies could not be resolved: Failed to read artifact descriptor for org.apache.maven.plugins:maven-dependency-plugin:jar:3.8.1: Could not transfer artifact org.apache.maven....",
+      "devKnown": false,
+      "members": [],
+      "edges": []
+    }
+  ]
+}

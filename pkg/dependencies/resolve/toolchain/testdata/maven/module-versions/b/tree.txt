@@ -1,0 +1,4 @@
+com.example:b:jar:1.0.0
+\- org.example:x:jar:1.0:compile
+   \- org.example:y:jar:1:compile
+      \- org.example:y1-only:jar:1.0:compile

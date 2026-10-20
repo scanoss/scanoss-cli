@@ -1,0 +1,5 @@
+com.example:cycle:jar:1.0.0
++- org.example:a:jar:1.0:compile
+|  \- org.example:b:jar:1.0:compile
+|     \- (org.example:a:jar:1.0:compile - omitted for cycle)
+\- commons-logging:commons-logging:jar:1.2:compile

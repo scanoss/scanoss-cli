@@ -337,7 +337,14 @@ registry and the members are what it resolved without it.
 
 | Manifest | Runs | Graph |
 |----------|------|-------|
-| `go.mod` | `go list -e -m -json all` and `go mod graph`, with `GOWORK=off`, `GOFLAGS=-mod=readonly` and `GOTOOLCHAIN=local` | the modules the build selects, with edges between the selected versions; `replace` as for the `go.mod` lockfile; `edges_unknown` when only `go mod graph` fails |
+| `go.mod` | `go list -e -m -json all` and `go mod graph`, with `GOWORK=off`, `GOFLAGS=-mod=readonly` and `GOTOOLCHAIN=local` | the modules the build selects, with edges between the selected versions; `replace` as for the `go.mod` lockfile; `go.work` ignored, so the other workspace modules are the versions `go.mod` requires, or local nodes only through a directory `replace`; `edges_unknown` when only `go mod graph` fails |
+| `pom.xml` | `mvn -B -ntp -fae org.apache.maven.plugins:maven-dependency-plugin:3.8.1:tree -Dverbose=true -DoutputType=text`, from `PATH`, never `mvnw` | one root per module of the reactor, resolved as that module resolves its dependencies, with the module's `pom.xml` as `Manifest` and `Lockfile`; `Limits` apply per module; edges to the nodes Maven omits for a duplicate, conflict or cycle; sibling modules are local nodes and `test` dependencies dev; a module that fails, or that Maven skips after another failed, gets that failure; `unresolved_dependency` for a dependency whose POM is missing |
+
+`mvn` writes each module's tree to a hidden file, named afresh for each call,
+in the module's directory; `Resolve` reads and removes them, also when `mvn`
+fails or times out. Maven has no environment defaults here: set mirrors in
+the `settings.xml` that `MAVEN_ARGS` (Maven 3.9 and later) or `MAVEN_OPTS`
+points to through `Options.Env`.
 
 ## Error Handling
 

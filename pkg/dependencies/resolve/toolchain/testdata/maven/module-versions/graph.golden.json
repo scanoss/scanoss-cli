@@ -1,0 +1,102 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:maven/org.example/x@1.0",
+      "purl": "pkg:maven/org.example/x",
+      "version": "1.0"
+    },
+    {
+      "id": "pkg:maven/org.example/y1-only@1.0",
+      "purl": "pkg:maven/org.example/y1-only",
+      "version": "1.0"
+    },
+    {
+      "id": "pkg:maven/org.example/y2-only@1.0",
+      "purl": "pkg:maven/org.example/y2-only",
+      "version": "1.0"
+    },
+    {
+      "id": "pkg:maven/org.example/y@1",
+      "purl": "pkg:maven/org.example/y",
+      "version": "1"
+    },
+    {
+      "id": "pkg:maven/org.example/y@2",
+      "purl": "pkg:maven/org.example/y",
+      "version": "2"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "a/pom.xml",
+      "lockfile": "a/pom.xml",
+      "ecosystem": "maven",
+      "status": "complete",
+      "devKnown": true,
+      "members": [
+        {
+          "id": "pkg:maven/org.example/x@1.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:maven/org.example/y2-only@1.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/org.example/y@2",
+          "direct": true
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:maven/org.example/x@1.0",
+          "to": "pkg:maven/org.example/y@2"
+        },
+        {
+          "from": "pkg:maven/org.example/y@2",
+          "to": "pkg:maven/org.example/y2-only@1.0"
+        }
+      ]
+    },
+    {
+      "manifest": "b/pom.xml",
+      "lockfile": "b/pom.xml",
+      "ecosystem": "maven",
+      "status": "complete",
+      "devKnown": true,
+      "members": [
+        {
+          "id": "pkg:maven/org.example/x@1.0",
+          "direct": true
+        },
+        {
+          "id": "pkg:maven/org.example/y1-only@1.0",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/org.example/y@1",
+          "direct": false
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:maven/org.example/x@1.0",
+          "to": "pkg:maven/org.example/y@1"
+        },
+        {
+          "from": "pkg:maven/org.example/y@1",
+          "to": "pkg:maven/org.example/y1-only@1.0"
+        }
+      ]
+    },
+    {
+      "manifest": "pom.xml",
+      "lockfile": "pom.xml",
+      "ecosystem": "maven",
+      "status": "complete",
+      "devKnown": true,
+      "members": [],
+      "edges": []
+    }
+  ]
+}

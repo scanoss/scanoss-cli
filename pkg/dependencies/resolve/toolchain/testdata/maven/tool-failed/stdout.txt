@@ -1,0 +1,18 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ----------------------< com.example:tool-failed >-----------------------
+[INFO] Building tool-failed 1.0.0
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  0.425 s
+[INFO] Finished at: 2026-10-20T00:45:26+02:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal on project tool-failed: Could not resolve dependencies for project com.example:tool-failed:jar:1.0.0: Failed to collect dependencies at org.apache.commons:commons-lang3:jar:[99.0,100.0): No versions available for org.apache.commons:commons-lang3:jar:[99.0,100.0) within specified range -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/DependencyResolutionException

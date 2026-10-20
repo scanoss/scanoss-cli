@@ -1,0 +1,26 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] parent                                                             [pom]
+[INFO] core                                                               [jar]
+[INFO] app                                                                [jar]
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for parent 1.0.0:
+[INFO] 
+[INFO] parent ............................................. SKIPPED
+[INFO] core ............................................... SKIPPED
+[INFO] app ................................................ SKIPPED
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  0.182 s
+[INFO] Finished at: 2026-10-20T00:45:45+02:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Plugin org.apache.maven.plugins:maven-dependency-plugin:3.8.1 or one of its dependencies could not be resolved: Failed to read artifact descriptor for org.apache.maven.plugins:maven-dependency-plugin:jar:3.8.1: Could not transfer artifact org.apache.maven.plugins:maven-dependency-plugin:pom:3.8.1 from/to central (http://127.0.0.1:9/maven2): transfer failed for http://127.0.0.1:9/maven2/org/apache/maven/plugins/maven-dependency-plugin/3.8.1/maven-dependency-plugin-3.8.1.pom: Connect to 127.0.0.1:9 [/127.0.0.1] failed: Connection refused -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/PluginResolutionException

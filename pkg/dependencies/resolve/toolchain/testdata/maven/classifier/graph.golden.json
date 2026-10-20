@@ -1,0 +1,148 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:maven/io.netty/netty-buffer@4.1.100.Final",
+      "purl": "pkg:maven/io.netty/netty-buffer",
+      "version": "4.1.100.Final"
+    },
+    {
+      "id": "pkg:maven/io.netty/netty-common@4.1.100.Final",
+      "purl": "pkg:maven/io.netty/netty-common",
+      "version": "4.1.100.Final"
+    },
+    {
+      "id": "pkg:maven/io.netty/netty-resolver@4.1.100.Final",
+      "purl": "pkg:maven/io.netty/netty-resolver",
+      "version": "4.1.100.Final"
+    },
+    {
+      "id": "pkg:maven/io.netty/netty-transport-classes-epoll@4.1.100.Final",
+      "purl": "pkg:maven/io.netty/netty-transport-classes-epoll",
+      "version": "4.1.100.Final"
+    },
+    {
+      "id": "pkg:maven/io.netty/netty-transport-native-epoll@4.1.100.Final",
+      "purl": "pkg:maven/io.netty/netty-transport-native-epoll",
+      "version": "4.1.100.Final"
+    },
+    {
+      "id": "pkg:maven/io.netty/netty-transport-native-unix-common@4.1.100.Final",
+      "purl": "pkg:maven/io.netty/netty-transport-native-unix-common",
+      "version": "4.1.100.Final"
+    },
+    {
+      "id": "pkg:maven/io.netty/netty-transport@4.1.100.Final",
+      "purl": "pkg:maven/io.netty/netty-transport",
+      "version": "4.1.100.Final"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "pom.xml",
+      "lockfile": "pom.xml",
+      "ecosystem": "maven",
+      "status": "complete",
+      "devKnown": true,
+      "members": [
+        {
+          "id": "pkg:maven/io.netty/netty-buffer@4.1.100.Final",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/io.netty/netty-common@4.1.100.Final",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/io.netty/netty-resolver@4.1.100.Final",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/io.netty/netty-transport-classes-epoll@4.1.100.Final",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/io.netty/netty-transport-native-epoll@4.1.100.Final",
+          "direct": true
+        },
+        {
+          "id": "pkg:maven/io.netty/netty-transport-native-unix-common@4.1.100.Final",
+          "direct": false
+        },
+        {
+          "id": "pkg:maven/io.netty/netty-transport@4.1.100.Final",
+          "direct": false
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:maven/io.netty/netty-buffer@4.1.100.Final",
+          "to": "pkg:maven/io.netty/netty-common@4.1.100.Final"
+        },
+        {
+          "from": "pkg:maven/io.netty/netty-resolver@4.1.100.Final",
+          "to": "pkg:maven/io.netty/netty-common@4.1.100.Final"
+        },
+        {
+          "from": "pkg:maven/io.netty/netty-transport-classes-epoll@4.1.100.Final",
+          "to": "pkg:maven/io.netty/netty-buffer@4.1.100.Final"
+        },
+        {
+          "from": "pkg:maven/io.netty/netty-transport-classes-epoll@4.1.100.Final",
+          "to": "pkg:maven/io.netty/netty-common@4.1.100.Final"
+        },
+        {
+          "from": "pkg:maven/io.netty/netty-transport-classes-epoll@4.1.100.Final",
+          "to": "pkg:maven/io.netty/netty-transport-native-unix-common@4.1.100.Final"
+        },
+        {
+          "from": "pkg:maven/io.netty/netty-transport-classes-epoll@4.1.100.Final",
+          "to": "pkg:maven/io.netty/netty-transport@4.1.100.Final"
+        },
+        {
+          "from": "pkg:maven/io.netty/netty-transport-native-epoll@4.1.100.Final",
+          "to": "pkg:maven/io.netty/netty-buffer@4.1.100.Final"
+        },
+        {
+          "from": "pkg:maven/io.netty/netty-transport-native-epoll@4.1.100.Final",
+          "to": "pkg:maven/io.netty/netty-common@4.1.100.Final"
+        },
+        {
+          "from": "pkg:maven/io.netty/netty-transport-native-epoll@4.1.100.Final",
+          "to": "pkg:maven/io.netty/netty-transport-classes-epoll@4.1.100.Final"
+        },
+        {
+          "from": "pkg:maven/io.netty/netty-transport-native-epoll@4.1.100.Final",
+          "to": "pkg:maven/io.netty/netty-transport-native-unix-common@4.1.100.Final"
+        },
+        {
+          "from": "pkg:maven/io.netty/netty-transport-native-epoll@4.1.100.Final",
+          "to": "pkg:maven/io.netty/netty-transport@4.1.100.Final"
+        },
+        {
+          "from": "pkg:maven/io.netty/netty-transport-native-unix-common@4.1.100.Final",
+          "to": "pkg:maven/io.netty/netty-buffer@4.1.100.Final"
+        },
+        {
+          "from": "pkg:maven/io.netty/netty-transport-native-unix-common@4.1.100.Final",
+          "to": "pkg:maven/io.netty/netty-common@4.1.100.Final"
+        },
+        {
+          "from": "pkg:maven/io.netty/netty-transport-native-unix-common@4.1.100.Final",
+          "to": "pkg:maven/io.netty/netty-transport@4.1.100.Final"
+        },
+        {
+          "from": "pkg:maven/io.netty/netty-transport@4.1.100.Final",
+          "to": "pkg:maven/io.netty/netty-buffer@4.1.100.Final"
+        },
+        {
+          "from": "pkg:maven/io.netty/netty-transport@4.1.100.Final",
+          "to": "pkg:maven/io.netty/netty-common@4.1.100.Final"
+        },
+        {
+          "from": "pkg:maven/io.netty/netty-transport@4.1.100.Final",
+          "to": "pkg:maven/io.netty/netty-resolver@4.1.100.Final"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "nodes": [
+    {
+      "id": "pkg:maven/commons-logging/commons-logging@1.2",
+      "purl": "pkg:maven/commons-logging/commons-logging",
+      "version": "1.2"
+    },
+    {
+      "id": "pkg:maven/org.apache.httpcomponents/httpclient@4.5.14",
+      "purl": "pkg:maven/org.apache.httpcomponents/httpclient",
+      "version": "4.5.14"
+    },
+    {
+      "id": "pkg:maven/org.apache.httpcomponents/httpcore@4.4.16",
+      "purl": "pkg:maven/org.apache.httpcomponents/httpcore",
+      "version": "4.4.16"
+    }
+  ],
+  "roots": [
+    {
+      "manifest": "pom.xml",
+      "lockfile": "pom.xml",
+      "ecosystem": "maven",
+      "status": "partial",
+      "reason": "invalid_entry",
+      "detail": "dependency tree line +- commons-codec:commons-codec:1.16.0",
+      "devKnown": true,
+      "members": [
+        {
+          "id": "pkg:maven/commons-logging/commons-logging@1.2",
+          "direct": true
+        },
+        {
+          "id": "pkg:maven/org.apache.httpcomponents/httpclient@4.5.14",
+          "direct": true
+        },
+        {
+          "id": "pkg:maven/org.apache.httpcomponents/httpcore@4.4.16",
+          "direct": false
+        }
+      ],
+      "edges": [
+        {
+          "from": "pkg:maven/org.apache.httpcomponents/httpclient@4.5.14",
+          "to": "pkg:maven/org.apache.httpcomponents/httpcore@4.4.16"
+        }
+      ]
+    }
+  ]
+}

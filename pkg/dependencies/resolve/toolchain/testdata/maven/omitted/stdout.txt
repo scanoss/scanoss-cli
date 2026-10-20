@@ -1,0 +1,14 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------< com.example:omitted >-------------------------
+[INFO] Building omitted 1.0.0
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- maven-dependency-plugin:3.8.1:tree (default-cli) @ omitted ---
+[INFO] Wrote dependency tree to: /work/omitted/tree.txt
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  16.027 s
+[INFO] Finished at: 2026-10-20T00:45:18+02:00
+[INFO] ------------------------------------------------------------------------

@@ -22,8 +22,8 @@
  */
 
 // Package toolchain builds a resolve.Graph by running an ecosystem's own
-// tools on a manifest, such as the go command on go.mod, for projects whose
-// lockfile does not record the whole graph.
+// tools on a manifest, such as the go command on go.mod or mvn on pom.xml,
+// for projects whose lockfile does not record the whole graph.
 //
 // It runs build tooling on files the scanned repository controls, and some
 // tools run the repository's own code, such as build scripts and plugins, so
@@ -35,7 +35,12 @@
 // unknown; one that cannot reach the registry makes it partial, with what the
 // tool resolved without it. Resolve never fails because of a tool. A root's
 // Manifest and Lockfile are both the manifest's path, since the tool, not a
-// lockfile, resolved it.
+// lockfile, resolved it. A Maven reactor has one root per module, each with
+// the module's pom.xml as both.
+//
+// A go.work is ignored (GOWORK=off): each go.mod resolves on its own, and the
+// workspace's other modules are not local nodes. They appear as the versions
+// go.mod requires, or as local nodes only through a directory replace.
 package toolchain
 
 import (
@@ -51,9 +56,11 @@ import (
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/internal/build"
 )
 
-// Limits bounds the output read from a tool and the graph built from it.
+// Limits bounds the output read from a tool and the graph built from it. A
+// Maven reactor's modules are resolved apart, so MaxNodes and MaxEdges bound
+// each module's graph, not the merged one.
 type Limits struct {
-	MaxOutput int64 // stdout read from one tool run; more makes the root unknown (too_large)
+	MaxOutput int64 // stdout or stderr of one tool run, or a file it writes; more makes the root unknown (too_large)
 	MaxNodes  int   // nodes kept; reaching it makes the roots partial (node_limit)
 	MaxEdges  int   // edges kept; reaching it makes the roots partial (edge_limit)
 }
@@ -81,13 +88,26 @@ type Options struct {
 var ErrUnsupported = errors.New("unsupported manifest")
 
 type tool struct {
-	ecosystem resolve.Ecosystem
-	env       []string
-	resolve   func(b *build.Builder, r *build.Root, run runFunc)
+	env     []string
+	resolve func(p project) resolve.Graph
+}
+
+// project is the manifest, its directory on disk and the tools run in it.
+type project struct {
+	manifest  string // slash path, as given to Resolve
+	dir       string
+	lim       build.Limits
+	maxOutput int64
+	run       runFunc
 }
 
 var tools = map[string]tool{
-	"go.mod": {resolve.EcosystemGolang, goEnv, resolveGo},
+	"go.mod": {goEnv, func(p project) resolve.Graph {
+		b := build.New(p.manifest, resolve.EcosystemGolang, "go.mod", p.lim)
+		resolveGo(b, b.Root(""), p.run)
+		return b.Graph()
+	}},
+	"pom.xml": {nil, resolveMaven},
 }
 
 // Supported reports whether manifest's base name is one this package
@@ -112,10 +132,6 @@ func Resolve(ctx context.Context, dir, manifest string, opts Options) (resolve.G
 	if opts.Limits == (Limits{}) {
 		opts.Limits = DefaultLimits()
 	}
-	b := build.New(manifest, t.ecosystem, path.Base(manifest), build.Limits{
-		MaxNodes: opts.Limits.MaxNodes,
-		MaxEdges: opts.Limits.MaxEdges,
-	})
 	r := runner{
 		ctx:       ctx,
 		dir:       filepath.Join(dir, filepath.FromSlash(path.Dir(manifest))),
@@ -123,6 +139,11 @@ func Resolve(ctx context.Context, dir, manifest string, opts Options) (resolve.G
 		timeout:   opts.Timeout,
 		maxOutput: opts.Limits.MaxOutput,
 	}
-	t.resolve(b, b.Root(""), r.run)
-	return b.Graph(), nil
+	return t.resolve(project{
+		manifest:  manifest,
+		dir:       r.dir,
+		lim:       build.Limits{MaxNodes: opts.Limits.MaxNodes, MaxEdges: opts.Limits.MaxEdges},
+		maxOutput: r.maxOutput,
+		run:       r.run,
+	}), nil
 }

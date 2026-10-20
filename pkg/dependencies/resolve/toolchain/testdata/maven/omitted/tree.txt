@@ -1,0 +1,7 @@
+com.example:omitted:jar:1.0.0
++- org.apache.httpcomponents:httpclient:jar:4.5.14:compile
+|  +- org.apache.httpcomponents:httpcore:jar:4.4.16:compile
+|  +- (commons-logging:commons-logging:jar:1.2:compile - omitted for duplicate)
+|  \- (commons-codec:commons-codec:jar:1.11:compile - omitted for conflict with 1.16.0)
++- commons-codec:commons-codec:jar:1.16.0:compile (scope not updated to compile)
+\- commons-logging:commons-logging:jar:1.2:compile

@@ -313,11 +313,35 @@ func (b *Builder) Graph() resolve.Graph {
 			g.Nodes = append(g.Nodes, n)
 		}
 	}
+	sortGraph(g)
+	return g
+}
+
+// Merge joins graphs built apart, such as the modules of one Maven reactor.
+// A node in several of them is one node, local only when it is local in
+// every one, as for a node added twice to a Builder.
+func Merge(graphs ...resolve.Graph) resolve.Graph {
+	nodes := map[resolve.NodeID]resolve.Node{}
+	g := resolve.Graph{Nodes: []resolve.Node{}, Roots: []resolve.Root{}}
+	for _, x := range graphs {
+		for _, n := range x.Nodes {
+			if seen, ok := nodes[n.ID]; ok {
+				n.Local = n.Local && seen.Local
+			}
+			nodes[n.ID] = n
+		}
+		g.Roots = append(g.Roots, x.Roots...)
+	}
+	g.Nodes = slices.AppendSeq(g.Nodes, maps.Values(nodes))
+	sortGraph(g)
+	return g
+}
+
+func sortGraph(g resolve.Graph) {
 	slices.SortFunc(g.Nodes, func(x, y resolve.Node) int { return cmp.Compare(x.ID, y.ID) })
 	slices.SortFunc(g.Roots, func(x, y resolve.Root) int {
 		return cmp.Or(cmp.Compare(x.Manifest, y.Manifest), cmp.Compare(x.Lockfile, y.Lockfile))
 	})
-	return g
 }
 
 // reach returns start plus every node reachable from it, keeping start's

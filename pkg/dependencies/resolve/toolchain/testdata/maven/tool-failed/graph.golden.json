@@ -1,0 +1,16 @@
+{
+  "nodes": [],
+  "roots": [
+    {
+      "manifest": "pom.xml",
+      "lockfile": "pom.xml",
+      "ecosystem": "maven",
+      "status": "unknown",
+      "reason": "tool_failed",
+      "detail": "Failed to execute goal on project tool-failed: Could not resolve dependencies for project com.example:tool-failed:jar:1.0.0: Failed to collect dependencies at org.apache.commons:commons-lang3:jar:[99.0,100.0): No versions available for org.apache.commons:c...",
+      "devKnown": false,
+      "members": [],
+      "edges": []
+    }
+  ]
+}

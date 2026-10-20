@@ -51,12 +51,22 @@ jobs:
           - ecosystem: go
             image: golang:1.26
             test: Go
+          - ecosystem: maven
+            image: maven:3.9-eclipse-temurin-21
+            test: Maven
     container: ${{ matrix.image }}
     env:
       GOTOOLCHAIN: local
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+
+      # Only the golang image comes with Go.
+      - name: Set up Go
+        if: matrix.ecosystem != 'go'
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
 
       - name: Run integration tests
         run: go test -tags integration -run '${{ matrix.test }}' ./pkg/dependencies/resolve/toolchain/...
