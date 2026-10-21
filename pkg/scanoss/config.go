@@ -116,7 +116,7 @@ func (cfg Config) requestHeader() (http.Header, error) {
 	for name, values := range cfg.Headers {
 		// A map literal can hold a key in any case; Add canonicalizes it, so check that form.
 		if reservedHeaders[http.CanonicalHeaderKey(name)] {
-			return nil, fmt.Errorf("Headers may not set %s, which the SDK sets", name)
+			return nil, fmt.Errorf("Config.Headers may not set %s, which the SDK sets itself", name)
 		}
 		for _, v := range values {
 			header.Add(name, v)
