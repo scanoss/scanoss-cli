@@ -27,6 +27,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -156,13 +157,14 @@ func (cfg Config) httpClient() (*http.Client, error) {
 }
 
 // net/http strips only its built-in auth and cookie headers on a cross-host redirect and
-// forwards every other header, X-Api-Key included. The 10-hop cap mirrors net/http's
-// unexported defaultCheckRedirect.
+// forwards every other header, X-Api-Key included. It also re-copies the original headers
+// on every hop, so a chain that leaves the API and comes back would restore them unless
+// every hop is checked. The 10-hop cap mirrors net/http's unexported defaultCheckRedirect.
 func dropOnHostChange(client *http.Client, names []string) *http.Client {
 	wrapped := *client
 	next := client.CheckRedirect
 	wrapped.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		if req.URL.Host != via[0].URL.Host {
+		if leftOrigin(req, via) {
 			for _, name := range names {
 				req.Header.Del(name)
 			}
@@ -176,6 +178,41 @@ func dropOnHostChange(client *http.Client, names []string) *http.Client {
 		return nil
 	}
 	return &wrapped
+}
+
+func leftOrigin(req *http.Request, via []*http.Request) bool {
+	if !sameOrigin(via[0].URL, req.URL) {
+		return true
+	}
+	for _, hop := range via[1:] {
+		if !sameOrigin(via[0].URL, hop.URL) {
+			return true
+		}
+	}
+	return false
+}
+
+// sameOrigin reports whether a redirect from api to dest may carry the API key. An upgrade
+// from http to https on the default ports keeps it; a downgrade would send it in clear.
+func sameOrigin(api, dest *url.URL) bool {
+	if !strings.EqualFold(api.Hostname(), dest.Hostname()) {
+		return false
+	}
+	if api.Scheme == dest.Scheme {
+		return effectivePort(api) == effectivePort(dest)
+	}
+	return api.Scheme == "http" && dest.Scheme == "https" &&
+		effectivePort(api) == "80" && effectivePort(dest) == "443"
+}
+
+func effectivePort(u *url.URL) string {
+	if p := u.Port(); p != "" {
+		return p
+	}
+	if u.Scheme == "https" {
+		return "443"
+	}
+	return "80"
 }
 
 // retryCount resolves Config.MaxRetries: unset takes the default, and a negative value
