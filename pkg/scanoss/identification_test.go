@@ -87,7 +87,7 @@ func TestHeadersSentAlongsideAuth(t *testing.T) {
 }
 
 func TestHeadersRejectReservedNames(t *testing.T) {
-	for _, name := range []string{"x-api-key", "X-Session", "Content-Type", "user-agent"} {
+	for _, name := range []string{"x-api-key", "X-Session", "Content-Type", "user-agent", "content-range", "X-Scan-Id"} {
 		t.Run(name, func(t *testing.T) {
 			if _, err := New(Config{Headers: http.Header{name: {"x"}}}); err == nil {
 				t.Errorf("New accepted Headers carrying %s", name)
