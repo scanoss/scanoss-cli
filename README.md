@@ -395,6 +395,31 @@ if err != nil {
 }
 ```
 
+### Identifying your client from the SDK
+
+Every request carries a `User-Agent` ending in `scanoss.go/<sdk version>`.
+`UserAgent` puts your product in front of it, and `Headers` adds headers to every
+request:
+
+```go
+client, err := scanoss.New(scanoss.Config{
+    APIKey:    key,
+    UserAgent: "earnie/1.8.2 (deploy=self-hosted)", // sent as "earnie/1.8.2 (deploy=self-hosted) scanoss.go/0.13.0"
+    Headers:   http.Header{"X-Scanoss-Client-Instance": {instanceID}},
+    HTTPClient: &http.Client{
+        Transport: otelhttp.NewTransport(http.DefaultTransport),
+        Timeout:   2 * time.Minute,
+    },
+})
+```
+
+`Headers` cannot set `User-Agent`, `Content-Type`, `x-api-key`, `x-Session`,
+`Content-Range` or `X-Scan-Id`, which the SDK sets itself; `New` rejects them.
+`HTTPClient` replaces the client the SDK builds, so its own timeout, proxy and TLS
+settings apply, and `New` rejects it together with `Proxy`, `CACertFile`,
+`InsecureTLS` or `Timeout`. Its transport sees each request with the context passed
+to the SDK call, so it can add request-scoped headers such as `X-Request-ID`.
+
 ## Development
 
 ```bash

@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`Config.UserAgent`, `Config.Headers` and `Config.HTTPClient`** let a program identify
+  itself to the SCANOSS API. Every request now sends `User-Agent: scanoss.go/<version>`
+  instead of Go's default, with `UserAgent` in front of it when set. `Headers` are sent on
+  every request; `New` rejects the headers the SDK sets itself, so they cannot replace the
+  API key. `HTTPClient` sends the requests instead of the client the SDK builds, and its
+  transport sees the context of each call, for tracing or request-scoped headers. `New`
+  rejects it together with `Proxy`, `CACertFile`, `InsecureTLS` or `Timeout`, which it
+  would ignore.
+
 - **`pkg/dependencies/resolve/toolchain`** builds the dependency graph by running the
   ecosystem's own tools on a manifest, for projects whose lockfile does not record the whole
   graph. It resolves `go.mod` with `go list -m all` and `go mod graph`: the members are the

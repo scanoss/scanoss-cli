@@ -67,6 +67,7 @@ import (
 // is safe for concurrent use.
 type Client struct {
 	apiURL string
+	header http.Header
 	// transport is the SDK's HTTP transport layer (http client + auth + retries).
 	// The Client composes it rather than being one — see transport.go.
 	transport *httpTransport
@@ -95,6 +96,10 @@ func New(cfg Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	header, err := cfg.requestHeader()
+	if err != nil {
+		return nil, err
+	}
 	apiURL := DefaultAPIURL
 	if cfg.APIURL != "" {
 		apiURL = strings.TrimRight(cfg.APIURL, "/")
@@ -102,6 +107,7 @@ func New(cfg Config) (*Client, error) {
 
 	c := &Client{
 		apiURL:    apiURL,
+		header:    header,
 		chunkSize: positiveOr(cfg.ChunkSize, DefaultChunkSize),
 		workers:   positiveOr(cfg.Workers, DefaultWorkers),
 		transport: &httpTransport{
@@ -132,6 +138,7 @@ func (c *Client) newRequest(method, endpoint string, body io.Reader) (*http.Requ
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
+	req.Header = c.header.Clone()
 	return req, nil
 }
 
