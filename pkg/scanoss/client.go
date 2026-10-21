@@ -100,6 +100,11 @@ func New(cfg Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	identifying := []string{"X-Api-Key", "X-Session"}
+	for name := range cfg.Headers {
+		identifying = append(identifying, name)
+	}
+	httpClient = dropOnHostChange(httpClient, identifying)
 	apiURL := DefaultAPIURL
 	if cfg.APIURL != "" {
 		apiURL = strings.TrimRight(cfg.APIURL, "/")

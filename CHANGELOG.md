@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **A redirect to another host no longer receives the API key.** Go drops only
+  `Authorization`, `Cookie` and `WWW-Authenticate` when a redirect changes host, so a 3xx
+  from the API sent `x-api-key`, `x-Session` and every `Config.Headers` entry to the host it
+  named. The SDK now removes them whenever a redirect leaves the API's host and port,
+  including through a caller's `Config.HTTPClient`, whose own `CheckRedirect` still applies.
+  Same-host redirects keep them, as does an upgrade from `http` to `https`. A downgrade to
+  `http`, or any later hop once a redirect has left the API, drops them.
+
 ## [0.14.0] - 2026-10-21
 
 ### Added
