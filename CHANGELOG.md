@@ -34,6 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`unresolved_dependency`). Maven reads its mirrors from the caller's `settings.xml`, and the
   run writes a hidden tree file into each module's directory, which `Resolve` removes.
 
+### Security
+
+- **Binaries, the Docker image and libscanoss are now built with Go 1.27.3**, which fixes
+  GO-2026-6809 in `crypto/x509`.
+
 ## [0.12.0] - 2026-10-19
 
 ### Added
