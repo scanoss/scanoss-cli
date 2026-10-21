@@ -7,8 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.13.0] - 2026-10-21
-
 ### Added
 
 - **`Config.UserAgent`, `Config.Headers` and `Config.HTTPClient`** let a program identify
@@ -19,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   transport sees the context of each call, for tracing or request-scoped headers. `New`
   rejects it together with `Proxy`, `CACertFile`, `InsecureTLS` or `Timeout`, which it
   would ignore.
+
+## [0.13.0] - 2026-10-21
+
+### Added
 
 - **`pkg/dependencies/resolve/toolchain`** builds the dependency graph by running the
   ecosystem's own tools on a manifest, for projects whose lockfile does not record the whole
