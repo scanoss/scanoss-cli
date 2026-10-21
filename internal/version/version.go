@@ -21,9 +21,9 @@
  * THE SOFTWARE.
  */
 
-// Package version reports the CLI build version, resolved in order from:
-// ldflags (release builds) → the embedded module version (go install @tag) →
-// a "dev" fallback.
+// Package version reports this module's version, resolved in order from: ldflags
+// (release builds) → the module version in the build info (go install @tag, or the
+// version a program importing the SDK requires) → a "dev" fallback.
 package version
 
 import (
@@ -36,15 +36,40 @@ import (
 //	-X github.com/scanoss/scanoss.go/internal/version.version=v0.9.0
 var version = ""
 
-// Version returns the CLI version, e.g. "v0.9.0" or "dev".
+const modulePath = "github.com/scanoss/scanoss.go"
+
+// Version returns the module version, e.g. "v0.9.0" or "dev".
 func Version() string {
 	if version != "" {
 		return version
 	}
 	if bi, ok := debug.ReadBuildInfo(); ok {
-		if v := strings.TrimSuffix(bi.Main.Version, "+dirty"); v != "" && v != "(devel)" {
+		if v := moduleVersion(bi); v != "" {
 			return v
 		}
 	}
 	return "dev"
+}
+
+func moduleVersion(bi *debug.BuildInfo) string {
+	mod := &bi.Main
+	if mod.Path != modulePath {
+		mod = nil
+		for _, dep := range bi.Deps {
+			if dep.Path == modulePath {
+				mod = dep
+				break
+			}
+		}
+	}
+	if mod == nil {
+		return ""
+	}
+	if mod.Replace != nil {
+		mod = mod.Replace
+	}
+	if v := strings.TrimSuffix(mod.Version, "+dirty"); v != "(devel)" {
+		return v
+	}
+	return ""
 }

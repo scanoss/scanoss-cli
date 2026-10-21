@@ -24,8 +24,13 @@
 package scanoss
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
+
+	"github.com/scanoss/scanoss.go/internal/version"
 )
 
 // Defaults applied when the caller does not override them.
@@ -86,11 +91,56 @@ type Config struct {
 	// MaxServerRetryWait caps a single Retry-After wait (default DefaultMaxServerRetryWait),
 	// bounding a pathological server value. It does not bound RetryBackoffBase's waits.
 	MaxServerRetryWait time.Duration
+
+	// UserAgent is the caller's product token(s), e.g. "earnie/1.8.2 (deploy=hosted)".
+	// The SDK appends its own "scanoss.go/<version>"; empty sends that token alone.
+	UserAgent string
+	// Headers are sent on every request, e.g. X-Scanoss-Client-Instance. New rejects
+	// the headers the SDK sets itself: User-Agent, Content-Type, x-api-key, x-Session,
+	// Content-Range and X-Scan-Id.
+	Headers http.Header
+	// HTTPClient, when set, sends every request instead of a client the SDK builds, so
+	// a caller can wrap its transport (tracing, per-request headers). The SDK does not
+	// modify it: its own Timeout, proxy and TLS settings apply, and New rejects a Config
+	// that also sets Proxy, CACertFile, InsecureTLS or Timeout.
+	HTTPClient *http.Client
 }
 
-// httpClient builds the client for the transport. The SDK owns it: Config carries the
-// settings, never a client of the caller's own.
+var reservedHeaders = map[string]bool{
+	"User-Agent": true, "Content-Type": true, "X-Api-Key": true, "X-Session": true,
+	"Content-Range": true, "X-Scan-Id": true,
+}
+
+func (cfg Config) requestHeader() (http.Header, error) {
+	header := http.Header{}
+	for name, values := range cfg.Headers {
+		// A map literal can hold a key in any case; Add canonicalizes it, so check that form.
+		if reservedHeaders[http.CanonicalHeaderKey(name)] {
+			return nil, fmt.Errorf("Config.Headers may not set %s, which the SDK sets itself", name)
+		}
+		for _, v := range values {
+			header.Add(name, v)
+		}
+	}
+	header.Set("User-Agent", userAgent(cfg.UserAgent))
+	return header, nil
+}
+
+func userAgent(product string) string {
+	sdk := "scanoss.go/" + strings.TrimPrefix(version.Version(), "v")
+	if product = strings.TrimSpace(product); product != "" {
+		return product + " " + sdk
+	}
+	return sdk
+}
+
 func (cfg Config) httpClient() (*http.Client, error) {
+	if cfg.HTTPClient != nil {
+		if cfg.Proxy != "" || cfg.CACertFile != "" || cfg.InsecureTLS || cfg.Timeout != 0 {
+			return nil, errors.New("HTTPClient cannot be combined with Proxy, CACertFile, InsecureTLS or Timeout; configure them on the client")
+		}
+		return cfg.HTTPClient, nil
+	}
 	// With nothing to customise, leave Transport nil so the client shares
 	// http.DefaultTransport, and with it one connection pool per process rather than a
 	// private pool per client.
