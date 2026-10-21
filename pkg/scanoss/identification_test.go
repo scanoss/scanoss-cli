@@ -149,3 +149,72 @@ func TestHTTPClientRejectsTransportSettings(t *testing.T) {
 		})
 	}
 }
+
+var identifyingHeaders = []string{"X-Api-Key", "X-Session", "X-Scanoss-Client-Instance"}
+
+func redirectServer(t *testing.T, target func(self string) string) (*httptest.Server, func() http.Header) {
+	t.Helper()
+	var got http.Header
+	var srv *httptest.Server
+	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/final" {
+			got = r.Header.Clone()
+			_, _ = w.Write([]byte("{}"))
+			return
+		}
+		http.Redirect(w, r, target(srv.URL), http.StatusTemporaryRedirect)
+	}))
+	t.Cleanup(srv.Close)
+	return srv, func() http.Header { return got }
+}
+
+func identifyingConfig(apiURL string, client *http.Client) Config {
+	return Config{
+		APIURL:     apiURL,
+		APIKey:     "secret",
+		Headers:    http.Header{"X-Scanoss-Client-Instance": {"0192f3c4-7b1e-7c3a-9a55-5f0c2f9f6a10"}},
+		HTTPClient: client,
+	}
+}
+
+func TestCrossHostRedirectDropsIdentity(t *testing.T) {
+	for name, client := range map[string]*http.Client{"sdk client": nil, "caller's client": {}} {
+		t.Run(name, func(t *testing.T) {
+			other, otherHeaders := captureServer(t)
+			api, _ := redirectServer(t, func(string) string { return other.URL })
+			callAPI(t, mustNew(t, identifyingConfig(api.URL, client)))
+			got := otherHeaders()
+			if got == nil {
+				t.Fatal("redirect target saw no request")
+			}
+			for _, h := range identifyingHeaders {
+				if v := got.Get(h); v != "" {
+					t.Errorf("%s = %q reached the other host", h, v)
+				}
+			}
+		})
+	}
+}
+
+func TestSameHostRedirectKeepsIdentity(t *testing.T) {
+	api, final := redirectServer(t, func(self string) string { return self + "/final" })
+	callAPI(t, mustNew(t, identifyingConfig(api.URL, nil)))
+	got := final()
+	if got == nil {
+		t.Fatal("redirect target saw no request")
+	}
+	for _, h := range identifyingHeaders {
+		if got.Get(h) == "" {
+			t.Errorf("%s dropped on a same-host redirect", h)
+		}
+	}
+}
+
+func TestRedirectHonorsCallersPolicy(t *testing.T) {
+	api, final := redirectServer(t, func(self string) string { return self + "/final" })
+	client := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	_, err := mustNew(t, identifyingConfig(api.URL, client)).Components.Versions(context.Background(), "pkg:github/scanoss/engine", 1)
+	if err == nil || final() != nil {
+		t.Errorf("redirect followed despite the caller's CheckRedirect (err = %v)", err)
+	}
+}

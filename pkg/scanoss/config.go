@@ -155,6 +155,29 @@ func (cfg Config) httpClient() (*http.Client, error) {
 	})
 }
 
+// net/http strips only its built-in auth and cookie headers on a cross-host redirect and
+// forwards every other header, X-Api-Key included. The 10-hop cap mirrors net/http's
+// unexported defaultCheckRedirect.
+func dropOnHostChange(client *http.Client, names []string) *http.Client {
+	wrapped := *client
+	next := client.CheckRedirect
+	wrapped.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		if req.URL.Host != via[0].URL.Host {
+			for _, name := range names {
+				req.Header.Del(name)
+			}
+		}
+		if next != nil {
+			return next(req, via)
+		}
+		if len(via) >= 10 {
+			return errors.New("stopped after 10 redirects")
+		}
+		return nil
+	}
+	return &wrapped
+}
+
 // retryCount resolves Config.MaxRetries: unset takes the default, and a negative value
 // disables retries — the convention Timeout already uses in this Config.
 func retryCount(n int) int {
