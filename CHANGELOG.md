@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-10-21
+
 ### Added
 
 - **`Config.UserAgent`, `Config.Headers` and `Config.HTTPClient`** let a program identify
@@ -40,6 +42,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   dependency whose POM is missing makes the roots that reach it `partial`
   (`unresolved_dependency`). Maven reads its mirrors from the caller's `settings.xml`, and the
   run writes a hidden tree file into each module's directory, which `Resolve` removes.
+
+### Security
+
+- **Binaries, the Docker image and libscanoss are now built with Go 1.27.3**, which fixes
+  GO-2026-6809 in `crypto/x509`.
 
 ## [0.12.0] - 2026-10-19
 
@@ -484,7 +491,8 @@ Initial release of the SCANOSS Go CLI and SDK (`scanoss`).
   CycloneDX and SPDX (with `WithTool`/`WithAuthor`/`WithTimestamp` document-metadata options).
 - **C shared library** (`libscanoss`) with Node.js and Python bindings.
 
-[Unreleased]: https://github.com/scanoss/scanoss.go/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/scanoss/scanoss.go/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/scanoss/scanoss.go/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/scanoss/scanoss.go/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/scanoss/scanoss.go/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/scanoss/scanoss.go/compare/v0.9.0...v0.10.0
