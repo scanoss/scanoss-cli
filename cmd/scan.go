@@ -376,6 +376,8 @@ func init() {
 	addBOMRuleFlags(scanWFPCmd)
 	addRankingFlag(scanCmd)
 	addRankingFlag(scanWFPCmd)
+	addComponentFlag(scanCmd)
+	addComponentFlag(scanWFPCmd)
 	addSkipHeaderFlags(scanWFPCmd) // declared so the flag is rejected with a reason, see runScanWFP
 }
 
@@ -391,6 +393,10 @@ func runScan(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if err := validateOutputFormat(cmd); err != nil {
+		return err
+	}
+	components, err := resolveComponentLimit(cmd)
+	if err != nil {
 		return err
 	}
 	layers, err := scanLayers(cmd)
@@ -474,7 +480,7 @@ func runScan(cmd *cobra.Command, args []string) error {
 		Threads:           threads,
 		ScanFilters:       collectOpts,
 		DependencyFilters: depOpts,
-		ScanOptions:       scanTuning(cmd, scanSettings, prog),
+		ScanOptions:       scanTuning(cmd, scanSettings, prog, components),
 		WFPOptions:        fingerprintOptions(skipHeaders, skipHeadersLimit),
 		WFPWriter:         wfpWriterOrNil(wfpOut),
 		OnProgress:        prog.layer,
@@ -520,6 +526,10 @@ func runScanWFP(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if err := validateOutputFormat(cmd); err != nil {
+		return err
+	}
+	components, err := resolveComponentLimit(cmd)
+	if err != nil {
 		return err
 	}
 	// A bare WFP has no source tree, so declared dependencies cannot be sourced. Rejecting deps
@@ -581,7 +591,7 @@ func runScanWFP(cmd *cobra.Command, args []string) error {
 	rep := scanpipeline.NewReporter(prog.layer)
 
 	var bom bomReport
-	scanOpts := append(scanTuning(cmd, scanSettings, prog), scanoss.WithScanReporter(rep), bom.option())
+	scanOpts := append(scanTuning(cmd, scanSettings, prog, components), scanoss.WithScanReporter(rep), bom.option())
 	res, err := client.Scan.WFP(ctx, wfp, scanOpts...)
 	if err != nil {
 		return renderAPIError(fmt.Errorf("scan failed: %w", err))
@@ -611,9 +621,9 @@ func buildScanClient(cmd *cobra.Command) (*scanoss.Client, error) {
 	return scanoss.New(cfg)
 }
 
-// scanTuning builds the per-scan options — chunk size, poll interval, the BOM rules, the ranking
+// scanTuning builds the per-scan options — chunk size, poll interval, the component limit, the BOM rules, the ranking
 // threshold and the scan-id notice — from the flags and settings.
-func scanTuning(cmd *cobra.Command, scanSettings *settings.Settings, prog *scanProgress) []scanoss.ScanOption {
+func scanTuning(cmd *cobra.Command, scanSettings *settings.Settings, prog *scanProgress, components scanoss.ComponentLimit) []scanoss.ScanOption {
 	chunkSize, _ := cmd.Flags().GetInt("chunk-size")
 	pollInterval, _ := cmd.Flags().GetDuration("poll-interval")
 	if chunkSize < 1024 {
@@ -624,6 +634,7 @@ func scanTuning(cmd *cobra.Command, scanSettings *settings.Settings, prog *scanP
 	scanOpts := []scanoss.ScanOption{
 		scanoss.WithChunkBytes(chunkSize),
 		scanoss.WithPollInterval(pollInterval),
+		scanoss.WithMaxComponents(components),
 		scanoss.WithScanIDNotify(func(id string) {
 			prog.writeLine("") // separate the scan-id block from the filter/skip notices above
 			prog.writeLine(infoLine("Scan id: %s", id))

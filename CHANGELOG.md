@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-10-23
+
+### Added
+
+- **`--max-components`** on `scan` and `scan wfp`, and **`scanoss.WithMaxComponents`** with
+  `scanoss.ComponentLimit`, choose how many components the server reports: a positive integer
+  (leading zeros allowed) or `all`. `ComponentsUpTo`, `AllComponents` and `ParseComponentLimit`
+  build a limit; an invalid value is rejected before anything is uploaded. The SDK sends it as
+  the `max_components` query parameter on every block of the upload. For a full-file match the
+  server reports the best N components of the project ranking plus up to three context picks
+  (folder, file alone, origin), each labelled in the match's `context`; a snippet block gets up
+  to N candidates; `all` is no limit. Unset sends nothing, so requests and results are
+  unchanged. The scanoss.api server must support the parameter; a server that does not will
+  ignore it.
+
 ## [0.14.2] - 2026-10-23
 
 ### Fixed
@@ -514,7 +529,8 @@ Initial release of the SCANOSS Go CLI and SDK (`scanoss`).
   CycloneDX and SPDX (with `WithTool`/`WithAuthor`/`WithTimestamp` document-metadata options).
 - **C shared library** (`libscanoss`) with Node.js and Python bindings.
 
-[Unreleased]: https://github.com/scanoss/scanoss.go/compare/v0.14.2...HEAD
+[Unreleased]: https://github.com/scanoss/scanoss.go/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/scanoss/scanoss.go/compare/v0.14.2...v0.15.0
 [0.14.2]: https://github.com/scanoss/scanoss.go/compare/v0.14.1...v0.14.2
 [0.14.1]: https://github.com/scanoss/scanoss.go/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/scanoss/scanoss.go/compare/v0.13.0...v0.14.0

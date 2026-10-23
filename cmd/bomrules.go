@@ -32,6 +32,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/scanoss/scanoss.go/pkg/sbom"
+	"github.com/scanoss/scanoss.go/pkg/scanoss"
 	"github.com/scanoss/scanoss.go/pkg/settings"
 )
 
@@ -204,6 +205,28 @@ func resolveRankingThreshold(cmd *cobra.Command, s *settings.Settings) int {
 		return settings.MinRankingThreshold
 	}
 	return threshold
+}
+
+// addComponentFlag declares --max-components on the commands that upload a scan.
+func addComponentFlag(cmd *cobra.Command) {
+	cmd.Flags().String("max-components", "",
+		`How many components the server reports: a positive integer or "all" (default: the server's own limit)`)
+}
+
+// resolveComponentLimit reads --max-components. A flag left off is an unset limit, which
+// sends nothing. A flag that was passed is parsed whatever it holds, so an explicit empty value is
+// refused rather than read as unset. A bad value is refused here so the command fails before it
+// fingerprints or uploads.
+func resolveComponentLimit(cmd *cobra.Command) (scanoss.ComponentLimit, error) {
+	if !cmd.Flags().Changed("max-components") {
+		return scanoss.ComponentLimit{}, nil
+	}
+	v, _ := cmd.Flags().GetString("max-components")
+	l, err := scanoss.ParseComponentLimit(v)
+	if err != nil {
+		return scanoss.ComponentLimit{}, fmt.Errorf("--max-components: %w", err)
+	}
+	return l, nil
 }
 
 // addSkipHeaderFlags declares the fingerprinting header filter flags.

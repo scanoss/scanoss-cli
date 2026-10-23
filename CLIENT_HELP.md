@@ -162,13 +162,27 @@ Flags (persistent flags are shared with `scan wfp`): `--api-url`, `--api-key`,
 `--ignore-cert-errors`, `-t, --threads` (10), `--save-wfp`, `--min-size` (bytes,
 default 0), `--max-size` (0 = unlimited), `--gitignore` (true),
 `--all-extensions`, `--all-folders`, `--all-hidden`, `-i, --identify`,
-`-n, --ignore`, `--ranking-threshold` (-1 = off), `--skip-headers`
+`-n, --ignore`, `--ranking-threshold` (-1 = off),
+`--max-components` (a positive integer or `all`; unset = the server's
+defaults), `--skip-headers`
 (**default true**, `--skip-headers=false` to disable), `--skip-headers-limit`
 (0 = no limit).
 
 `-i, --identify` and `-n, --ignore` name a component list; see
 [BOM rules](#bom-rules). `--skip-headers` applies while fingerprinting, so
 `scan wfp` rejects it — the WFP it is handed was already assembled.
+
+`--max-components` sets how many components the server reports: a positive
+integer (leading zeros allowed) or `all`. It is sent as the `max_components`
+query parameter on every block of the upload, so the server must support it.
+For a full-file match the server reports the best N components of the project
+ranking plus up to 3 context picks (folder, file alone, origin), each labelled
+in the match's `context`; a snippet block gets up to N candidates; the allowed
+set widens to at least N; `all` is no limit. Left unset, nothing is sent and
+the server's defaults apply (2 for full-file matches plus the context picks, 1
+per snippet block). A value that is not a positive integer or `all` is rejected
+before anything is uploaded. `results` does not take it: it only polls a scan
+that was already uploaded.
 
 ### Skipping files
 
@@ -686,6 +700,7 @@ with `--settings`. It carries BOM context and file-skip rules.
 | `--format` | `raw` | `raw` / `spdx` / `cyclonedx` |
 | `--chunk-size` (scan) | `1048576` | WFP upload block size (bytes) |
 | `--poll-interval` (scan) | `2s` | Scan status poll cadence |
+| `--max-components` (scan) | unset | Not sent; the server's default applies |
 | `--min-size` / `--max-size` | `0` / `0` | Literal minimum; `0` max means unlimited |
 | `--chunk-size` (decoration) | `10` | PURLs per request |
 | `--workers` (decoration) | `5` | Max concurrent requests |
