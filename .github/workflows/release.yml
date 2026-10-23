@@ -81,11 +81,18 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MACOS_SIGN_P12: ${{ secrets.MACOS_SIGN_P12 }}
+          MACOS_SIGN_PASSWORD: ${{ secrets.MACOS_SIGN_PASSWORD }}
+          MACOS_NOTARY_KEY: ${{ secrets.MACOS_NOTARY_KEY }}
+          MACOS_NOTARY_KEY_ID: ${{ secrets.MACOS_NOTARY_KEY_ID }}
+          MACOS_NOTARY_ISSUER_ID: ${{ secrets.MACOS_NOTARY_ISSUER_ID }}
 
   test-release-binaries:
     name: Test Release Binaries
     needs: release
     runs-on: ${{ matrix.os }}
+    env:
+      MACOS_SIGNED: ${{ secrets.MACOS_SIGN_P12 != '' }}
     strategy:
       matrix:
         include:
@@ -108,6 +115,13 @@ jobs:
           chmod +x scanoss-cli
           ./scanoss-cli --version
           ./scanoss-cli --help
+
+      # The download is not quarantined, so the smoke test above runs even unsigned.
+      - name: Verify Developer ID signature (macOS)
+        if: runner.os == 'macOS' && env.MACOS_SIGNED == 'true'
+        run: |
+          codesign --verify --strict --verbose=2 scanoss-cli
+          codesign -dvv scanoss-cli 2>&1 | grep -q '^Authority=Developer ID Application'
 
       - name: Extract and test (Windows)
         if: runner.os == 'Windows'
