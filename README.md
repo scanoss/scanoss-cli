@@ -382,6 +382,15 @@ result, err := client.Scan.Folder(ctx, "./my-project")
 // resume by id: client.Scan.Wait(ctx, scanID)
 ```
 
+To change how many components the server reports, pass a limit: a positive integer or all.
+Unset sends nothing and the server's defaults apply; the server must support the
+`max_components` parameter.
+
+```go
+limit, err := scanoss.ParseComponentLimit("5") // or scanoss.ComponentsUpTo(5), scanoss.AllComponents()
+result, err := client.Scan.Folder(ctx, "./my-project", scanoss.WithMaxComponents(limit))
+```
+
 ### Proxy and custom CA from the SDK
 
 ```go
