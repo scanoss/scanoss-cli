@@ -31,6 +31,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"sync"
 	"time"
@@ -100,6 +101,7 @@ type scanOptions struct {
 	onBOMReport   func(postprocess.Report) // receives what the BOM selection rules concluded (WithBOMReport)
 	wfpOptions    []wfp.Option             // per-file fingerprinting tuning (WithFingerprintOptions)
 	rankThreshold int                      // drop matches ranked worse than this (WithRankingThreshold)
+	maxComponents ComponentLimit           // components the server reports, sent with every block (WithMaxComponents)
 	pollInterval  time.Duration            // scan status poll cadence (WithPollInterval)
 	reporter      ScanReporter             // receives this scan's stages (WithScanReporter)
 	onScanID      func(string)             // receives this scan's id once it is resumable (WithScanIDNotify)
@@ -172,6 +174,19 @@ func WithBOMReport(fn func(postprocess.Report)) ScanOption {
 // nothing is asked of the server. Matches a bom.identify rule claims are never dropped by it.
 func WithRankingThreshold(threshold int) ScanOption {
 	return func(o *scanOptions) { o.rankThreshold = threshold }
+}
+
+// WithMaxComponents asks the server to report up to l components, or all of them. For a
+// full-file match that is the best N components of the project ranking plus up to three context
+// picks (folder, file alone, origin), each labelled in the match's context; a snippet block gets
+// up to N candidates, and the allowed set widens to at least N. It is sent with every WFP block
+// of the scan, because the server refuses a session whose blocks disagree. An unset limit sends
+// nothing and leaves the server's defaults in force.
+//
+// The server must support the max_components parameter. Unlike WithRankingThreshold this is not
+// applied client-side.
+func WithMaxComponents(l ComponentLimit) ScanOption {
+	return func(o *scanOptions) { o.maxComponents = l }
 }
 
 // WithFingerprintOptions tunes how each file is fingerprinted by Folder and Files — today,
@@ -321,7 +336,7 @@ func (s scanService) upload(ctx context.Context, r io.ReaderAt, size int64, o sc
 	ranges := chunkRanges(size, o.chunkBytes)
 	logging.Debug("uploading WFP chunks", "scanID", scanID, "chunks", len(ranges))
 	prog := &chunkProgress{r: o.reporter, total: len(ranges)}
-	if err := s.uploadChunks(ctx, scanID, r, size, ranges, prog); err != nil {
+	if err := s.uploadChunks(ctx, scanID, r, size, ranges, o.uploadQuery(), prog); err != nil {
 		return "", err
 	}
 
@@ -333,9 +348,18 @@ func (s scanService) upload(ctx context.Context, r io.ReaderAt, size int64, o sc
 	return scanID, nil
 }
 
+// uploadQuery is the query string every block of the upload carries. It is empty unless the
+// caller set something that has to reach the server.
+func (o scanOptions) uploadQuery() url.Values {
+	if !o.maxComponents.IsSet() {
+		return nil
+	}
+	return url.Values{maxComponentsParam: {o.maxComponents.String()}}
+}
+
 // uploadChunks uploads all chunks concurrently, bounded by the client's worker
 // limit, aborting all on the first error.
-func (s scanService) uploadChunks(ctx context.Context, scanID string, r io.ReaderAt, size int64, ranges [][2]int64, prog *chunkProgress) error {
+func (s scanService) uploadChunks(ctx context.Context, scanID string, r io.ReaderAt, size int64, ranges [][2]int64, query url.Values, prog *chunkProgress) error {
 	if len(ranges) == 0 {
 		return nil
 	}
@@ -365,7 +389,7 @@ func (s scanService) uploadChunks(ctx context.Context, scanID string, r io.Reade
 					continue
 				default:
 				}
-				if err := s.c.uploadChunk(ctx, scanID, r, rng[0], rng[1], size); err != nil {
+				if err := s.c.uploadChunk(ctx, scanID, r, rng[0], rng[1], size, query); err != nil {
 					errCh <- err
 					cancel()
 					continue
@@ -418,11 +442,14 @@ func chunkRanges(total int64, size int64) [][2]int64 {
 // lost to a timeout. The ranges this client sends are deterministic and never overlap, so
 // a conflict cannot mean anything else. Treating it as a failure would report a scan as
 // broken when its upload in fact completed — and the session it names is still resumable.
-func (c *Client) uploadChunk(ctx context.Context, scanID string, src io.ReaderAt, off, end, total int64) error {
+func (c *Client) uploadChunk(ctx context.Context, scanID string, src io.ReaderAt, off, end, total int64, query url.Values) error {
 	block := func() *io.SectionReader { return io.NewSectionReader(src, off, end-off+1) }
 	req, err := c.newRequest(http.MethodPost, serviceScan.endpoint, block())
 	if err != nil {
 		return err
+	}
+	if len(query) > 0 {
+		req.URL.RawQuery = query.Encode()
 	}
 	// http.NewRequest wires ContentLength and body replay (GetBody) only for bytes and
 	// strings readers. A SectionReader gets neither: without these, the send falls back
