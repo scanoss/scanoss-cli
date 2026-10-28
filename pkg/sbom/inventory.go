@@ -314,7 +314,8 @@ func lowerMatchIndex(a, b *int) bool {
 
 // SnippetClassification is the snippet-classifier's answer for one snippet match: whether the
 // reported OSS and local line ranges correspond, as a thresholded verdict plus the probability
-// behind it. It is a proposal for a human to confirm, not a filtering decision.
+// behind it. It is a proposal for a human to confirm; removing what it proposes is a separate,
+// opt-in step (Inventory.RemoveFalsePositiveSnippets).
 type SnippetClassification struct {
 	Verdict      string  `json:"verdict"`       // "false_positive" | "real"
 	Probability  float64 `json:"probability"`   // P(false positive), 0..1
