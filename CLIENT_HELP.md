@@ -166,7 +166,9 @@ default 0), `--max-size` (0 = unlimited), `--gitignore` (true),
 `--max-components` (a positive integer or `all`; unset = the server's
 defaults), `--skip-headers`
 (**default true**, `--skip-headers=false` to disable), `--skip-headers-limit`
-(0 = no limit).
+(0 = no limit), `--classify-snippets`, `--classify-threshold` (0.7),
+`--classify-filter` (see [Snippet classification](#snippet-classification---classify-snippets);
+`scan <path>` only).
 
 `-i, --identify` and `-n, --ignore` name a component list; see
 [BOM rules](#bom-rules). `--skip-headers` applies while fingerprinting, so
@@ -431,6 +433,59 @@ dependencies next and the forks and mirrors of it last.
 CycloneDX and SPDX carry the component order but not `match_index`: a CycloneDX
 `evidence.occurrences` entry admits only `location`, `line`, `offset`, `symbol`, `additionalContext`
 and `bom-ref`, and SPDX Lite has no per-file evidence. The per-file order is `raw`-only.
+
+### Snippet classification (`--classify-snippets`)
+
+A snippet match can be a false positive: the scanner reports a local range and an OSS range that
+do not correspond. `--classify-snippets` scores every snippet match with a local classifier and
+proposes whether it is one. It is **off by default** and costs API calls: scoring needs the
+matched OSS file, which the CLI downloads from `/v3/file-contents/` once per distinct file. That
+needs an API key with file-contents access, and each download counts against the key's quota. It
+needs the scanned files on disk, so it applies to `scan <path>` only.
+
+```bash
+# Propose false positives for a person to review
+scanoss-cli scan ./my-project --api-key "$SCANOSS_API_KEY" --classify-snippets
+
+# Remove the likely ones, with a stricter threshold
+scanoss-cli scan ./my-project --api-key "$SCANOSS_API_KEY" --classify-snippets \
+  --classify-threshold 0.9 --classify-filter
+```
+
+- `--classify-threshold` is the probability of a false positive at or above which a match is
+  proposed as one, strictly between 0 and 1 (default `0.7`). Any other value is rejected before
+  anything is uploaded.
+- `--classify-filter` removes the snippet matches proposed as false positives, and a component
+  left with no evidence goes with them, along with any advisory that named only that component.
+  File matches, declared and transitive dependencies, unscored snippet matches and matches a
+  `bom.identify` rule claimed are never removed.
+- Both are rejected without `--classify-snippets`.
+
+Each scored match records the verdict (`false_positive` or `real`), the probability and the model
+version:
+
+- `raw` adds `snippet_classification` to the snippet's evidence:
+  `{"verdict": "false_positive", "probability": 0.91, "model_version": "lr-d51f2e100211"}`.
+- `cyclonedx` appends it to the occurrence's `additionalContext`, after the ranges:
+  `input lines 12-48; oss lines 100-136; classifier false_positive p=0.91 model=lr-d51f2e100211`.
+- `spdx` has no per-file data, so the verdict is not carried. `--classify-filter` still applies.
+
+A match that could not be scored (no OSS file hash, an unreadable local file, a failed download)
+carries no verdict and is never filtered. After the scan a summary on stderr says how many were
+scored, proposed and removed, and how many could not be scored:
+
+```
+Snippet classifier (model lr-d51f2e100211, threshold 0.7): scored 52 of 56 snippet matches, 6 proposed as false positives; 4 could not be scored
+```
+
+When the API answers 401 or 403 for file contents, the summary says so: the key lacks
+file-contents access, and nothing was scored.
+
+> **Review, do not trust blindly.** At `0.7` the classifier proposes false positives for a person
+> to confirm. On 8 public application repositories (876 snippet matches) it reached a
+> false-positive precision of about 0.71 and recall of 0.90 at `0.7`: roughly 3 in 10 proposed
+> matches were real. `--classify-filter` therefore drops some real matches; use a higher
+> threshold such as `0.9` when filtering, and never use filtering as a substitute for review.
 
 ## Resuming a scan (`results`)
 
@@ -701,6 +756,9 @@ with `--settings`. It carries BOM context and file-skip rules.
 | `--chunk-size` (scan) | `1048576` | WFP upload block size (bytes) |
 | `--poll-interval` (scan) | `2s` | Scan status poll cadence |
 | `--max-components` (scan) | unset | Not sent; the server's default applies |
+| `--classify-snippets` (scan) | `false` | No snippet match is scored; no file contents are fetched |
+| `--classify-threshold` (scan) | `0.7` | Strictly between 0 and 1; needs `--classify-snippets` |
+| `--classify-filter` (scan) | `false` | Nothing is removed; needs `--classify-snippets` |
 | `--min-size` / `--max-size` | `0` / `0` | Literal minimum; `0` max means unlimited |
 | `--chunk-size` (decoration) | `10` | PURLs per request |
 | `--workers` (decoration) | `5` | Max concurrent requests |

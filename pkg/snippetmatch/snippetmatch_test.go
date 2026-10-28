@@ -75,27 +75,27 @@ type fakeFetcher struct {
 	err     error // when set, every File call fails
 }
 
-func (f *fakeFetcher) File(_ context.Context, md5 string, _, _ int) ([]byte, error) {
+func (f *fakeFetcher) File(_ context.Context, hash string, _, _ int) ([]byte, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.calls == nil {
 		f.calls = map[string]int{}
 	}
-	f.calls[md5]++
+	f.calls[hash]++
 	if f.err != nil {
 		return nil, f.err
 	}
-	c, ok := f.content[md5]
+	c, ok := f.content[hash]
 	if !ok {
 		return nil, errors.New("not found")
 	}
 	return c, nil
 }
 
-func (f *fakeFetcher) callCount(md5 string) int {
+func (f *fakeFetcher) callCount(hash string) int {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.calls[md5]
+	return f.calls[hash]
 }
 
 // writeLocal writes name under root with the given content and returns name (relative), as it
@@ -137,7 +137,7 @@ func TestAnnotateIdenticalIsReal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := a.Annotate(context.Background(), inv); err != nil {
+	if _, err := a.Annotate(context.Background(), inv); err != nil {
 		t.Fatalf("Annotate: %v", err)
 	}
 	got := inv.Components[0].Evidence[0].SnippetClassification
@@ -159,7 +159,7 @@ func TestAnnotateUnrelatedIsFalsePositive(t *testing.T) {
 	inv := invWith(snippetEvidence(path, "h1", 8))
 
 	a, _ := New(Options{Fetcher: f, ScanRoot: root})
-	if err := a.Annotate(context.Background(), inv); err != nil {
+	if _, err := a.Annotate(context.Background(), inv); err != nil {
 		t.Fatalf("Annotate: %v", err)
 	}
 	got := inv.Components[0].Evidence[0].SnippetClassification
@@ -177,7 +177,7 @@ func TestOSSFetchIsDedupedByHash(t *testing.T) {
 	inv := invWith(snippetEvidence(p1, "shared", 10), snippetEvidence(p2, "shared", 10))
 
 	a, _ := New(Options{Fetcher: f, ScanRoot: root})
-	if err := a.Annotate(context.Background(), inv); err != nil {
+	if _, err := a.Annotate(context.Background(), inv); err != nil {
 		t.Fatalf("Annotate: %v", err)
 	}
 	if n := f.callCount("shared"); n != 1 {
@@ -197,7 +197,7 @@ func TestMissingLocalFileIsSkipped(t *testing.T) {
 	inv := invWith(snippetEvidence("ghost.go", "h1", 10))
 
 	a, _ := New(Options{Fetcher: f, ScanRoot: root})
-	err := a.Annotate(context.Background(), inv)
+	_, err := a.Annotate(context.Background(), inv)
 	if err == nil {
 		t.Fatal("want an error naming the skipped match")
 	}
@@ -213,7 +213,7 @@ func TestFetchErrorIsNonFatalAndSkips(t *testing.T) {
 	inv := invWith(snippetEvidence(path, "h1", 10))
 
 	a, _ := New(Options{Fetcher: f, ScanRoot: root})
-	if err := a.Annotate(context.Background(), inv); err == nil {
+	if _, err := a.Annotate(context.Background(), inv); err == nil {
 		t.Fatal("want an error when OSS content cannot be fetched")
 	}
 	if inv.Components[0].Evidence[0].SnippetClassification != nil {
@@ -231,7 +231,7 @@ func TestNonSnippetEvidenceIsIgnored(t *testing.T) {
 	)
 
 	a, _ := New(Options{Fetcher: f, ScanRoot: root})
-	if err := a.Annotate(context.Background(), inv); err != nil {
+	if _, err := a.Annotate(context.Background(), inv); err != nil {
 		t.Fatalf("Annotate: %v", err)
 	}
 	if n := fetched.Load(); n != 0 {
@@ -249,11 +249,38 @@ func TestNoSnippetsMakesNoFetch(t *testing.T) {
 	f := &countingFetcher{onCall: func() { fetched.Add(1) }}
 	inv := invWith() // no evidence at all
 	a, _ := New(Options{Fetcher: f, ScanRoot: t.TempDir()})
-	if err := a.Annotate(context.Background(), inv); err != nil {
+	if _, err := a.Annotate(context.Background(), inv); err != nil {
 		t.Fatalf("Annotate: %v", err)
 	}
 	if fetched.Load() != 0 {
 		t.Fatal("empty inventory must trigger no fetch")
+	}
+}
+
+// The summary counts every snippet match in the inventory, scorable or not, so a match that
+// was never attempted still shows up as unscored.
+func TestAnnotateSummaryCounts(t *testing.T) {
+	root := t.TempDir()
+	realPath := writeLocal(t, root, "sum.go", realCode)
+	fpPath := writeLocal(t, root, "handler.go", unrelatedLocal)
+	f := &fakeFetcher{content: map[string][]byte{"real": []byte(realCode), "fp": []byte(unrelatedOSS)}}
+	noHash := snippetEvidence(realPath, "", 10)
+	inv := invWith(
+		snippetEvidence(realPath, "real", 10),
+		snippetEvidence(fpPath, "fp", 8),
+		snippetEvidence("ghost.go", "real", 10), // local file missing
+		noHash,                                  // nothing to fetch
+		sbom.FileEvidence{Path: "whole.go", FileHash: "real", MatchType: "file"},
+	)
+
+	a, _ := New(Options{Fetcher: f, ScanRoot: root, Threshold: 0.6})
+	sum, err := a.Annotate(context.Background(), inv)
+	if err == nil {
+		t.Error("want an error naming the unscored matches")
+	}
+	want := Summary{ModelVersion: a.ModelVersion(), Threshold: 0.6, Matches: 4, Scored: 2, FalsePositives: 1}
+	if sum != want {
+		t.Errorf("summary = %+v, want %+v", sum, want)
 	}
 }
 

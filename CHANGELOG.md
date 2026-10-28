@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Snippet classification on `scan`**, opt-in. `--classify-snippets` scores each snippet match
+  with a local classifier (github.com/scanoss/snippets-classifier) and proposes whether it is a
+  false positive, recording the verdict, the probability and the model version. It downloads
+  each matched OSS file from `/v3/file-contents/`, so it needs an API key with file-contents
+  access and counts against the quota. It works with every format: `raw` adds
+  `snippet_classification` to the evidence, CycloneDX appends it to the occurrence's
+  `additionalContext`, and SPDX, which has no per-file data, does not carry it.
+  `--classify-threshold` (default 0.7, strictly between 0 and 1) sets the probability at or above
+  which a match is proposed. `--classify-filter` removes the proposed false positives, and any
+  component and advisory left with nothing; it never removes file matches, dependencies,
+  unscored matches or `bom.identify` claims. Both need `--classify-snippets`, and a bad value is
+  rejected before anything is uploaded. A summary on stderr gives how many matches were scored,
+  proposed, removed and left unscored, and says when the API refused file contents (401/403).
+  At 0.7 the classifier proposes for a person to confirm: on 8 public application repositories
+  (876 snippet matches) its false-positive precision was about 0.71 and recall 0.90, so
+  filtering drops some real matches. Use a higher threshold such as 0.9 to filter, and do not use
+  filtering in place of review. SDK: `scanpipeline.Options.FilterFalsePositives`,
+  `Result.Classification` and `sbom.Inventory.RemoveFalsePositiveSnippets`.
+
 ## [0.15.0] - 2026-10-23
 
 ### Added
