@@ -33,6 +33,7 @@
 // every match that shares them.
 //
 // Annotation only proposes: it sets FileEvidence.SnippetClassification and removes nothing.
+// Removing what it proposes is the caller's choice (see sbom.Inventory.RemoveFalsePositiveSnippets).
 package snippetmatch
 
 import (
@@ -56,11 +57,12 @@ const DefaultThreshold = snippetclassifier.DefaultThreshold
 // DefaultWorkers bounds the concurrent OSS content fetches when Options.Workers is unset.
 const DefaultWorkers = 8
 
-// Fetcher retrieves the raw content of an OSS file by its MD5. A 1-based inclusive line range
-// may be given; 0 for either bound leaves it at the default (line 1 / the last line), so
-// (md5, 0, 0) is the whole file. scanoss.ContentsAPI satisfies this interface.
+// Fetcher retrieves the raw content of an OSS file by the file_hash the scan reported for it. A
+// 1-based inclusive line range may be given; 0 for either bound leaves it at the default (line 1
+// / the last line), so (hash, 0, 0) is the whole file. scanoss.ContentsAPI satisfies this
+// interface.
 type Fetcher interface {
-	File(ctx context.Context, md5 string, start, end int) ([]byte, error)
+	File(ctx context.Context, hash string, start, end int) ([]byte, error)
 }
 
 // Options configures an Annotator.
@@ -124,25 +126,41 @@ func New(opts Options) (*Annotator, error) {
 // ModelVersion identifies the model the Annotator scores with.
 func (a *Annotator) ModelVersion() string { return a.inner.ModelVersion() }
 
+// Threshold is the P(false positive) at or above which the Annotator proposes a false positive.
+func (a *Annotator) Threshold() float64 { return a.inner.Threshold() }
+
+// Summary tallies one Annotate run, for the caller to report: how many snippet matches the
+// inventory held, how many were scored, and how many of those were proposed as false positives.
+// Matches - Scored is how many could not be scored, for whatever reason (no OSS hash or line
+// ranges, an unreadable local file, a failed fetch).
+type Summary struct {
+	ModelVersion   string
+	Threshold      float64
+	Matches        int // snippet matches in the inventory
+	Scored         int // matches that received a classification
+	FalsePositives int // scored matches proposed as false positives
+}
+
 // job is one snippet match to score: where its result goes and what it needs.
 type job struct {
 	ev    *sbom.FileEvidence
 	path  string // local file path, relative to scanRoot
-	hash  string // OSS file MD5
+	hash  string // OSS file hash (FileEvidence.FileHash)
 	spans []snippetclassifier.Span
 }
 
 // Annotate scores every snippet match in inv in place, setting FileEvidence.SnippetClassification
-// on each match it could score. It is non-fatal: a match whose local file is unreadable or whose
-// OSS content cannot be fetched is left unannotated and logged. The returned error names how many
-// matches could not be scored, for the caller to surface; it does not mean the inventory is
-// unusable.
+// on each match it could score, and returns the tally. It is non-fatal: a match whose local file
+// is unreadable or whose OSS content cannot be fetched is left unannotated and logged. The
+// returned error names how many matches could not be scored, for the caller to surface; it does
+// not mean the inventory is unusable.
 //
 // The inventory is scored, not filtered: no match is removed, whatever its verdict.
-func (a *Annotator) Annotate(ctx context.Context, inv *sbom.Inventory) error {
+func (a *Annotator) Annotate(ctx context.Context, inv *sbom.Inventory) (Summary, error) {
+	sum := Summary{ModelVersion: a.ModelVersion(), Threshold: a.Threshold(), Matches: countSnippets(inv)}
 	jobs := collectJobs(inv)
 	if len(jobs) == 0 {
-		return nil
+		return sum, unscoredErr(sum)
 	}
 
 	// Fetch each distinct OSS file once. Several matches often point at the same OSS file
@@ -156,29 +174,19 @@ func (a *Annotator) Annotate(ctx context.Context, inv *sbom.Inventory) error {
 
 	// Score. Each job reads only from the read-only caches, and the classifier is safe for
 	// concurrent use, so the CPU-bound scoring fans out too. A worst-case OSS file takes ~1s.
-	var skipped int
 	var mu sync.Mutex
 	a.forEach(jobs, func(j job) {
 		lb, ok := local[j.path]
 		if !ok {
-			mu.Lock()
-			skipped++
-			mu.Unlock()
 			return
 		}
 		ob, ok := oss[j.hash]
 		if !ok {
-			mu.Lock()
-			skipped++
-			mu.Unlock()
 			return
 		}
 		res, err := a.inner.Classify(snippetclassifier.Match{Local: lb, OSS: ob, Spans: j.spans})
 		if err != nil {
 			logging.Warn("snippet classification failed", "path", j.path, "err", err)
-			mu.Lock()
-			skipped++
-			mu.Unlock()
 			return
 		}
 		j.ev.SnippetClassification = &sbom.SnippetClassification{
@@ -186,12 +194,38 @@ func (a *Annotator) Annotate(ctx context.Context, inv *sbom.Inventory) error {
 			Probability:  res.Probability,
 			ModelVersion: res.ModelVersion,
 		}
+		mu.Lock()
+		sum.Scored++
+		if res.Verdict == snippetclassifier.VerdictFalsePositive {
+			sum.FalsePositives++
+		}
+		mu.Unlock()
 	})
 
-	if skipped > 0 {
-		return fmt.Errorf("snippetmatch: %d of %d snippet matches could not be classified", skipped, len(jobs))
+	return sum, unscoredErr(sum)
+}
+
+// unscoredErr names how many of the inventory's snippet matches went unscored, or is nil when
+// every one was scored.
+func unscoredErr(sum Summary) error {
+	if skipped := sum.Matches - sum.Scored; skipped > 0 {
+		return fmt.Errorf("snippetmatch: %d of %d snippet matches could not be classified", skipped, sum.Matches)
 	}
 	return nil
+}
+
+// countSnippets counts every snippet match in inv, scorable or not, so a match the classifier
+// could not even attempt (no OSS hash, no paired ranges) still counts as unscored.
+func countSnippets(inv *sbom.Inventory) int {
+	var n int
+	for _, c := range inv.Components {
+		for _, ev := range c.Evidence {
+			if ev.MatchType == "snippet" {
+				n++
+			}
+		}
+	}
+	return n
 }
 
 // collectJobs gathers every snippet match that can be scored: one with an OSS file hash and at

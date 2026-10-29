@@ -29,6 +29,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -45,6 +46,7 @@ import (
 	"github.com/scanoss/scanoss.go/pkg/scanoss"
 	"github.com/scanoss/scanoss.go/pkg/scanpipeline"
 	"github.com/scanoss/scanoss.go/pkg/settings"
+	"github.com/scanoss/scanoss.go/pkg/snippetmatch"
 	"github.com/scanoss/scanoss.go/pkg/wfp"
 )
 
@@ -323,7 +325,10 @@ Examples:
   scanoss-cli scan wfp fingerprints.wfp
 
   # Save WFP fingerprints before sending to the API
-  scanoss-cli scan ./my-project --save-wfp fingerprints.wfp`,
+  scanoss-cli scan ./my-project --save-wfp fingerprints.wfp
+
+  # Propose likely false-positive snippet matches for review (fetches the matched OSS files)
+  scanoss-cli scan ./my-project --classify-snippets`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: runScan,
 }
@@ -373,9 +378,12 @@ func init() {
 	addSkipHeaderFlags(scanCmd)
 
 	// Snippet classification (path scan only: it needs the scanned files on disk). Off by default
-	// because scoring fetches the matched OSS files over the network. raw format only — SPDX and
-	// CycloneDX have nowhere to carry the verdict.
-	scanCmd.Flags().Bool("classify-snippets", false, "Score each snippet match with the local classifier and annotate whether it looks like a false positive (raw format only)")
+	// because scoring fetches the matched OSS files over the network. raw carries the verdict as
+	// snippet_classification, CycloneDX in the occurrence's additionalContext; SPDX-lite has no
+	// per-file data to carry it, though --classify-filter still applies there.
+	scanCmd.Flags().Bool("classify-snippets", false, "Score each snippet match with the local classifier and annotate whether it looks like a false positive (fetches the matched OSS files; needs file-contents access)")
+	scanCmd.Flags().Float64("classify-threshold", snippetmatch.DefaultThreshold, "P(false positive) at or above which --classify-snippets proposes a match as a false positive (strictly between 0 and 1)")
+	scanCmd.Flags().Bool("classify-filter", false, "Remove the snippet matches --classify-snippets proposes as false positives, and components left with no evidence")
 
 	// The BOM rule flags are declared on both, since either can apply them: `scan wfp` cannot
 	// fingerprint, but it still post-processes a result.
@@ -434,9 +442,9 @@ func runScan(cmd *cobra.Command, args []string) error {
 	allFolders, _ := cmd.Flags().GetBool("all-folders")
 	applyGitignore, _ := cmd.Flags().GetBool("gitignore")
 	allHidden, _ := cmd.Flags().GetBool("all-hidden")
-	classifySnippets, _ := cmd.Flags().GetBool("classify-snippets")
-	if classifySnippets && outputFormat != config.FormatRaw {
-		warnf("--classify-snippets only annotates the raw format; ignoring it for %q output", outputFormat)
+	classify, err := resolveClassifyFlags(cmd)
+	if err != nil {
+		return err
 	}
 
 	// Settings drive file filtering and the BOM rules, which are applied SDK-side, post-scan,
@@ -484,22 +492,27 @@ func runScan(cmd *cobra.Command, args []string) error {
 	}
 
 	result, err := scanpipeline.Run(ctx, scanpipeline.Options{
-		Client:            client,
-		Services:          servicesFor(layers),
-		SourceDeclared:    layers.Has(LayerDeps),
-		SourcePath:        targetPath,
-		Threads:           threads,
-		ScanFilters:       collectOpts,
-		DependencyFilters: depOpts,
-		ScanOptions:       scanTuning(cmd, scanSettings, prog, components),
-		WFPOptions:        fingerprintOptions(skipHeaders, skipHeadersLimit),
-		WFPWriter:         wfpWriterOrNil(wfpOut),
-		OnProgress:        prog.layer,
-		ClassifySnippets:  classifySnippets && outputFormat == config.FormatRaw,
+		Client:               client,
+		Services:             servicesFor(layers),
+		SourceDeclared:       layers.Has(LayerDeps),
+		SourcePath:           targetPath,
+		Threads:              threads,
+		ScanFilters:          collectOpts,
+		DependencyFilters:    depOpts,
+		ScanOptions:          scanTuning(cmd, scanSettings, prog, components),
+		WFPOptions:           fingerprintOptions(skipHeaders, skipHeadersLimit),
+		WFPWriter:            wfpWriterOrNil(wfpOut),
+		OnProgress:           prog.layer,
+		ClassifySnippets:     classify.enabled,
+		ClassifyThreshold:    classify.threshold,
+		FilterFalsePositives: classify.filter,
 	})
 	prog.finish()
 	if err != nil {
 		return renderAPIError(fmt.Errorf("scan failed: %w", err))
+	}
+	if c := result.Classification; c != nil {
+		reportClassification(*c, classify.filter)
 	}
 	// Close before claiming success: a buffered write error can surface only here,
 	// and "saved" must not be printed over an incomplete file.
@@ -516,6 +529,72 @@ func runScan(cmd *cobra.Command, args []string) error {
 	}
 	printErrorSummary(result.ProcessErrors)
 	return nil
+}
+
+// classifyFlags is what the snippet-classifier flags asked for.
+type classifyFlags struct {
+	enabled   bool
+	threshold float64
+	filter    bool
+}
+
+// resolveClassifyFlags reads the snippet-classifier flags and refuses a bad combination before
+// anything is fingerprinted or uploaded: a threshold outside (0, 1), or --classify-threshold or
+// --classify-filter without --classify-snippets, which would otherwise do nothing in silence.
+func resolveClassifyFlags(cmd *cobra.Command) (classifyFlags, error) {
+	var f classifyFlags
+	f.enabled, _ = cmd.Flags().GetBool("classify-snippets")
+	f.threshold, _ = cmd.Flags().GetFloat64("classify-threshold")
+	f.filter, _ = cmd.Flags().GetBool("classify-filter")
+	if !f.enabled {
+		for _, name := range []string{"classify-threshold", "classify-filter"} {
+			if cmd.Flags().Changed(name) {
+				return f, usageError(cmd, "--%s requires --classify-snippets", name)
+			}
+		}
+		return f, nil
+	}
+	// Written so NaN fails too.
+	if !(f.threshold > 0 && f.threshold < 1) {
+		return f, fmt.Errorf("--classify-threshold %v: must be strictly between 0 and 1", f.threshold)
+	}
+	return f, nil
+}
+
+// reportClassification prints the snippet-classifier summary: a warning when some matches went
+// unscored or the classifier could not run, so a run that scored nothing cannot pass for one that
+// found nothing; an info line otherwise.
+func reportClassification(c scanpipeline.ClassifySummary, filtered bool) {
+	line := classificationSummary(c, filtered)
+	if c.Err != nil || c.Scored < c.Matches {
+		warnf("%s", line)
+		return
+	}
+	infof("%s", line)
+}
+
+// classificationSummary renders the snippet-classifier summary line, e.g.
+// "Snippet classifier (model lr-d51f2e100211, threshold 0.7): scored 52 of 56 snippet matches,
+// 6 proposed as false positives; 4 could not be scored". filtered adds how many were removed.
+func classificationSummary(c scanpipeline.ClassifySummary, filtered bool) string {
+	if c.Err != nil {
+		return fmt.Sprintf("Snippet classifier could not start, no snippet match was scored: %v", c.Err)
+	}
+	head := fmt.Sprintf("Snippet classifier (model %s, threshold %s)", c.ModelVersion, strconv.FormatFloat(c.Threshold, 'g', -1, 64))
+	if c.Matches == 0 {
+		return head + ": no snippet matches to score"
+	}
+	line := fmt.Sprintf("%s: scored %d of %d snippet matches, %d proposed as false positives", head, c.Scored, c.Matches, c.FalsePositives)
+	if filtered {
+		line += fmt.Sprintf(", %d removed", c.Removed)
+	}
+	if unscored := c.Matches - c.Scored; unscored > 0 {
+		line += fmt.Sprintf("; %d could not be scored", unscored)
+	}
+	if c.DeniedStatus != 0 {
+		line += fmt.Sprintf(" (the API refused file contents with HTTP %d: the API key needs file-contents access)", c.DeniedStatus)
+	}
+	return line
 }
 
 // wfpWriterOrNil keeps a nil *os.File from becoming a non-nil io.Writer: an interface

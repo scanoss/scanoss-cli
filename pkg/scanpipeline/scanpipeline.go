@@ -37,9 +37,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 
 	scanossapi "github.com/scanoss/scanoss.api-sdk"
 
@@ -99,13 +101,32 @@ type Options struct {
 	// ClassifySnippets asks for each snippet match in the inventory to be scored by the local
 	// snippet classifier, which proposes whether the match is a false positive (its reported OSS
 	// and local line ranges do not correspond). The verdict lands on each match's
-	// FileEvidence.SnippetClassification; nothing is removed. It is opt-in because scoring fetches
-	// the matched OSS files over the network, so a bare scan pays nothing for it.
+	// FileEvidence.SnippetClassification; nothing is removed unless FilterFalsePositives says so.
+	// It is opt-in because scoring fetches the matched OSS files over the network, so a bare scan
+	// pays nothing for it.
 	ClassifySnippets bool
 	// ClassifyThreshold overrides the classifier's decision threshold (P(false positive) at or
 	// above which a match is proposed as a false positive). 0 uses snippetmatch.DefaultThreshold
 	// (0.7), tuned to propose for human confirmation.
 	ClassifyThreshold float64
+	// FilterFalsePositives removes the snippet matches the classifier proposed as false positives,
+	// and any component left with no evidence (see sbom.Inventory.RemoveFalsePositiveSnippets).
+	// Ignored unless ClassifySnippets is set.
+	FilterFalsePositives bool
+}
+
+// ClassifySummary is what snippet classification did, for the caller to report: the
+// classifier's own tally plus what the pipeline did around it.
+type ClassifySummary struct {
+	snippetmatch.Summary
+
+	// Removed is how many snippet matches FilterFalsePositives removed.
+	Removed int
+	// DeniedStatus is the HTTP status (401 or 403) the API answered a file-contents request with,
+	// or 0. Every match needs its OSS file, so a key without file-contents access scores nothing.
+	DeniedStatus int
+	// Err is set when the classifier could not start; nothing was scored.
+	Err error
 }
 
 // Result is the outcome of Run: the gathered inventory, the files that could not be
@@ -128,6 +149,10 @@ type Result struct {
 	// inventory with no licences because the project declares none from one with no licences
 	// because every request failed. Nil when everything asked for arrived.
 	EnrichError error
+
+	// Classification reports the snippet classification. Nil unless Options.ClassifySnippets was
+	// set and the scan produced an inventory.
+	Classification *ClassifySummary
 }
 
 // Run executes the full pipeline over Options.SourcePath: collect the files (applying the
@@ -347,32 +372,38 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 	inv := scansource.Inventory(scanResult, scansource.WithIdentified(bomReport.IsIdentified))
 	inv.Add(declared.Components...)
 	inv.Dependencies = declared.Dependencies
-	enrichErr := Enricher{Client: opts.Client, Services: opts.Services, Reporter: r}.Enrich(ctx, &inv)
 
-	// Snippet classification runs last, over the assembled inventory: it needs the matched OSS
-	// files, which it fetches by hash. Opt-in, and non-fatal like enrichment — a match that could
-	// not be scored is simply left unannotated.
+	// Snippet classification runs over the assembled inventory, before enrichment: a component the
+	// filter removes is then never sent to the decoration services, so no advisory or licence is
+	// gathered for it. Opt-in, and non-fatal like enrichment — a match that could not be scored is
+	// simply left unannotated, and the summary says how many.
+	var classification *ClassifySummary
 	if opts.ClassifySnippets {
-		classifySnippets(ctx, opts, scanRoot, &inv, emit)
+		classification = classifySnippets(ctx, opts, scanRoot, &inv, emit)
 	}
 
+	enrichErr := Enricher{Client: opts.Client, Services: opts.Services, Reporter: r}.Enrich(ctx, &inv)
+
 	return Result{
-		Inventory:     inv,
-		ProcessErrors: procErrors,
-		EnrichError:   enrichErr,
+		Inventory:      inv,
+		ProcessErrors:  procErrors,
+		EnrichError:    enrichErr,
+		Classification: classification,
 	}, nil
 }
 
 // classifySnippets scores the inventory's snippet matches in place, reporting progress under
-// LayerClassify. It is best-effort: a construction failure or a partly-failed run is logged, not
-// returned, because a scan whose matches could not all be scored is still a usable scan.
-func classifySnippets(ctx context.Context, opts Options, scanRoot string, inv *sbom.Inventory, emit func(Progress)) {
+// LayerClassify, and removes the proposed false positives when asked to. It is best-effort: a
+// construction failure or a partly-failed run is reported in the summary, not returned, because
+// a scan whose matches could not all be scored is still a usable scan.
+func classifySnippets(ctx context.Context, opts Options, scanRoot string, inv *sbom.Inventory, emit func(Progress)) *ClassifySummary {
 	emit(Progress{Layer: LayerClassify, Status: StatusRunning, Total: 0})
 	// The fetch stage reports done/total as OSS files arrive; remember the total so completion
 	// can fill the bar (a StatusCompleted with Total 0 would leave it aborted).
 	var total int
+	fetcher := &deniedRecorder{api: opts.Client.Contents}
 	annotator, err := snippetmatch.New(snippetmatch.Options{
-		Fetcher:   opts.Client.Contents,
+		Fetcher:   fetcher,
 		ScanRoot:  scanRoot,
 		Threshold: opts.ClassifyThreshold,
 		Workers:   opts.Threads,
@@ -384,13 +415,35 @@ func classifySnippets(ctx context.Context, opts Options, scanRoot string, inv *s
 	if err != nil {
 		logging.Warn("snippet classification could not start", "err", err)
 		emit(Progress{Layer: LayerClassify, Status: StatusFailed})
-		return
+		return &ClassifySummary{Err: err}
 	}
-	if err := annotator.Annotate(ctx, inv); err != nil {
+	sum, err := annotator.Annotate(ctx, inv)
+	if err != nil {
 		// Partial failures are already logged per match inside Annotate; this names the tally.
 		logging.Warn("snippet classification incomplete", "err", err)
 	}
+	out := &ClassifySummary{Summary: sum, DeniedStatus: int(fetcher.status.Load())}
+	if opts.FilterFalsePositives {
+		out.Removed = inv.RemoveFalsePositiveSnippets()
+	}
 	emit(Progress{Layer: LayerClassify, Status: StatusCompleted, Done: total, Total: total})
+	return out
+}
+
+// deniedRecorder passes file-contents requests through and remembers the first 401 or 403, so
+// the summary can say the API key lacks file-contents access instead of only counting failures.
+type deniedRecorder struct {
+	api    scanoss.ContentsAPI
+	status atomic.Int32
+}
+
+func (d *deniedRecorder) File(ctx context.Context, hash string, start, end int) ([]byte, error) {
+	b, err := d.api.File(ctx, hash, start, end)
+	var se *scanoss.StatusError
+	if errors.As(err, &se) && (se.StatusCode == http.StatusUnauthorized || se.StatusCode == http.StatusForbidden) {
+		d.status.CompareAndSwap(0, int32(se.StatusCode))
+	}
+	return b, err
 }
 
 // Enricher is what the requested layers are gathered with: a client to ask, the layers to ask

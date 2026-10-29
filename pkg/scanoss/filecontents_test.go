@@ -30,7 +30,7 @@ import (
 	"testing"
 )
 
-// File GETs /v3/file-contents/{md5} and returns the raw body, with no line-range query when
+// File GETs /v3/file-contents/{file_hash} and returns the raw body, with no line-range query when
 // start and end are both 0.
 func TestContentsFileWholeFile(t *testing.T) {
 	const body = "line one\nline two\nline three\n"

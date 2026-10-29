@@ -31,25 +31,27 @@ import (
 
 // serviceFileContents is the raw source-content endpoint (v3). Unlike the decoration
 // services it takes no components and returns plain text, not JSON: the file's bytes,
-// optionally sliced to a line range. The content id is the file's MD5 — for a snippet
-// match, the matched OSS file's hash (FileResult.FileHash).
+// optionally sliced to a line range. The content id is whatever file_hash the scan reported for
+// the matched OSS file (FileResult.FileHash), passed through unchanged; today that is a 16-hex
+// CRC64, not an MD5.
 var serviceFileContents = Service{Name: "file.contents", endpoint: "/v3/file-contents/"}
 
 // ContentsAPI is the raw file-content surface. It serves the source of a matched OSS
-// file by its MD5, which the snippet classifier needs to score a match.
+// file by the file_hash the scan reported for it, which the snippet classifier needs to
+// score a match. It needs an API key with file-contents access.
 type ContentsAPI interface {
-	// File returns the raw text of the file with the given MD5. start and end are a
+	// File returns the raw text of the file with the given hash. start and end are a
 	// 1-based inclusive line range; pass 0 for either to leave it at the default (line
-	// 1 / the last line), so File(ctx, md5, 0, 0) returns the whole file.
-	File(ctx context.Context, md5 string, start, end int) ([]byte, error)
+	// 1 / the last line), so File(ctx, hash, 0, 0) returns the whole file.
+	File(ctx context.Context, hash string, start, end int) ([]byte, error)
 }
 
 type contentsService struct{ c *Client }
 
 var _ ContentsAPI = contentsService{}
 
-// File fetches the raw content of the file identified by md5. See ContentsAPI.File.
-func (s contentsService) File(ctx context.Context, md5 string, start, end int) ([]byte, error) {
+// File fetches the raw content of the file identified by hash. See ContentsAPI.File.
+func (s contentsService) File(ctx context.Context, hash string, start, end int) ([]byte, error) {
 	var q url.Values
 	if start > 0 || end > 0 {
 		q = url.Values{}
@@ -60,5 +62,5 @@ func (s contentsService) File(ctx context.Context, md5 string, start, end int) (
 			q.Set("end", strconv.Itoa(end))
 		}
 	}
-	return s.c.get(ctx, serviceFileContents.endpoint+url.PathEscape(md5), q)
+	return s.c.get(ctx, serviceFileContents.endpoint+url.PathEscape(hash), q)
 }
