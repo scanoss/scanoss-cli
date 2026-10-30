@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-10-30
+
 ### Added
 
 - **Snippet classification on `scan`**, opt-in. `--classify-snippets` scores each snippet match
@@ -550,7 +552,8 @@ Initial release of the SCANOSS Go CLI and SDK (`scanoss`).
   CycloneDX and SPDX (with `WithTool`/`WithAuthor`/`WithTimestamp` document-metadata options).
 - **C shared library** (`libscanoss`) with Node.js and Python bindings.
 
-[Unreleased]: https://github.com/scanoss/scanoss.go/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/scanoss/scanoss.go/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/scanoss/scanoss.go/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/scanoss/scanoss.go/compare/v0.14.2...v0.15.0
 [0.14.2]: https://github.com/scanoss/scanoss.go/compare/v0.14.1...v0.14.2
 [0.14.1]: https://github.com/scanoss/scanoss.go/compare/v0.14.0...v0.14.1
