@@ -103,7 +103,7 @@ Stdout stays reserved for results, so logs never corrupt `--output` or piped JSO
 
 | Command | Purpose |
 |---------|---------|
-| `scan <path>` | Fingerprint a folder/file, scan against the SCANOSS v3 API, and output results (`--format raw`/`spdx`/`cyclonedx`; opt into dependency/vuln/license/crypto/geo layers with `--include`). |
+| `scan <path>` | Fingerprint a folder/file, scan against the SCANOSS v3 API, and output results (`--format raw`/`spdx`/`cyclonedx`; opt into dependency/vuln/license/crypto/geo layers with `--include`; opt into flagging likely false-positive snippet matches with `--classify-snippets`). |
 | `scan wfp <wfp>` | Scan a pre-generated WFP file (no fingerprinting). |
 | `wfp <path>` | Generate WFP fingerprints only (no upload). |
 | `results <scan-id>` | Resume or poll a scan by its id. |

@@ -64,6 +64,7 @@ const (
 	LayerManifests   = "manifests"   // local: parsing dependency manifests
 	LayerUpload      = "upload"      // remote: uploading the WFP
 	LayerScan        = "scan"        // remote: the server-side scan
+	LayerClassify    = "classify"    // remote+local: scoring snippet matches with the classifier
 )
 
 // scanPasses is how many equal segments the scan's progress is divided into, one per pass that can

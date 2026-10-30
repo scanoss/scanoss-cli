@@ -297,7 +297,8 @@ func cdxAcknowledgement(ack LicenseAcknowledgement) cdx.LicenseAcknowledgement {
 
 // cycloneDXOccurrences turns matched files into evidence occurrences. Snippet matches
 // carry the start line and the full matched ranges in additionalContext (CycloneDX
-// occurrences have no native range field). Transitive evidence is left out: the component
+// occurrences have no native range field), followed by the classifier's verdict when the
+// match was scored, since occurrences have no properties either. Transitive evidence is left out: the component
 // does not occur in that manifest, its lockfile pulls it in, and the dependencies section is
 // where that relationship is stated.
 func cycloneDXOccurrences(files []FileEvidence) []cdx.EvidenceOccurrence {
@@ -312,9 +313,14 @@ func cycloneDXOccurrences(files []FileEvidence) []cdx.EvidenceOccurrence {
 				start := f.InputLineRanges[0].StartLine
 				o.Line = &start
 			}
-			if ctx := rangesContext(f.InputLineRanges, f.OssLineRanges); ctx != "" {
-				o.AdditionalContext = ctx
+			ctx := rangesContext(f.InputLineRanges, f.OssLineRanges)
+			if cls := classificationContext(f.SnippetClassification); cls != "" {
+				if ctx != "" {
+					ctx += "; "
+				}
+				ctx += cls
 			}
+			o.AdditionalContext = ctx
 		}
 		occurrences = append(occurrences, o)
 	}
@@ -333,6 +339,15 @@ func rangesContext(input, oss []LineRange) string {
 		parts = append(parts, "oss lines "+joinRanges(oss))
 	}
 	return strings.Join(parts, "; ")
+}
+
+// classificationContext renders a snippet-classifier result as short, stable text, e.g.
+// "classifier false_positive p=0.91 model=lr-d51f2e100211". It is "" for an unscored match.
+func classificationContext(c *SnippetClassification) string {
+	if c == nil {
+		return ""
+	}
+	return fmt.Sprintf("classifier %s p=%.2f model=%s", c.Verdict, c.Probability, c.ModelVersion)
 }
 
 // joinRanges renders ranges as a comma-separated "start-end" list.
