@@ -224,6 +224,7 @@ func ParsePackageJSON(fileContent []byte, filePath string) (*LocalDependency, er
 				Purl:         purl,
 				Requirement:  e.value,
 				Scope:        scope,
+				Dev:          scope == "devDependencies",
 				Line:         offsetToLine(fileContent, e.off),
 				DeclaredText: lineTextAt(fileContent, e.off),
 			})
@@ -351,6 +352,7 @@ func parsePackageLockV2TokenWalk(fileContent []byte, result *LocalDependency) (*
 			Purl:         purl,
 			Requirement:  pkg.Version,
 			Scope:        scope,
+			Dev:          pkg.Dev,
 			Line:         line,
 			DeclaredText: declText,
 		})

@@ -31,6 +31,7 @@ import (
 
 	"github.com/pelletier/go-toml/v2"
 
+	"github.com/scanoss/scanoss.go/pkg/dependencies/internal/pyscope"
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/internal/build"
 )
@@ -87,7 +88,8 @@ func (p uvPackage) dev() []uvDep {
 
 // parseUvLock reads uv.lock. The project and each workspace member is a root
 // at its pyproject.toml, found from its editable or virtual source, and its
-// dev-dependencies groups are its dev dependencies. Editable, virtual,
+// dev-dependencies groups and development extras (package pyscope) are its
+// dev dependencies. Editable, virtual,
 // directory and path packages are local, and become nodes only when another
 // package depends on them. A dependency on a name locked at several versions
 // names the version; one that does not has an edge to each.
@@ -172,8 +174,14 @@ func parseUvLock(b *build.Builder, data, _ []byte, _ map[string][]byte) {
 		r := b.Root(p.project())
 		r.DevKnown = true
 		unresolved := func(detail string) { r.Flag(resolve.ReasonUnresolvedDependency, detail) }
-		for _, d := range p.runtime() {
+		for _, d := range p.Dependencies {
 			link(i, d, func(id resolve.NodeID) { r.Declare(id, false) }, unresolved)
+		}
+		for _, extra := range slices.Sorted(maps.Keys(p.OptionalDependencies)) {
+			dev := pyscope.DevExtra(extra)
+			for _, d := range p.OptionalDependencies[extra] {
+				link(i, d, func(id resolve.NodeID) { r.Declare(id, dev) }, unresolved)
+			}
 		}
 		for _, d := range p.dev() {
 			link(i, d, func(id resolve.NodeID) { r.Declare(id, true) }, unresolved)

@@ -31,6 +31,7 @@ import (
 
 	"github.com/pelletier/go-toml/v2"
 
+	"github.com/scanoss/scanoss.go/pkg/dependencies/internal/pyscope"
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/internal/build"
 )
@@ -120,8 +121,7 @@ func pyprojectDirects(r *build.Root, manifest []byte, byName map[string][]resolv
 			r.Declare(id, dev)
 		}
 	}
-	// Every Poetry group but main, and every PEP 735 group, is for
-	// development; extras are installed by users.
+	// Package pyscope decides which groups and extras are for development.
 	poetry := py.Tool.Poetry
 	type table struct {
 		deps map[string]any
@@ -129,7 +129,7 @@ func pyprojectDirects(r *build.Root, manifest []byte, byName map[string][]resolv
 	}
 	tables := []table{{poetry.Dependencies, false}, {poetry.DevDependencies, true}}
 	for _, g := range slices.Sorted(maps.Keys(poetry.Group)) {
-		tables = append(tables, table{poetry.Group[g].Dependencies, g != "main"})
+		tables = append(tables, table{poetry.Group[g].Dependencies, pyscope.DevPoetryGroup(g)})
 	}
 	for _, t := range tables {
 		for _, dep := range slices.Sorted(maps.Keys(t.deps)) {
@@ -143,7 +143,7 @@ func pyprojectDirects(r *build.Root, manifest []byte, byName map[string][]resolv
 	}
 	for _, extra := range slices.Sorted(maps.Keys(py.Project.OptionalDependencies)) {
 		for _, dep := range py.Project.OptionalDependencies[extra] {
-			declare(dep, true, false)
+			declare(dep, true, pyscope.DevExtra(extra))
 		}
 	}
 	for _, g := range slices.Sorted(maps.Keys(py.DependencyGroups)) {

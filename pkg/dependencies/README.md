@@ -126,6 +126,7 @@ type LocalPurl struct {
     Purl        string  // Package URL (e.g., "pkg:npm/react@18.0.0")
     Requirement string  // Version requirement (e.g., ">=1.0.0")
     Scope       string  // Dependency scope (e.g., "devDependencies")
+    Dev         bool    // The manifest declares it only to develop the project
 }
 ```
 
@@ -208,7 +209,10 @@ pkg:nuget/Newtonsoft.Json@13.0.1
   - Filters out URLs, paths, and recursive dependencies
   - Handles operators: `==`, `>=`, `~`, `!=`, etc.
   - Exact versions (`==`) included in PURL, others in `Requirement`
-- **pyproject.toml**: Parses dependencies from `[tool.poetry.dependencies]` section
+- **pyproject.toml**: Read as TOML: `[project]` dependencies, each extra in
+  `[project.optional-dependencies]`, each PEP 735 `[dependency-groups]` group, and Poetry's
+  `dependencies`, `dev-dependencies` and groups. `Scope` is the table, such as
+  `project.optional-dependencies.dev`. See [Dev dependencies](#dev-dependencies) for which are dev.
 
 ### Maven Parser
 
@@ -245,6 +249,27 @@ pkg:nuget/Newtonsoft.Json@13.0.1
 - **\*.csproj**: Parses modern PackageReference elements
 - **packages.config**: Parses legacy package elements
 - Both extract package ID and version
+
+### Dev dependencies
+
+`LocalPurl.Dev` is true when the manifest declares a dependency only to develop the project
+(tests, linting, type checking, documentation, build tooling), so a consumer can tell it apart
+without a lockfile:
+
+| Manifest | Dev |
+|---|---|
+| `package.json` | `devDependencies` |
+| `package-lock.json` | entries marked `"dev": true` |
+| `pom.xml` | `test` scope (`provided` is runtime: the platform supplies it) |
+| `build.gradle` | configurations that start with `test` or contain `Test`, such as `testImplementation` and `androidTestImplementation` |
+| `pyproject.toml` | every `[dependency-groups]` group, Poetry's `dev-dependencies` and every Poetry group but `main`, and every development extra |
+
+An extra in `[project.optional-dependencies]` is installed by any user who asks for it, so it is
+dev only when its name says so: its PEP 685 normalized name, or the part before its first dash,
+is one of `dev`, `devel`, `develop`, `development`, `test`, `tests`, `testing`, `lint`,
+`linting`, `typing`, `mypy`, `doc`, `docs`, `coverage` or `qa`. `dev`, `Test_Integration` and
+`docs-build` are dev; `socks` and `devices` are not. The `poetry.lock` and `uv.lock` resolvers
+apply the same rule, so a dependency reads the same with or without a lockfile.
 
 ## Dependency Graphs
 
@@ -298,8 +323,8 @@ and edges kept, and a bad lockfile is reported on its root, never as a panic.
 | `pnpm-lock.yaml` (5.x, 6.x, 9.x) | lockfile only | every importer | each importer's `devDependencies` |
 | `Cargo.lock` | lockfile, `Cargo.toml` and workspace member manifests | `Cargo.toml` and each workspace member; a path crate that something depends on is a local node | `[dev-dependencies]`, including per target, that are not also normal or build dependencies; unknown for a root without its manifest |
 | `Gemfile.lock` | lockfile and `Gemfile` | `Gemfile`; `PATH` gems are local nodes | gems declared only in the `development` and `test` groups; unknown without a `Gemfile` |
-| `poetry.lock` | lockfile and `pyproject.toml` | project; path dependencies are local nodes | `dev-dependencies`, every Poetry group but `main`, and `[dependency-groups]`; unknown without `pyproject.toml` |
-| `uv.lock` (version 1) | lockfile only | the project and each workspace member, at its `pyproject.toml`; editable, directory and path packages are local nodes | each root's `dev-dependencies` groups; extras are runtime |
+| `poetry.lock` | lockfile and `pyproject.toml` | project; path dependencies are local nodes | `dev-dependencies`, every Poetry group but `main`, every `[dependency-groups]` group, and development extras; unknown without `pyproject.toml` |
+| `uv.lock` (version 1) | lockfile only | the project and each workspace member, at its `pyproject.toml`; editable, directory and path packages are local nodes | each root's `dev-dependencies` groups and development extras |
 | `packages.lock.json` (NuGet v1, v2) | lockfile, and the name of the project file beside it | the `.csproj`, `.fsproj` or `.vbproj` beside it, or the lockfile when there is not exactly one; every target framework is merged, and `Project` entries are local nodes | unknown: the lockfile does not record them |
 | `composer.lock` | lockfile and `composer.json` | project; path repository packages are local nodes | `require-dev`; unknown without `composer.json` |
 | `gradle.lockfile` | lockfile, and whether `build.gradle.kts` is beside it | `build.gradle`, or `build.gradle.kts` when it is the only build file; no direct members and no edges (`edges_unknown`) | unknown |

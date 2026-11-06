@@ -11,6 +11,9 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+test = [
+    { name = "iniconfig" },
+]
 cli = [
     { name = "click" },
 ]
@@ -63,3 +66,8 @@ wheels = [
 http2 = [
     { name = "h2" },
 ]
+
+[[package]]
+name = "iniconfig"
+version = "2.1.0"
+source = { registry = "https://pypi.org/simple" }
