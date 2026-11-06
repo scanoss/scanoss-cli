@@ -28,18 +28,17 @@ import (
 	"bytes"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
+
+	"github.com/pelletier/go-toml/v2/unstable"
+
+	"github.com/scanoss/scanoss.go/pkg/dependencies/internal/pyscope"
 )
 
-var (
-	// requirementRegex matches Python requirement lines
-	// Example: django>=4.2.0 or requests==2.28.0 or flask
-	requirementRegex = regexp.MustCompile(`^(?P<name>[-\w]+)\s*(?P<sym>[>=~!]*)\s*(?P<version>[\d\.]*)`)
-
-	// pyprojectDepsRegex matches dependency lines in pyproject.toml
-	// Example: "django>=4.2.0" or 'requests==2.28.0'
-	pyprojectDepsRegex = regexp.MustCompile(`["']([^"']+)["']`)
-)
+// requirementRegex matches Python requirement lines
+// Example: django>=4.2.0 or requests==2.28.0 or flask
+var requirementRegex = regexp.MustCompile(`^(?P<name>[-\w]+)\s*(?P<sym>[>=~!]*)\s*(?P<version>[\d\.]*)`)
 
 // ParseRequirementsTxt parses a requirements.txt file and extracts dependencies
 func ParseRequirementsTxt(fileContent []byte, filePath string) (*LocalDependency, error) {
@@ -87,39 +86,10 @@ func ParseRequirementsTxt(fileContent []byte, filePath string) (*LocalDependency
 			continue
 		}
 
-		// Parse the requirement
-		matches := requirementRegex.FindStringSubmatch(line)
-		if len(matches) >= 4 {
-			name := matches[1]
-			symbol := matches[2]
-			version := matches[3]
-
-			var purl string
-			var requirement string
-
-			// Build PURL based on version specifier
-			if symbol == "" {
-				// No version specified
-				purl = BuildPURL("pypi", "", name, "", nil)
-			} else if symbol == "==" && version != "" {
-				// Exact version
-				purl = BuildPURL("pypi", "", name, version, nil)
-				requirement = version
-			} else if version != "" {
-				// Other operators (>=, ~, !=, etc.)
-				purl = BuildPURL("pypi", "", name, "", nil)
-				requirement = symbol + version
-			} else {
-				// Just the symbol without version
-				purl = BuildPURL("pypi", "", name, "", nil)
-			}
-
-			result.Purls = append(result.Purls, LocalPurl{
-				Purl:         purl,
-				Requirement:  requirement,
-				Line:         lineNo,
-				DeclaredText: strings.TrimSpace(raw),
-			})
+		if lp, ok := pypiRequirement(line); ok {
+			lp.Line = lineNo
+			lp.DeclaredText = line
+			result.Purls = append(result.Purls, lp)
 		}
 	}
 
@@ -130,7 +100,12 @@ func ParseRequirementsTxt(fileContent []byte, filePath string) (*LocalDependency
 	return result, nil
 }
 
-// ParsePyprojectToml parses a pyproject.toml file and extracts dependencies
+// ParsePyprojectToml parses a pyproject.toml file and extracts the
+// dependencies it declares: [project] dependencies, each extra in
+// [project.optional-dependencies], each PEP 735 [dependency-groups] group, and
+// Poetry's dependencies, dev-dependencies and groups. Scope is the TOML table
+// the dependency is declared in, such as "project.optional-dependencies.dev",
+// and Dev follows the rule in package pyscope. A malformed file is an error.
 func ParsePyprojectToml(fileContent []byte, filePath string) (*LocalDependency, error) {
 	result := &LocalDependency{
 		File:     filePath,
@@ -138,79 +113,144 @@ func ParsePyprojectToml(fileContent []byte, filePath string) (*LocalDependency, 
 		Purls:    []LocalPurl{},
 	}
 
-	scanner := bufio.NewScanner(bytes.NewReader(fileContent))
-	inDependenciesSection := false
-	lineNo := 0
-
-	for scanner.Scan() {
-		lineNo++
-		raw := scanner.Text()
-		line := strings.TrimSpace(raw)
-
-		// Skip empty lines and comments
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-
-		// Check for dependencies section
-		if strings.Contains(line, "dependencies") && strings.Contains(line, "[") {
-			inDependenciesSection = true
-			continue
-		}
-
-		// Check for end of section (next section starts with [)
-		if inDependenciesSection && strings.HasPrefix(line, "[") {
-			inDependenciesSection = false
-			continue
-		}
-
-		// Parse dependencies within the section
-		if inDependenciesSection {
-			// Extract quoted strings; all deps on this physical line share lineNo and raw.
-			matches := pyprojectDepsRegex.FindAllStringSubmatch(line, -1)
-			for _, match := range matches {
-				if len(match) >= 2 {
-					dep := match[1]
-
-					// Parse the dependency (similar to requirements.txt)
-					reqMatches := requirementRegex.FindStringSubmatch(dep)
-					if len(reqMatches) >= 4 {
-						name := reqMatches[1]
-						symbol := reqMatches[2]
-						version := reqMatches[3]
-
-						var purl string
-						var requirement string
-
-						if symbol == "" {
-							purl = BuildPURL("pypi", "", name, "", nil)
-						} else if symbol == "==" && version != "" {
-							purl = BuildPURL("pypi", "", name, version, nil)
-							requirement = version
-						} else if version != "" {
-							purl = BuildPURL("pypi", "", name, "", nil)
-							requirement = symbol + version
-						} else {
-							purl = BuildPURL("pypi", "", name, "", nil)
-						}
-
-						result.Purls = append(result.Purls, LocalPurl{
-							Purl:         purl,
-							Requirement:  requirement,
-							Line:         lineNo,
-							DeclaredText: strings.TrimSpace(raw),
-						})
-					}
-				}
+	var p unstable.Parser
+	p.Reset(fileContent)
+	table := []string{}
+	for p.NextExpression() {
+		e := p.Expression()
+		switch e.Kind {
+		case unstable.Table:
+			table = tomlKey(e.Key())
+		case unstable.ArrayTable:
+			table = nil // no dependency table is an array of tables
+		case unstable.KeyValue:
+			if table != nil {
+				collectPyproject(&p, result, append(slices.Clone(table), tomlKey(e.Key())...), e)
 			}
 		}
 	}
-
-	if err := scanner.Err(); err != nil {
+	if err := p.Error(); err != nil {
 		return nil, err
 	}
-
 	return result, nil
+}
+
+// collectPyproject adds the dependencies value declares at the TOML key path,
+// descending into inline tables such as optional-dependencies = {dev = [...]}.
+func collectPyproject(p *unstable.Parser, result *LocalDependency, path []string, kv *unstable.Node) {
+	value := kv.Value()
+	add := func(lp LocalPurl, ok bool, scope string, dev bool, at *unstable.Node) {
+		if !ok {
+			return
+		}
+		lp.Scope = scope
+		lp.Dev = dev
+		lp.Line = p.Shape(at.Raw).Start.Line
+		lp.DeclaredText = sourceLine(p.Data(), lp.Line)
+		result.Purls = append(result.Purls, lp)
+	}
+	addAll := func(scope string, dev bool) {
+		if value.Kind != unstable.Array {
+			return
+		}
+		for it := value.Children(); it.Next(); {
+			// A table such as {include-group = "test"} names another group,
+			// which declares its dependencies itself.
+			if n := it.Node(); n.Kind == unstable.String {
+				lp, ok := pypiRequirement(string(n.Data))
+				add(lp, ok, scope, dev, n)
+			}
+		}
+	}
+	addPoetry := func(name string, scope []string, dev bool) {
+		lp, ok := poetryRequirement(name, value)
+		add(lp, ok, strings.Join(scope, "."), dev, kv)
+	}
+	switch {
+	case slices.Equal(path, []string{"project", "dependencies"}):
+		addAll(strings.Join(path, "."), false)
+	case len(path) == 3 && path[0] == "project" && path[1] == "optional-dependencies":
+		addAll(strings.Join(path, "."), pyscope.DevExtra(path[2]))
+	case len(path) == 2 && path[0] == "dependency-groups":
+		addAll(strings.Join(path, "."), true)
+	case len(path) == 4 && slices.Equal(path[:3], []string{"tool", "poetry", "dependencies"}):
+		addPoetry(path[3], path[:3], false)
+	case len(path) == 4 && slices.Equal(path[:3], []string{"tool", "poetry", "dev-dependencies"}):
+		addPoetry(path[3], path[:3], true)
+	case len(path) == 6 && slices.Equal(path[:3], []string{"tool", "poetry", "group"}) && path[4] == "dependencies":
+		addPoetry(path[5], path[:5], pyscope.DevPoetryGroup(path[3]))
+	case value.Kind == unstable.InlineTable:
+		for it := value.Children(); it.Next(); {
+			member := it.Node()
+			collectPyproject(p, result, append(slices.Clone(path), tomlKey(member.Key())...), member)
+		}
+	}
+}
+
+// poetryRequirement reads a Poetry dependency, declared as name = "^1.2" or
+// as a table with a version, into a purl, pinned when the version is exact.
+// python is the interpreter, not a dependency.
+func poetryRequirement(name string, value *unstable.Node) (LocalPurl, bool) {
+	if strings.EqualFold(name, "python") {
+		return LocalPurl{}, false
+	}
+	version := ""
+	switch value.Kind {
+	case unstable.String:
+		version = string(value.Data)
+	case unstable.InlineTable:
+		for it := value.Children(); it.Next(); {
+			field := it.Node()
+			if slices.Equal(tomlKey(field.Key()), []string{"version"}) && field.Value().Kind == unstable.String {
+				version = string(field.Value().Data)
+			}
+		}
+	}
+	version = strings.TrimSpace(version)
+	if exact := strings.TrimPrefix(version, "=="); exact != "" && !strings.ContainsAny(exact, "<>=!~^*, |") {
+		return LocalPurl{Purl: BuildPURL("pypi", "", name, exact, nil), Requirement: exact}, true
+	}
+	if version == "*" {
+		version = ""
+	}
+	return LocalPurl{Purl: BuildPURL("pypi", "", name, "", nil), Requirement: version}, true
+}
+
+// pypiRequirement reads a requirement such as requests>=2.31 into a purl,
+// pinned when the requirement is an exact version.
+func pypiRequirement(spec string) (LocalPurl, bool) {
+	m := requirementRegex.FindStringSubmatch(spec)
+	if len(m) < 4 {
+		return LocalPurl{}, false
+	}
+	name, symbol, version := m[1], m[2], m[3]
+	switch {
+	case symbol == "==" && version != "":
+		return LocalPurl{Purl: BuildPURL("pypi", "", name, version, nil), Requirement: version}, true
+	case symbol != "" && version != "":
+		return LocalPurl{Purl: BuildPURL("pypi", "", name, "", nil), Requirement: symbol + version}, true
+	default:
+		return LocalPurl{Purl: BuildPURL("pypi", "", name, "", nil)}, true
+	}
+}
+
+// tomlKey is the parts of a dotted TOML key.
+func tomlKey(it unstable.Iterator) []string {
+	var parts []string
+	for it.Next() {
+		parts = append(parts, string(it.Node().Data))
+	}
+	return parts
+}
+
+// sourceLine is the trimmed text of the 1-based line in data.
+func sourceLine(data []byte, line int) string {
+	for i, l := range bytes.Split(data, []byte("\n")) {
+		if i+1 == line {
+			return strings.TrimSpace(string(l))
+		}
+	}
+	return ""
 }
 
 // ParsePython is the main entry point for parsing Python dependency files

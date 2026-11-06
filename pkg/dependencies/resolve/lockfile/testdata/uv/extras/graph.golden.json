@@ -19,6 +19,11 @@
       "id": "pkg:pypi/httpx@0.28.1",
       "purl": "pkg:pypi/httpx",
       "version": "0.28.1"
+    },
+    {
+      "id": "pkg:pypi/iniconfig@2.1.0",
+      "purl": "pkg:pypi/iniconfig",
+      "version": "2.1.0"
     }
   ],
   "roots": [
@@ -44,6 +49,11 @@
         {
           "id": "pkg:pypi/httpx@0.28.1",
           "direct": true
+        },
+        {
+          "id": "pkg:pypi/iniconfig@2.1.0",
+          "direct": true,
+          "dev": true
         }
       ],
       "edges": [

@@ -38,6 +38,12 @@ type LocalPurl struct {
 	// Scope is the optional dependency scope (e.g., "dependencies", "devDependencies", "test")
 	Scope string `json:"scope,omitempty"`
 
+	// Dev is true when the manifest declares the dependency only to develop the
+	// project (tests, linting, documentation, build tooling): devDependencies in
+	// package.json, Maven's test scope, Gradle test configurations, and the
+	// pyproject.toml groups and extras package pyscope names.
+	Dev bool `json:"dev,omitempty"`
+
 	// Line is the 1-based line number of the dependency declaration in the manifest file.
 	// Zero means the location could not be determined.
 	Line int `json:"line,omitempty"`

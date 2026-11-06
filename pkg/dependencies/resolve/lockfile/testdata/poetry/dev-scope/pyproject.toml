@@ -5,6 +5,7 @@ dependencies = ["both>=1"]
 
 [project.optional-dependencies]
 fast = ["ujson>=5"]
+lint = ["ruff"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -21,4 +22,4 @@ pytest = "^8.0"
 
 [dependency-groups]
 docs = ["Sphinx>=7"]
-lint = ["ruff", { include-group = "docs" }]
+lint = [{ include-group = "docs" }]

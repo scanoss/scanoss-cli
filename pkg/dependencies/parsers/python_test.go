@@ -97,52 +97,104 @@ flask==2.3.0
 	}
 }
 
-// TestParsePyprojectTomlSourceLocation verifies Line and DeclaredText for pyproject.toml.
-// For pyproject.toml, multiple quoted deps on a single line share the same Line and DeclaredText.
-func TestParsePyprojectTomlSourceLocation(t *testing.T) {
+func TestParsePyprojectToml(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name      string
-		content   string
-		wantCount int
-		wantLine  int
-		wantLines []int // per-purl exact lines; checked when len > 0
-		wantPurls []string
+		name    string
+		content string
+		want    []LocalPurl
 	}{
 		{
-			name: "single dep per line under dependencies section (PEP 508 style)",
-			// line 1: [tool.poetry]
-			// line 2: name = "myapp"
-			// line 3: (blank)
-			// line 4: [tool.poetry.dependencies]
-			// line 5: dep1 = "requests>=2.28.0"
-			// line 6: dep2 = "flask>=2.3.0"
-			content: `[tool.poetry]
-name = "myapp"
-
-[tool.poetry.dependencies]
-dep1 = "requests>=2.28.0"
-dep2 = "flask>=2.3.0"
+			name: "project dependencies and a dev extra",
+			content: `[project]
+name = "earnie-staging-probe"
+version = "0.1.0"
+dependencies = ["requests>=2.31"]
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pylint>=2.17",
+]
 `,
-			wantCount: 2,
-			wantLines: []int{5, 6},
+			want: []LocalPurl{
+				{Purl: "pkg:pypi/requests", Requirement: ">=2.31", Scope: "project.dependencies", Line: 4, DeclaredText: `dependencies = ["requests>=2.31"]`},
+				{Purl: "pkg:pypi/pytest", Requirement: ">=7.4", Scope: "project.optional-dependencies.dev", Dev: true, Line: 7, DeclaredText: `"pytest>=7.4",`},
+				{Purl: "pkg:pypi/pylint", Requirement: ">=2.17", Scope: "project.optional-dependencies.dev", Dev: true, Line: 8, DeclaredText: `"pylint>=2.17",`},
+			},
 		},
 		{
-			name: "multiple quoted deps on single line share same Line",
-			// line 1: [build-system]
-			// line 2: requires = ["setuptools>=40.8.0", "wheel"]
-			// line 3: (blank)
-			// line 4: [tool.poetry.dependencies]
-			// line 5: extras = ["requests>=2.28.0", "flask>=2.3.0"]
+			name: "other project strings and build requirements are not dependencies",
 			content: `[build-system]
-requires = ["setuptools>=40.8.0", "wheel"]
+requires = ["setuptools>=61", "wheel"]
+
+[project]
+name = "app"
+description = "A tool"
+requires-python = ">=3.9"
+dependencies = [
+    "django==4.2.0", "flask",
+]
+readme = "README.md"
+`,
+			want: []LocalPurl{
+				{Purl: "pkg:pypi/django@4.2.0", Requirement: "4.2.0", Scope: "project.dependencies", Line: 9, DeclaredText: `"django==4.2.0", "flask",`},
+				{Purl: "pkg:pypi/flask", Scope: "project.dependencies", Line: 9, DeclaredText: `"django==4.2.0", "flask",`},
+			},
+		},
+		{
+			name: "an extra is dev only when its name says so",
+			content: `[project]
+name = "app"
+optional-dependencies = { socks = ["PySocks"], Test_Integration = ["tox"], docs = ["sphinx"] }
+`,
+			want: []LocalPurl{
+				{Purl: "pkg:pypi/PySocks", Scope: "project.optional-dependencies.socks", Line: 3},
+				{Purl: "pkg:pypi/tox", Scope: "project.optional-dependencies.Test_Integration", Dev: true, Line: 3},
+				{Purl: "pkg:pypi/sphinx", Scope: "project.optional-dependencies.docs", Dev: true, Line: 3},
+			},
+		},
+		{
+			name: "every PEP 735 group is dev, and an include-group adds nothing",
+			content: `[dependency-groups]
+test = ["pytest>=8", {include-group = "typing"}]
+typing = ["mypy"]
+release = ["twine"]
+`,
+			want: []LocalPurl{
+				{Purl: "pkg:pypi/pytest", Requirement: ">=8", Scope: "dependency-groups.test", Dev: true, Line: 2},
+				{Purl: "pkg:pypi/mypy", Scope: "dependency-groups.typing", Dev: true, Line: 3},
+				{Purl: "pkg:pypi/twine", Scope: "dependency-groups.release", Dev: true, Line: 4},
+			},
+		},
+		{
+			name: "poetry dependencies, dev-dependencies and groups",
+			content: `[tool.poetry]
+name = "app"
 
 [tool.poetry.dependencies]
-extras = ["requests>=2.28.0", "flask>=2.3.0"]
+python = "^3.9"
+requests = "^2.31"
+flask = { version = "2.3.0", optional = true }
+click = "*"
+
+[tool.poetry.dev-dependencies]
+black = "23.1"
+
+[tool.poetry.group.main.dependencies]
+attrs = ">=23"
+
+[tool.poetry.group.test.dependencies]
+pytest = { path = "../pytest" }
 `,
-			wantCount: 2,
-			wantLine:  5,
+			want: []LocalPurl{
+				{Purl: "pkg:pypi/requests", Requirement: "^2.31", Scope: "tool.poetry.dependencies", Line: 6},
+				{Purl: "pkg:pypi/flask@2.3.0", Requirement: "2.3.0", Scope: "tool.poetry.dependencies", Line: 7},
+				{Purl: "pkg:pypi/click", Scope: "tool.poetry.dependencies", Line: 8},
+				{Purl: "pkg:pypi/black@23.1", Requirement: "23.1", Scope: "tool.poetry.dev-dependencies", Dev: true, Line: 11},
+				{Purl: "pkg:pypi/attrs", Requirement: ">=23", Scope: "tool.poetry.group.main.dependencies", Line: 14},
+				{Purl: "pkg:pypi/pytest", Scope: "tool.poetry.group.test.dependencies", Dev: true, Line: 17},
+			},
 		},
 	}
 
@@ -153,31 +205,25 @@ extras = ["requests>=2.28.0", "flask>=2.3.0"]
 			if err != nil {
 				t.Fatalf("ParsePyprojectToml error: %v", err)
 			}
-			if len(result.Purls) != tc.wantCount {
-				t.Fatalf("got %d purls, want %d; purls: %+v", len(result.Purls), tc.wantCount, result.Purls)
+			if len(result.Purls) != len(tc.want) {
+				t.Fatalf("got %d purls, want %d; purls: %+v", len(result.Purls), len(tc.want), result.Purls)
 			}
-			// All purls must have non-zero Line and non-empty DeclaredText
-			for i, p := range result.Purls {
-				if p.Line == 0 {
-					t.Errorf("[%d] Line is 0, want non-zero", i)
+			for i, got := range result.Purls {
+				w := tc.want[i]
+				if w.DeclaredText == "" {
+					w.DeclaredText = got.DeclaredText
 				}
-				if p.DeclaredText == "" {
-					t.Errorf("[%d] DeclaredText is empty", i)
-				}
-				if tc.wantLine != 0 && p.Line != tc.wantLine {
-					t.Errorf("[%d] Line: got %d, want %d", i, p.Line, tc.wantLine)
-				}
-				if i < len(tc.wantLines) && p.Line != tc.wantLines[i] {
-					t.Errorf("[%d] Line: got %d, want %d", i, p.Line, tc.wantLines[i])
-				}
-			}
-			// For multi-dep line case: all deps on same line share same DeclaredText
-			if tc.wantLine != 0 && len(result.Purls) == 2 {
-				if result.Purls[0].DeclaredText != result.Purls[1].DeclaredText {
-					t.Errorf("multi-dep: expected same DeclaredText for both; got %q vs %q",
-						result.Purls[0].DeclaredText, result.Purls[1].DeclaredText)
+				if got != w {
+					t.Errorf("[%d] got %+v, want %+v", i, got, w)
 				}
 			}
 		})
+	}
+}
+
+func TestParsePyprojectTomlMalformed(t *testing.T) {
+	t.Parallel()
+	if _, err := ParsePyprojectToml([]byte("[project\ndependencies = [\"requests\"]\n"), "pyproject.toml"); err == nil {
+		t.Fatal("want an error for a malformed pyproject.toml")
 	}
 }

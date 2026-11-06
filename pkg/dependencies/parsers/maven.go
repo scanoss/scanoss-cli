@@ -291,6 +291,7 @@ func ParsePomXML(fileContent []byte, filePath string) (*LocalDependency, error) 
 				Purl:         purl,
 				Requirement:  version,
 				Scope:        scope,
+				Dev:          scope == "test",
 				Line:         offsetToLine(fileContent, cd.startOff),
 				DeclaredText: strings.TrimSpace(string(fileContent[cd.startOff:cd.endOff])),
 			})

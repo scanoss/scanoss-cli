@@ -134,6 +134,7 @@ func ParseBuildGradle(fileContent []byte, filePath string) (*LocalDependency, er
 					Purl:         purl,
 					Requirement:  version,
 					Scope:        scope,
+					Dev:          gradleTestConfiguration(scope),
 					Line:         lineNo,
 					DeclaredText: strings.TrimSpace(originalLine),
 				})
@@ -169,6 +170,7 @@ func ParseBuildGradle(fileContent []byte, filePath string) (*LocalDependency, er
 					Purl:         purl,
 					Requirement:  version,
 					Scope:        currentScope,
+					Dev:          gradleTestConfiguration(currentScope),
 					Line:         depLine,
 					DeclaredText: strings.TrimSpace(line),
 				})
@@ -196,4 +198,10 @@ func ParseGradle(fileContent []byte, filePath string) (*LocalDependency, error) 
 		File:  filePath,
 		Purls: []LocalPurl{},
 	}, nil
+}
+
+// gradleTestConfiguration reports whether a dependency configuration only
+// builds or runs tests, such as testImplementation or androidTestImplementation.
+func gradleTestConfiguration(configuration string) bool {
+	return strings.HasPrefix(configuration, "test") || strings.Contains(configuration, "Test")
 }

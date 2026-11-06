@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`LocalPurl.Dev`** says the manifest declares a dependency only to develop the project:
+  `devDependencies` in `package.json` and `package-lock.json`, Maven's `test` scope, Gradle test
+  configurations, and the `pyproject.toml` groups and development extras. `dependencies` output
+  gains `"dev": true` on those entries.
+
+### Fixed
+
+- **`pyproject.toml` is read as TOML.** The line-based reader dropped a one-line
+  `dependencies = ["requests>=2.31"]`, invented dependencies from other strings such as
+  `readme = "README.md"`, misread Poetry tables, and never read `[dependency-groups]`. It now
+  reads `[project]` dependencies, each extra in `[project.optional-dependencies]`, each PEP 735
+  group and Poetry's dependencies, dev-dependencies and groups, with the table as `Scope`, such as
+  `project.optional-dependencies.dev`. A malformed file is now an error instead of a partial list.
+- **Development extras are dev in `poetry.lock` and `uv.lock` graphs.** An extra named for
+  development (`dev`, `test`, `lint`, `docs` and the like; see `pkg/dependencies/README.md`) marks
+  its dependencies dev, as the manifest parser does. Other extras stay runtime.
+
 ## [0.16.0] - 2026-10-30
 
 ### Added
