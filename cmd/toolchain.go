@@ -25,6 +25,7 @@ package cmd
 
 import (
 	"fmt"
+	"os/exec"
 	"slices"
 	"strings"
 
@@ -33,31 +34,58 @@ import (
 	"github.com/scanoss/scanoss.go/pkg/sbom/depsource"
 )
 
-const toolchainFlagHelp = "resolve transitive dependencies by running the ecosystem's own tools (comma-separated): go. " +
-	"Needs a go on PATH at least as new as the module's go directive, and reaches the module proxy with your environment"
+const toolchainFlagHelp = "ecosystem tools used to resolve transitive dependencies (comma-separated): go, or none. " +
+	"Defaults to go when a go is on PATH: go.mod is then resolved with go list and go mod graph, which reach the module " +
+	"proxy with your environment and need a go at least as new as the module's go directive. " +
+	"none reads go.mod only, with no network access"
 
 // toolchainManifests maps each --toolchain value to the manifest it resolves.
 var toolchainManifests = map[string]string{"go": "go.mod"}
 
-// depsourceOptions reads --toolchain into the options dependency resolution runs with. Without
-// the flag it returns the zero value, which reads lockfiles only.
+// lookPath finds a tool on PATH; tests replace it.
+var lookPath = exec.LookPath
+
+// depsourceOptions reads --toolchain into the options dependency resolution runs with.
 func depsourceOptions(cmd *cobra.Command) (depsource.Options, error) {
 	values, _ := cmd.Flags().GetStringSlice("toolchain")
-	var opts depsource.Options
+	set, err := toolchainSet(values, cmd.Flags().Changed("toolchain"))
+	return depsource.Options{Toolchain: set}, err
+}
+
+// toolchainSet turns the --toolchain values into the manifests resolved with tools. Without the
+// flag, go.mod is resolved with go when a go is on PATH: without one the resolver would only fall
+// back with a warning on every run. "none" turns tools off and stands alone.
+func toolchainSet(values []string, changed bool) (map[string]bool, error) {
+	if !changed {
+		if _, err := lookPath("go"); err != nil {
+			return nil, nil
+		}
+		return map[string]bool{"go.mod": true}, nil
+	}
+	set := map[string]bool{}
+	none := false
 	for _, v := range values {
-		manifest, ok := toolchainManifests[strings.ToLower(strings.TrimSpace(v))]
+		v = strings.ToLower(strings.TrimSpace(v))
+		if v == "none" {
+			none = true
+			continue
+		}
+		manifest, ok := toolchainManifests[v]
 		if !ok {
-			names := make([]string, 0, len(toolchainManifests))
+			names := []string{"none"}
 			for n := range toolchainManifests {
 				names = append(names, n)
 			}
 			slices.Sort(names)
-			return opts, fmt.Errorf("unknown --toolchain value %q (valid: %s)", v, strings.Join(names, ", "))
+			return nil, fmt.Errorf("unknown --toolchain value %q (valid: %s)", v, strings.Join(names, ", "))
 		}
-		if opts.Toolchain == nil {
-			opts.Toolchain = map[string]bool{}
-		}
-		opts.Toolchain[manifest] = true
+		set[manifest] = true
 	}
-	return opts, nil
+	if none && len(set) > 0 {
+		return nil, fmt.Errorf("--toolchain none cannot be combined with other values")
+	}
+	if len(set) == 0 {
+		return nil, nil
+	}
+	return set, nil
 }

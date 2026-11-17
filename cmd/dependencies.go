@@ -72,11 +72,12 @@ var dependenciesCmd = &cobra.Command{
    poetry.lock, composer.lock) are resolved into a dependency graph, without
    their dev dependencies, and manifests no lockfile covers are listed flat.
 
-   Add --toolchain go to resolve go.mod by running "go list" and "go mod graph"
-   instead, which gives the transitive edges the lockfile parser cannot see.
-   It needs a go on PATH at least as new as the module's go directive, and
-   reaches the module proxy with your environment. If go is missing or fails,
-   go.mod is read as it is without the flag.
+   When a go is on PATH, go.mod is resolved by running "go list" and
+   "go mod graph", which gives the transitive edges go.mod alone cannot. That
+   reaches the module proxy with your environment and needs a go at least as
+   new as the module's go directive; if go fails, go.mod is read on its own and
+   a warning says why. --toolchain none reads go.mod only, with no network
+   access.
 
 2. API MODE (--purl):
    Queries the SCANOSS API for component dependencies (direct or transitive).
@@ -98,8 +99,8 @@ Examples:
   # Render the dependency graph resolved from the project's lockfiles as CycloneDX
   scanoss-cli dependencies ./my-project --extract-local --format cyclonedx
 
-  # Include transitive Go module edges, resolved with the go command
-  scanoss-cli dependencies ./my-project --extract-local --format cyclonedx --toolchain go
+  # Read go.mod only, without running go or reaching the module proxy
+  scanoss-cli dependencies ./my-project --extract-local --format cyclonedx --toolchain none
 
   # Scan project dependencies and query API for direct dependencies
   scanoss-cli dependencies ./my-project
@@ -174,7 +175,7 @@ func runDependencies(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return usageError(cmd, "%v", err)
 	}
-	if len(deps.Toolchain) > 0 && !extractLocal {
+	if cmd.Flags().Changed("toolchain") && !extractLocal {
 		return usageError(cmd, "--toolchain requires --extract-local")
 	}
 	if format != "" {
