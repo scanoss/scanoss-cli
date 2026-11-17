@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-11-17
+
 ### Added
 
 - **Transitive Go module edges.** When a `go` is on PATH, `scan --include deps` and
@@ -587,7 +589,8 @@ Initial release of the SCANOSS Go CLI and SDK (`scanoss`).
   CycloneDX and SPDX (with `WithTool`/`WithAuthor`/`WithTimestamp` document-metadata options).
 - **C shared library** (`libscanoss`) with Node.js and Python bindings.
 
-[Unreleased]: https://github.com/scanoss/scanoss.go/compare/v0.17.0...HEAD
+[Unreleased]: https://github.com/scanoss/scanoss.go/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/scanoss/scanoss.go/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/scanoss/scanoss.go/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/scanoss/scanoss.go/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/scanoss/scanoss.go/compare/v0.14.2...v0.15.0
