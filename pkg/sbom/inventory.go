@@ -196,12 +196,18 @@ const (
 
 // DisplayName is the component's name for an SBOM package entry.
 //
-// Detected components carry Name from the scan result; declared ones (sourced
-// from a manifest) carry only a PURL, so the name is taken from its last
-// segment — "pkg:golang/github.com/spf13/cobra" yields "cobra". Falling back to
-// the whole PURL would put "pkg:golang/github.com/spf13/cobra" in a field that
-// consumers render as a package name.
+// A Go module's name is its full module path, whatever the scan called it:
+// scanners such as Grype look Go vulnerabilities up by that name, so
+// "github.com/spf13/cobra" shortened to "cobra" matches nothing.
+//
+// Otherwise detected components carry Name from the scan result; declared ones
+// (sourced from a manifest) carry only a PURL, so the name is taken from its
+// last segment — "pkg:npm/lodash" yields "lodash". Falling back to the whole
+// PURL would put a PURL in a field that consumers render as a package name.
 func (c Component) DisplayName() string {
+	if path, ok := goModulePath(c.Purl); ok {
+		return path
+	}
 	if c.Name != "" {
 		return c.Name
 	}
@@ -213,6 +219,20 @@ func (c Component) DisplayName() string {
 		return c.Purl // nothing better to offer
 	}
 	return name
+}
+
+// goModulePath returns the module path of a "pkg:golang/..." PURL, without any
+// version, qualifiers or subpath, and false for any other PURL.
+func goModulePath(purl string) (string, bool) {
+	path, ok := strings.CutPrefix(purl, "pkg:golang/")
+	if !ok {
+		return "", false
+	}
+	if i := strings.IndexAny(path, "@?#"); i >= 0 {
+		path = path[:i]
+	}
+	path = strings.TrimSuffix(path, "/")
+	return path, path != ""
 }
 
 // IsDeclared reports whether the component is a declared dependency rather than a

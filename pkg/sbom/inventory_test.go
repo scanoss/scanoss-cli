@@ -29,10 +29,10 @@ import (
 	"testing"
 )
 
-// The SBOM name field must hold a package name, not a PURL. Detected components
-// carry one from the scan result; declared ones (sourced from a manifest) carry
-// only a PURL, so the last segment stands in — otherwise every declared package
-// in an SBOM would be named "pkg:golang/github.com/spf13/cobra".
+// The SBOM name field must hold a package name, not a PURL. A Go module is named
+// by its full module path, which is what scanners look Go vulnerabilities up by.
+// Other detected components carry a name from the scan result; declared ones
+// (sourced from a manifest) carry only a PURL, so the last segment stands in.
 func TestComponentDisplayName(t *testing.T) {
 	for _, tc := range []struct {
 		name string
@@ -40,7 +40,10 @@ func TestComponentDisplayName(t *testing.T) {
 		want string
 	}{
 		{"detected keeps its name", Component{Purl: "pkg:github/madler/zlib", Name: "zlib"}, "zlib"},
-		{"declared falls back to the purl tail", Component{Purl: "pkg:golang/github.com/spf13/cobra"}, "cobra"},
+		{"declared go module is its full module path", Component{Purl: "pkg:golang/github.com/spf13/cobra"}, "github.com/spf13/cobra"},
+		{"detected go module is its full module path too", Component{Purl: "pkg:golang/go.opentelemetry.io/otel/sdk", Name: "sdk"}, "go.opentelemetry.io/otel/sdk"},
+		{"go purl drops version, qualifiers and subpath", Component{Purl: "pkg:golang/golang.org/x/net@v0.19.0?type=module#http2"}, "golang.org/x/net"},
+		{"empty go purl falls back", Component{Purl: "pkg:golang/"}, "pkg:golang/"},
 		{"short purl", Component{Purl: "pkg:npm/lodash"}, "lodash"},
 		{"maven namespace", Component{Purl: "pkg:maven/org.apache.commons/commons-lang3"}, "commons-lang3"},
 		{"no slash at all", Component{Purl: "weird"}, "weird"},

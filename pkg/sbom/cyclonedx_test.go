@@ -144,6 +144,33 @@ func TestCycloneDX_SpecAndMetadata(t *testing.T) {
 	}
 }
 
+// scanoss/scanoss-cli#138: Grype keys Go vulnerabilities on the component name,
+// so otel/sdk v1.45.0 (two known advisories) named "sdk" came out clean. The
+// writer must name it by its module path.
+func TestCycloneDX_GoComponentNamedByModulePath(t *testing.T) {
+	var inv Inventory
+	inv.Add(Component{
+		Purl:    "pkg:golang/go.opentelemetry.io/otel/sdk",
+		Version: "v1.45.0",
+		Scope:   ScopeDeclared,
+	})
+	out, err := Generate(inv, FormatCycloneDX)
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+	bom := decodeBOM(t, out)
+	if bom.Components == nil || len(*bom.Components) != 1 {
+		t.Fatalf("want 1 component, got %v", bom.Components)
+	}
+	c := (*bom.Components)[0]
+	if c.Name != "go.opentelemetry.io/otel/sdk" {
+		t.Errorf("name = %q, want the full module path", c.Name)
+	}
+	if c.PackageURL != "pkg:golang/go.opentelemetry.io/otel/sdk@v1.45.0" {
+		t.Errorf("purl = %q", c.PackageURL)
+	}
+}
+
 func TestCycloneDX_Components(t *testing.T) {
 	out, err := Generate(sampleInventory(), FormatCycloneDX)
 	if err != nil {
