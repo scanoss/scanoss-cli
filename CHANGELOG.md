@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   directive; when `go` fails, `go.mod` is read on its own and a warning says why.
   `--toolchain none` turns it off (no network access); `--toolchain go` asks for it explicitly.
 
+### Security
+
+- **Built with Go 1.27.4.** Fixes GO-2026-6859, an HTTP/1 `net/http` vulnerability the CLI
+  reached through its API client.
+
 ## [0.17.0] - 2026-11-06
 
 ### Added
