@@ -61,6 +61,12 @@ require github.com/foo/bar v1.2.3
 					Line:         7,
 					DeclaredText: "require github.com/foo/bar v1.2.3",
 				},
+				{
+					Purl:         "pkg:golang/stdlib@go1.22",
+					Requirement:  "go1.22",
+					Line:         3,
+					DeclaredText: "go 1.22",
+				},
 			},
 		},
 		{
@@ -87,6 +93,12 @@ require (
 					Line:         7,
 					DeclaredText: "github.com/google/uuid v1.6.0",
 				},
+				{
+					Purl:         "pkg:golang/stdlib@go1.22",
+					Requirement:  "go1.22",
+					Line:         3,
+					DeclaredText: "go 1.22",
+				},
 			},
 		},
 		{
@@ -101,6 +113,12 @@ require github.com/spf13/pflag v1.0.10
 					Requirement:  "v1.0.10",
 					Line:         3,
 					DeclaredText: "require github.com/spf13/pflag v1.0.10",
+				},
+				{
+					Purl:         "pkg:golang/stdlib@go1.22",
+					Requirement:  "go1.22",
+					Line:         2,
+					DeclaredText: "go 1.22",
 				},
 			},
 		},
@@ -174,7 +192,57 @@ go 1.22
 	if err != nil {
 		t.Fatalf("ParseGoMod error: %v", err)
 	}
+	// The standard library is the only dependency of a module that requires nothing.
+	if len(result.Purls) != 1 || result.Purls[0].Purl != "pkg:golang/stdlib@go1.22" {
+		t.Errorf("expected only the standard library for a module-only go.mod, got %+v", result.Purls)
+	}
+}
+
+// The standard library is declared at the toolchain the module builds with:
+// the toolchain directive when there is one, else the go directive.
+func TestParseGoModStdlib(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name, content, purl string
+		line                int
+	}{
+		{"go directive", "module m\n\ngo 1.26.11\n", "pkg:golang/stdlib@go1.26.11", 3},
+		{"toolchain wins over go", "module m\n\ngo 1.26\n\ntoolchain go1.26.11\n", "pkg:golang/stdlib@go1.26.11", 5},
+		{"go directive without patch kept as is", "module m\ngo 1.26\n", "pkg:golang/stdlib@go1.26", 2},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			result, err := ParseGoMod([]byte(tc.content), "go.mod")
+			if err != nil {
+				t.Fatalf("ParseGoMod error: %v", err)
+			}
+			if len(result.Purls) != 1 || result.Purls[0].Purl != tc.purl || result.Purls[0].Line != tc.line {
+				t.Errorf("got %+v, want %s at line %d", result.Purls, tc.purl, tc.line)
+			}
+		})
+	}
+
+	result, err := ParseGoMod([]byte("module m\n"), "go.mod")
+	if err != nil {
+		t.Fatalf("ParseGoMod error: %v", err)
+	}
 	if len(result.Purls) != 0 {
-		t.Errorf("expected 0 purls for module-only go.mod, got %d", len(result.Purls))
+		t.Errorf("a go.mod without a go directive names no toolchain, got %+v", result.Purls)
+	}
+}
+
+func TestGoStdVersion(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct{ goDir, toolchain, want string }{
+		{"1.26.11", "", "go1.26.11"},
+		{"1.26", "go1.26.11", "go1.26.11"},
+		{"1.26", "default", "go1.26"},
+		{"", "", ""},
+	} {
+		if got := GoStdVersion(tc.goDir, tc.toolchain); got != tc.want {
+			t.Errorf("GoStdVersion(%q, %q) = %q, want %q", tc.goDir, tc.toolchain, got, tc.want)
+		}
 	}
 }

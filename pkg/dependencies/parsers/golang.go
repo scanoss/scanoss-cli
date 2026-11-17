@@ -52,6 +52,7 @@ func ParseGoMod(fileContent []byte, filePath string) (*LocalDependency, error) {
 	scanner := bufio.NewScanner(bytes.NewReader(fileContent))
 	inRequireBlock := false
 	lineNo := 0
+	var goDirective, toolchainDirective directive
 
 	for scanner.Scan() {
 		lineNo++
@@ -59,6 +60,15 @@ func ParseGoMod(fileContent []byte, filePath string) (*LocalDependency, error) {
 		line := preprocessLine(raw)
 
 		if line == "" {
+			continue
+		}
+
+		if v, ok := strings.CutPrefix(line, "go "); ok && !inRequireBlock {
+			goDirective = directive{strings.TrimSpace(v), lineNo, strings.TrimSpace(raw)}
+			continue
+		}
+		if v, ok := strings.CutPrefix(line, "toolchain "); ok && !inRequireBlock {
+			toolchainDirective = directive{strings.TrimSpace(v), lineNo, strings.TrimSpace(raw)}
 			continue
 		}
 
@@ -110,7 +120,53 @@ func ParseGoMod(fileContent []byte, filePath string) (*LocalDependency, error) {
 		return nil, err
 	}
 
+	if v := GoStdVersion(goDirective.value, toolchainDirective.value); v != "" {
+		d := goDirective
+		if toolchainDirective.value != "" {
+			d = toolchainDirective
+		}
+		result.Purls = append(result.Purls, LocalPurl{
+			Purl:         BuildPURL("golang", "", GoStdName, v, nil),
+			Requirement:  v,
+			Line:         d.line,
+			DeclaredText: d.text,
+		})
+	}
+
 	return result, nil
+}
+
+// GoStdName is the module name of the Go standard library: pkg:golang/stdlib@go1.26.11.
+// It is the name the Go vulnerability database files standard library advisories
+// under, and the one Syft and Grype use; Grype matches nothing on cyclonedx-gomod's
+// "std".
+const GoStdName = "stdlib"
+
+// directive is a go.mod directive's value and where it was declared.
+type directive struct {
+	value string
+	line  int
+	text  string
+}
+
+// GoStdVersion returns the version of the standard library a module is built
+// with, from its go.mod directives: the toolchain directive ("go1.26.11") when
+// there is one, since that is the toolchain the go command switches to, else the
+// go directive ("1.26.11" becomes "go1.26.11"). It returns "" when neither is set.
+//
+// A go directive without a patch release ("1.26") is kept as it is: it is the
+// oldest release the module allows, and a scanner reads it as the first one.
+func GoStdVersion(goDirective, toolchainDirective string) string {
+	if v := strings.TrimSpace(toolchainDirective); v != "" && v != "default" {
+		if !strings.HasPrefix(v, "go") {
+			v = "go" + v
+		}
+		return v
+	}
+	if v := strings.TrimSpace(goDirective); v != "" {
+		return "go" + v
+	}
+	return ""
 }
 
 // ParseGoSum parses a go.sum file and extracts dependencies

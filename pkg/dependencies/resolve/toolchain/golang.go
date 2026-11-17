@@ -30,6 +30,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/scanoss/scanoss.go/pkg/dependencies/parsers"
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/internal/build"
 )
@@ -54,12 +55,13 @@ var goUnreachable = []string{
 }
 
 type goListModule struct {
-	Path     string
-	Version  string
-	Main     bool
-	Indirect bool
-	Replace  *struct{ Path, Version string }
-	Error    *struct{ Err string }
+	Path      string
+	Version   string
+	GoVersion string
+	Main      bool
+	Indirect  bool
+	Replace   *struct{ Path, Version string }
+	Error     *struct{ Err string }
 }
 
 type goSelected struct {
@@ -92,11 +94,11 @@ func resolveGo(b *build.Builder, r *build.Root, run runFunc) {
 		mods = append(mods, m)
 	}
 
-	main := ""
+	main, mainGo := "", ""
 	selected := map[string]goSelected{}
 	for _, m := range mods {
 		if m.Main {
-			main = m.Path
+			main, mainGo = m.Path, m.GoVersion
 			continue
 		}
 		if m.Error != nil {
@@ -122,6 +124,8 @@ func resolveGo(b *build.Builder, r *build.Root, run runFunc) {
 			selected[m.Path] = goSelected{m.Version, id, m.Indirect}
 		}
 	}
+
+	declareStd(b, r, run, mainGo)
 
 	graph := run("go", "mod", "graph")
 	if graph.reason != "" {
@@ -160,5 +164,28 @@ func resolveGo(b *build.Builder, r *build.Root, run runFunc) {
 		if from, ok := selected[fromPath]; ok && from.required == fromVersion {
 			b.Edge(from.id, to.id)
 		}
+	}
+}
+
+type goModEdit struct {
+	Go        string
+	Toolchain string
+}
+
+// declareStd declares the standard library the main module builds with: every
+// Go binary links it, and it is where most Go vulnerabilities are. go mod edit
+// reads both the go and toolchain directives without the network; if it fails,
+// the go directive go list already reported stands in.
+func declareStd(b *build.Builder, r *build.Root, run runFunc, goVersion string) {
+	var mod goModEdit
+	if out := run("go", "mod", "edit", "-json"); out.reason == "" && json.Unmarshal(out.stdout, &mod) == nil && mod.Go != "" {
+		goVersion = mod.Go
+	}
+	v := parsers.GoStdVersion(goVersion, mod.Toolchain)
+	if v == "" {
+		return
+	}
+	if id, ok := b.Node("", parsers.GoStdName, v); ok {
+		r.Declare(id, false)
 	}
 }

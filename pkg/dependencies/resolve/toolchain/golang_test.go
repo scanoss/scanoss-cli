@@ -53,6 +53,11 @@ func recorded(t *testing.T, dir string) runFunc {
 		switch strings.Join(append([]string{name}, args...), " ") {
 		case "go list -e -m -json all":
 			return output{stdout: read("list.json")}
+		case "go mod edit -json":
+			if _, err := os.Stat(filepath.Join(dir, "mod.json")); err != nil {
+				return failed("go mod edit", errors.New("exit status 1"), nil)
+			}
+			return output{stdout: read("mod.json")}
 		case "go mod graph":
 			if _, err := os.Stat(filepath.Join(dir, "stderr.txt")); err == nil {
 				return failed("go mod graph", errors.New("exit status 1"), read("stderr.txt"))
