@@ -25,6 +25,11 @@
       "id": "pkg:golang/go.yaml.in/yaml/v3@v3.0.5",
       "purl": "pkg:golang/go.yaml.in/yaml/v3",
       "version": "v3.0.5"
+    },
+    {
+      "id": "pkg:golang/stdlib@go1.22",
+      "purl": "pkg:golang/stdlib",
+      "version": "go1.22"
     }
   ],
   "roots": [
@@ -54,6 +59,10 @@
         {
           "id": "pkg:golang/go.yaml.in/yaml/v3@v3.0.5",
           "direct": false
+        },
+        {
+          "id": "pkg:golang/stdlib@go1.22",
+          "direct": true
         }
       ],
       "edges": [
