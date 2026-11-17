@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-11-17
+
+### Added
+
+- **The Go standard library is a dependency of every `go.mod`.** Every Go binary links it, and
+  most Go vulnerabilities are in it, but the SBOM listed only the required modules. A Go root now
+  declares `pkg:golang/stdlib@<version>`: the `toolchain` directive when set, else the `go`
+  directive (`go 1.26.11` gives `stdlib@go1.26.11`). It is named `stdlib`, as the Go
+  vulnerability database, Syft and Grype name it (#140, part of #138).
+
+### Fixed
+
+- **Go components are named by their full module path.** A Go module was named by the last
+  element of its path (`sdk` for `go.opentelemetry.io/otel/sdk`), and scanners such as Grype,
+  which look Go vulnerabilities up by that name, matched nothing: a vulnerable Go project's SBOM
+  came out clean. CycloneDX `name` and SPDX `PackageName` now hold the module path (#139, part
+  of #138).
+
 ## [0.18.0] - 2026-11-17
 
 ### Added
