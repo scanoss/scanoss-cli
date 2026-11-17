@@ -26,6 +26,7 @@ package depsource
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"slices"
@@ -39,6 +40,7 @@ import (
 
 	"github.com/scanoss/scanoss.go/pkg/dependencies/parsers"
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
+	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/toolchain"
 	"github.com/scanoss/scanoss.go/pkg/sbom"
 )
 
@@ -248,7 +250,7 @@ func TestInventory(t *testing.T) {
 		t.Errorf("Select = %q, want %q", gotSelected, wantSelected)
 	}
 
-	inv, failed := Inventory(root, selected)
+	inv, failed := Inventory(t.Context(), root, selected, Options{})
 	// The malformed lockfile is reported on its root, not as a failure, and its root covers
 	// both files, so the flat parser never reads them.
 	if failed != nil {
@@ -495,7 +497,7 @@ func TestTwoLockfilesForOneManifest(t *testing.T) {
 "node_modules/left":{"version":"1.0.1"}}}`)
 	writeFile(t, filepath.Join(root, "yarn.lock"), "left@^1.0.0:\n  version \"1.0.2\"\n")
 	files := []string{filepath.Join(root, "package.json"), filepath.Join(root, "package-lock.json"), filepath.Join(root, "yarn.lock")}
-	inv, failed := Inventory(root, Select(files))
+	inv, failed := Inventory(t.Context(), root, Select(files), Options{})
 	if failed != nil {
 		t.Fatalf("failed = %v", failed)
 	}
@@ -557,5 +559,82 @@ func TestTwoLockfilesForOneManifest(t *testing.T) {
 	slices.Sort(got)
 	if wantSPDX := []string{"left@1.0.1", "left@1.0.2"}; !slices.Equal(got, wantSPDX) {
 		t.Errorf("SPDX DEPENDS_ON per root package.json = %q, want one root on each version %q", got, wantSPDX)
+	}
+}
+
+// A module whose requirements are all local replace directives resolves without the network.
+func goChainProject(t *testing.T) string {
+	t.Helper()
+	root := t.TempDir()
+	if err := os.CopyFS(root, os.DirFS(filepath.Join("testdata", "gomod-chain"))); err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
+func goModRoot(t *testing.T, inv sbom.Inventory) sbom.DependencyRoot {
+	t.Helper()
+	for _, r := range inv.Dependencies {
+		if r.Manifest == "go.mod" {
+			return r
+		}
+	}
+	t.Fatalf("no go.mod root in %+v", inv.Dependencies)
+	return sbom.DependencyRoot{}
+}
+
+func goToolchainOptions() Options {
+	return Options{
+		Toolchain:        map[string]bool{"go.mod": true},
+		ToolchainOptions: toolchain.Options{Env: []string{"GOPROXY=off", "GOFLAGS=-mod=readonly"}},
+	}
+}
+
+func TestInventoryToolchainResolvesTransitiveGoEdges(t *testing.T) {
+	if _, err := exec.LookPath("go"); err != nil {
+		t.Skip("go is not on PATH")
+	}
+	root := goChainProject(t)
+	inv, failed := Inventory(t.Context(), root, []string{filepath.Join(root, "go.mod")}, goToolchainOptions())
+	if failed != nil {
+		t.Fatalf("failed = %v", failed)
+	}
+	r := goModRoot(t, inv)
+	if r.Status != sbom.GraphStatus(resolve.StatusComplete) {
+		t.Fatalf("status = %s (%s): %s", r.Status, r.Reason, r.Detail)
+	}
+	direct := map[string]bool{}
+	for _, d := range r.Direct {
+		direct[d] = true
+	}
+	transitive := false
+	for _, e := range r.Edges {
+		if !direct[e.From] && e.From != "" {
+			transitive = true
+		}
+	}
+	if !transitive {
+		t.Errorf("no edge starts outside the direct set %v: %v", r.Direct, r.Edges)
+	}
+}
+
+func TestInventoryToolchainFallsBackToLockfileWhenToolIsMissing(t *testing.T) {
+	root := goChainProject(t)
+	t.Setenv("PATH", "")
+	inv, failed := Inventory(t.Context(), root, []string{filepath.Join(root, "go.mod")}, goToolchainOptions())
+	if failed != nil {
+		t.Fatalf("failed = %v", failed)
+	}
+	r := goModRoot(t, inv)
+	if r.Status != sbom.GraphStatus(resolve.StatusPartial) || r.Reason != string(resolve.ReasonEdgesUnknown) {
+		t.Errorf("root is %s (%s), want the lockfile result partial (edges_unknown)", r.Status, r.Reason)
+	}
+}
+
+func TestInventoryWithoutToolchainOptionReadsLockfileOnly(t *testing.T) {
+	root := goChainProject(t)
+	inv, _ := Inventory(t.Context(), root, []string{filepath.Join(root, "go.mod")}, Options{})
+	if r := goModRoot(t, inv); r.Reason != string(resolve.ReasonEdgesUnknown) {
+		t.Errorf("reason = %s, want edges_unknown", r.Reason)
 	}
 }

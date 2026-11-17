@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`--toolchain go`** on `scan` and on `dependencies --extract-local` resolves `go.mod` with
+  `go list` and `go mod graph`, so the dependency graph carries the transitive edges the `go.mod`
+  parser leaves unknown. It is opt-in, needs a `go` on PATH at least as new as the module's `go`
+  directive, and reaches the module proxy with your environment. When `go` is missing or fails,
+  the manifest is resolved as before and a warning says why.
+
 ## [0.17.0] - 2026-11-06
 
 ### Added

@@ -339,7 +339,10 @@ unknown.
 ### Resolving with the build tools
 
 Some lockfiles record no edges, such as `go.mod`. `resolve/toolchain` builds
-the same `resolve.Graph` by running the ecosystem's own tools on the manifest:
+the same `resolve.Graph` by running the ecosystem's own tools on the manifest.
+The CLI uses it when asked: `scanoss-cli dependencies <path> --extract-local --toolchain go`
+(or `scan --include deps --toolchain go`) resolves `go.mod` this way, and falls back to the
+lockfile parser for a manifest whose tool is missing or fails. From Go:
 
 ```go
 g, err := toolchain.Resolve(ctx, projectDir, "svc/go.mod", toolchain.Options{

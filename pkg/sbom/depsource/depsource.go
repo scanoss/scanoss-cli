@@ -30,18 +30,70 @@ package depsource
 
 import (
 	"cmp"
+	"context"
 	"maps"
 	"os"
+	"path"
 	"path/filepath"
 	"slices"
 	"strings"
 
+	"github.com/scanoss/scanoss.go/internal/logging"
 	"github.com/scanoss/scanoss.go/pkg/dependencies"
 	"github.com/scanoss/scanoss.go/pkg/dependencies/parsers"
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/lockfile"
+	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/toolchain"
 	"github.com/scanoss/scanoss.go/pkg/sbom"
 )
+
+// Options chooses how manifests are resolved. The zero value reads lockfiles only.
+type Options struct {
+	// Toolchain holds the base names of the manifests ("go.mod", "pom.xml") resolved by running the
+	// ecosystem's own tools instead of reading a lockfile, when the toolchain package supports them.
+	Toolchain map[string]bool
+	// ToolchainOptions configures those tool runs: timeout, environment and limits.
+	ToolchainOptions toolchain.Options
+}
+
+func (o Options) viaToolchain(manifest string) bool {
+	return o.Toolchain[path.Base(manifest)] && toolchain.Supported(manifest)
+}
+
+// Resolvable reports whether Resolve builds a graph for file: a lockfile the resolver supports,
+// or a manifest the toolchain is enabled for.
+func (o Options) Resolvable(file string) bool {
+	return lockfile.Supported(file) || o.viaToolchain(file)
+}
+
+// Resolve builds the graph of the manifest or lockfile rel, a slash path under root. An enabled
+// toolchain runs first; when it leaves a root unknown (tool missing, failed or timed out) its
+// graph is dropped with a warning and the lockfile parser answers instead, as without the
+// toolchain. A manifest only the toolchain resolves then yields an empty graph, which leaves it
+// to the flat parser.
+func Resolve(ctx context.Context, root, rel string, o Options) (resolve.Graph, error) {
+	if o.viaToolchain(rel) {
+		g, err := toolchain.Resolve(ctx, root, rel, o.ToolchainOptions)
+		if err == nil && !hasUnknown(g, rel) {
+			return g, nil
+		}
+		if !lockfile.Supported(rel) {
+			return resolve.Graph{}, nil
+		}
+	}
+	return lockfile.ParseFS(os.DirFS(root), rel, lockfile.DefaultLimits())
+}
+
+func hasUnknown(g resolve.Graph, rel string) bool {
+	unknown := false
+	for _, r := range g.Roots {
+		if r.Status == resolve.StatusUnknown {
+			logging.Warn("dependency toolchain could not resolve, falling back", "manifest", rel, "reason", r.Reason, "detail", r.Detail)
+			unknown = true
+		}
+	}
+	return unknown
+}
 
 // Select keeps the files Inventory reads: the lockfiles the resolver supports and the manifests
 // the flat parsers handle. A caller collecting a tree hands it everything and gets back what the
@@ -66,15 +118,14 @@ func Select(files []string) []string {
 // failed is keyed by path and holds the lockfiles that could not be read and the manifests that
 // could not be parsed. It is nil when nothing failed. Unknown roots are not failures: they are
 // reported on the root itself.
-func Inventory(root string, files []string) (sbom.Inventory, map[string]error) {
-	fsys := os.DirFS(root)
+func Inventory(ctx context.Context, root string, files []string, opts Options) (sbom.Inventory, map[string]error) {
 	failed := map[string]error{}
 	var graphs []resolve.Graph
 	for _, f := range files {
-		if !lockfile.Supported(f) {
+		if !opts.Resolvable(f) {
 			continue
 		}
-		g, err := lockfile.ParseFS(fsys, relSlash(root, f), lockfile.DefaultLimits())
+		g, err := Resolve(ctx, root, relSlash(root, f), opts)
 		if err != nil {
 			failed[f] = err
 			continue

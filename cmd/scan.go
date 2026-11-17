@@ -364,6 +364,7 @@ func init() {
 	// --include is declared per command rather than inherited: the two accept different layers, and
 	// an inherited help text would offer `wfp` a layer it cannot gather.
 	scanCmd.Flags().StringSlice("include", nil, "Output layers to gather (comma-separated): deps, vulns, licenses, crypto, geo")
+	scanCmd.Flags().StringSlice("toolchain", nil, toolchainFlagHelp)
 	scanWFPCmd.Flags().StringSlice("include", nil, "Output layers to gather (comma-separated): vulns, licenses, crypto, geo")
 
 	// Fingerprinting flags (apply to `scan <path>` only).
@@ -491,10 +492,15 @@ func runScan(cmd *cobra.Command, args []string) error {
 		defer func() { _ = wfpOut.Close() }()
 	}
 
+	deps, err := depsourceOptions(cmd)
+	if err != nil {
+		return err
+	}
 	result, err := scanpipeline.Run(ctx, scanpipeline.Options{
 		Client:               client,
 		Services:             servicesFor(layers),
 		SourceDeclared:       layers.Has(LayerDeps),
+		Deps:                 deps,
 		SourcePath:           targetPath,
 		Threads:              threads,
 		ScanFilters:          collectOpts,

@@ -298,6 +298,21 @@ func TestDependenciesGraphRequiresExtractLocal(t *testing.T) {
 	}
 }
 
+func TestDependenciesToolchainFlagIsValidated(t *testing.T) {
+	_, _, err := runBare(t, "dependencies", t.TempDir(), "--extract-local", "--toolchain", "bogus")
+	if err == nil || !strings.Contains(err.Error(), `unknown --toolchain value "bogus"`) {
+		t.Fatalf("got %v", err)
+	}
+	_, _, err = runBare(t, "dependencies", t.TempDir(), "--extract-local", "--toolchain", "maven")
+	if err == nil || !strings.Contains(err.Error(), `unknown --toolchain value "maven"`) {
+		t.Fatalf("--toolchain maven: got %v, want an unknown-value usage error", err)
+	}
+	_, _, err = runBare(t, "dependencies", t.TempDir(), "--toolchain", "go")
+	if err == nil || err.Error() != "--toolchain requires --extract-local" {
+		t.Fatalf("got %v", err)
+	}
+}
+
 func TestMergeGraphs(t *testing.T) {
 	shared := resolve.Node{ID: "pkg:npm/a@1.0.0", PURL: "pkg:npm/a", Version: "1.0.0"}
 	only := resolve.Node{ID: "pkg:npm/b@1.0.0", PURL: "pkg:npm/b", Version: "1.0.0"}
