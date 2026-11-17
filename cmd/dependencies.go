@@ -37,7 +37,6 @@ import (
 	"github.com/scanoss/scanoss.go/pkg/dependencies"
 	"github.com/scanoss/scanoss.go/pkg/dependencies/parsers"
 	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve"
-	"github.com/scanoss/scanoss.go/pkg/dependencies/resolve/lockfile"
 	"github.com/scanoss/scanoss.go/pkg/filter"
 	"github.com/scanoss/scanoss.go/pkg/sbom/depsource"
 	"github.com/scanoss/scanoss.go/pkg/scanoss"
@@ -73,6 +72,13 @@ var dependenciesCmd = &cobra.Command{
    poetry.lock, composer.lock) are resolved into a dependency graph, without
    their dev dependencies, and manifests no lockfile covers are listed flat.
 
+   When a go is on PATH, go.mod is resolved by running "go list" and
+   "go mod graph", which gives the transitive edges go.mod alone cannot. That
+   reaches the module proxy with your environment and needs a go at least as
+   new as the module's go directive; if go fails, go.mod is read on its own and
+   a warning says why. --toolchain none reads go.mod only, with no network
+   access.
+
 2. API MODE (--purl):
    Queries the SCANOSS API for component dependencies (direct or transitive).
 
@@ -92,6 +98,9 @@ Examples:
 
   # Render the dependency graph resolved from the project's lockfiles as CycloneDX
   scanoss-cli dependencies ./my-project --extract-local --format cyclonedx
+
+  # Read go.mod only, without running go or reaching the module proxy
+  scanoss-cli dependencies ./my-project --extract-local --format cyclonedx --toolchain none
 
   # Scan project dependencies and query API for direct dependencies
   scanoss-cli dependencies ./my-project
@@ -117,6 +126,7 @@ func init() {
 	dependenciesCmd.Flags().Bool("extract-local", false, "Extract local dependencies from manifest files")
 	dependenciesCmd.Flags().Bool("graph", false, "With --extract-local, print the dependency graph resolved from lockfiles")
 	dependenciesCmd.Flags().StringP("format", "f", "", "With --extract-local, render the dependencies as an inventory: raw, cyclonedx or spdx")
+	dependenciesCmd.Flags().StringSlice("toolchain", nil, "With --extract-local, "+toolchainFlagHelp)
 	dependenciesCmd.Flags().String("settings", "", "Path to settings file (scanoss.json/settings.json)")
 
 	// API mode flags
@@ -161,6 +171,13 @@ func runDependencies(cmd *cobra.Command, args []string) error {
 	if format != "" && !extractLocal {
 		return usageError(cmd, "--format requires --extract-local")
 	}
+	deps, err := depsourceOptions(cmd)
+	if err != nil {
+		return usageError(cmd, "%v", err)
+	}
+	if cmd.Flags().Changed("toolchain") && !extractLocal {
+		return usageError(cmd, "--toolchain requires --extract-local")
+	}
 	if format != "" {
 		if err := validateOutputFormat(cmd); err != nil {
 			return err
@@ -173,10 +190,10 @@ func runDependencies(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("path argument is required with --extract-local")
 		}
 		if graph {
-			return runLocalGraph(args[0], outputFile, settingsFlag)
+			return runLocalGraph(cmd.Context(), args[0], outputFile, settingsFlag, deps)
 		}
 		if format != "" {
-			return runLocalInventory(cmd, args[0], settingsFlag)
+			return runLocalInventory(cmd, args[0], settingsFlag, deps)
 		}
 		return runLocalExtraction(args[0], outputFile, settingsFlag)
 	}
@@ -295,7 +312,7 @@ func runLocalExtraction(targetPath, outputFile, settingsFlag string) error {
 
 // runLocalGraph prints the dependency graph of every lockfile under targetPath,
 // merged into one.
-func runLocalGraph(targetPath, outputFile, settingsFlag string) error {
+func runLocalGraph(ctx context.Context, targetPath, outputFile, settingsFlag string, deps depsource.Options) error {
 	root, err := filepath.Abs(targetPath)
 	if err != nil {
 		return err
@@ -317,17 +334,16 @@ func runLocalGraph(targetPath, outputFile, settingsFlag string) error {
 		return fmt.Errorf("failed to collect files: %w", err)
 	}
 
-	fsys := os.DirFS(root)
 	var graphs []resolve.Graph
 	for _, file := range res.Files {
-		if !lockfile.Supported(file) {
+		if !deps.Resolvable(file) {
 			continue
 		}
 		rel, err := filepath.Rel(root, file)
 		if err != nil {
 			return err
 		}
-		g, err := lockfile.ParseFS(fsys, filepath.ToSlash(rel), lockfile.DefaultLimits())
+		g, err := depsource.Resolve(ctx, root, filepath.ToSlash(rel), deps)
 		if err != nil {
 			warnf("failed to parse %s: %v", file, err)
 			continue
@@ -363,7 +379,7 @@ func mergeGraphs(graphs []resolve.Graph) resolve.Graph {
 // --format asked for, through the same adapter and writers as "scan --include deps", with no
 // API call: the lockfiles are resolved into a graph and the manifests no lockfile covers are
 // parsed flat.
-func runLocalInventory(cmd *cobra.Command, targetPath, settingsFlag string) error {
+func runLocalInventory(cmd *cobra.Command, targetPath, settingsFlag string, deps depsource.Options) error {
 	root, err := filepath.Abs(targetPath)
 	if err != nil {
 		return err
@@ -382,7 +398,7 @@ func runLocalInventory(cmd *cobra.Command, targetPath, settingsFlag string) erro
 	files := depsource.Select(res.Files)
 	infof("Dependency files found: %d", len(files))
 
-	inv, failed := depsource.Inventory(root, files)
+	inv, failed := depsource.Inventory(cmd.Context(), root, files, deps)
 	for path, readErr := range failed {
 		warnf("failed to read %s: %v", path, readErr)
 	}

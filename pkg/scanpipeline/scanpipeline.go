@@ -71,6 +71,8 @@ type Options struct {
 	// the same tree, and merged into the inventory alongside the scan's detected components. It is
 	// not a decoration service: nothing is fetched, the manifests already carry resolved PURLs.
 	SourceDeclared bool
+	// Deps says how the dependency manifests are resolved; the zero value reads lockfiles only.
+	Deps depsource.Options
 
 	SourcePath string // file or directory to scan (required)
 	Threads    int    // fingerprint workers (<1 => 1)
@@ -339,7 +341,7 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 			total := len(manifestFiles)
 			emit(Progress{Layer: LayerManifests, Status: StatusRunning, Total: total}) // show it up front, alongside fingerprinting
 			var failed map[string]error
-			declared, failed = depsource.Inventory(scanRoot, manifestFiles)
+			declared, failed = depsource.Inventory(ctx, scanRoot, manifestFiles, opts.Deps)
 			for path, readErr := range failed {
 				logging.Warn("dependency file could not be read", "path", path, "err", readErr)
 			}
