@@ -75,6 +75,7 @@ func TestGoIntegrationOffline(t *testing.T) {
 		"pkg:golang/example.com/local",
 		"pkg:golang/github.com/google/uuid@v1.6.0",
 		"pkg:golang/github.com/stretchr/testify@v1.12.1",
+		"pkg:golang/stdlib@go1.22", // read from go.mod, so known offline
 	}
 	wantIndirect := []resolve.NodeID{"pkg:golang/go.yaml.in/yaml/v3@v3.0.5"}
 	if !slices.Equal(direct, wantDirect) || !slices.Equal(indirect, wantIndirect) {

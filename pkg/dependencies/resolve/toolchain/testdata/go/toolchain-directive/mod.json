@@ -1,0 +1,5 @@
+{
+	"Module": {"Path": "example.com/app"},
+	"Go": "1.22",
+	"Toolchain": "go1.22.12"
+}

@@ -105,8 +105,9 @@ require (
 		t.Fatalf("ParseGoMod failed: %v", err)
 	}
 
-	if len(result.Purls) != 2 {
-		t.Errorf("Expected 2 dependencies, got %d", len(result.Purls))
+	// The two requirements and the standard library (go 1.22).
+	if len(result.Purls) != 3 {
+		t.Errorf("Expected 3 dependencies, got %d", len(result.Purls))
 	}
 
 	// Check first dependency

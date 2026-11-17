@@ -14,6 +14,11 @@
       "id": "pkg:golang/example.com/d@v1.0.0",
       "purl": "pkg:golang/example.com/d",
       "version": "v1.0.0"
+    },
+    {
+      "id": "pkg:golang/stdlib@go1.22",
+      "purl": "pkg:golang/stdlib",
+      "version": "go1.22"
     }
   ],
   "roots": [
@@ -35,6 +40,10 @@
         {
           "id": "pkg:golang/example.com/d@v1.0.0",
           "direct": false
+        },
+        {
+          "id": "pkg:golang/stdlib@go1.22",
+          "direct": true
         }
       ],
       "edges": [
