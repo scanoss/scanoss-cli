@@ -33,6 +33,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/scanoss/scanoss.go/pkg/wfp/wfp2"
 )
 
 // WFP1 algorithm parameters: the n-gram length hashed per window, and the number of
@@ -201,10 +203,47 @@ func generateFingerprint(filePath string, root string, opts options) (*FileFinge
 		}
 	}
 
+	// The token-aware wfp2 block, when asked for: the same file= line serves it, so it is
+	// simply appended after the wfp1 minutiae, introduced by a "wfp2=" marker line. Off by
+	// default — without it, nothing below runs and the WFP is unchanged.
+	if opts.wfp2 {
+		appendWFP2Block(&sb, f, hexBuf)
+	}
+
 	return &FileFingerprint{
 		Path:        label,
 		Hash:        hashHex,
 		Size:        len(f),
 		Fingerprint: sb.String(),
 	}, nil
+}
+
+// appendWFP2Block appends the token-aware wfp2 minutiae of src to sb, preceded by the
+// "wfp2=" marker line the engine and API split on. hexBuf is a scratch buffer reused for
+// hex formatting (its contents are discarded). The minutiae use the same "line=hex,..."
+// format as the wfp1 block, sorted by line, with no header-line skipping — wfp2 has no
+// notion of it, and the miner the KB was built with applied none.
+//
+// Nothing is written when there are no minutiae (a very short or non-source file), so the
+// WFP never carries an empty "wfp2=" marker.
+func appendWFP2Block(sb *strings.Builder, src []byte, hexBuf []byte) {
+	minutiae := wfp2.Minutiae(src)
+	if len(minutiae) == 0 {
+		return
+	}
+	sb.WriteString("wfp2=\n")
+	for _, k := range wfp2.SortedLines(minutiae) {
+		sb.WriteString(strconv.Itoa(k))
+		sb.WriteByte('=')
+		v := minutiae[k]
+		for w := 0; w < len(v); w++ {
+			hexBuf = appendHex8(hexBuf[:0], v[w])
+			sb.Write(hexBuf)
+			if w < len(v)-1 {
+				sb.WriteByte(',')
+			} else {
+				sb.WriteByte('\n')
+			}
+		}
+	}
 }

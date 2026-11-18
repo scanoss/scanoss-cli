@@ -360,6 +360,11 @@ func init() {
 	scanCmd.PersistentFlags().String("settings", "", "Path to settings file (scanoss.json/settings.json)")
 	scanCmd.PersistentFlags().Int("chunk-size", scanoss.DefaultScanChunkBytes, "WFP upload chunk size in bytes")
 	scanCmd.PersistentFlags().Duration("poll-interval", scanoss.DefaultScanPollInterval, "How often to poll for scan status")
+	// Opt into token-aware (wfp2) snippet matching. Shared by `scan` and `scan wfp`: for
+	// `scan` it also emits the wfp2 fingerprints; for `scan wfp` it forwards any wfp2= blocks
+	// already in the file. Either way the scan request carries the enable_wfp2 opt-in, which
+	// the API capability-gates. Off by default — the WFP and request are then unchanged.
+	scanCmd.PersistentFlags().Bool("enable-wfp2", false, "Opt into token-aware (wfp2) snippet matching: emit wfp2 fingerprints (scan) or forward existing wfp2= blocks (scan wfp), and send the enable_wfp2 opt-in to the API")
 
 	// --include is declared per command rather than inherited: the two accept different layers, and
 	// an inherited help text would offer `wfp` a layer it cannot gather.
@@ -443,6 +448,7 @@ func runScan(cmd *cobra.Command, args []string) error {
 	allFolders, _ := cmd.Flags().GetBool("all-folders")
 	applyGitignore, _ := cmd.Flags().GetBool("gitignore")
 	allHidden, _ := cmd.Flags().GetBool("all-hidden")
+	enableWFP2, _ := cmd.Flags().GetBool("enable-wfp2")
 	classify, err := resolveClassifyFlags(cmd)
 	if err != nil {
 		return err
@@ -507,6 +513,7 @@ func runScan(cmd *cobra.Command, args []string) error {
 		DependencyFilters:    depOpts,
 		ScanOptions:          scanTuning(cmd, scanSettings, prog, components),
 		WFPOptions:           fingerprintOptions(skipHeaders, skipHeadersLimit),
+		WFP2:                 enableWFP2,
 		WFPWriter:            wfpWriterOrNil(wfpOut),
 		OnProgress:           prog.layer,
 		ClassifySnippets:     classify.enabled,
@@ -689,6 +696,11 @@ func runScanWFP(cmd *cobra.Command, args []string) error {
 
 	var bom bomReport
 	scanOpts := append(scanTuning(cmd, scanSettings, prog, components), scanoss.WithScanReporter(rep), bom.option())
+	// The WFP is already assembled, so this command generates nothing; the opt-in only tells
+	// the API to forward any wfp2= blocks the file already carries instead of stripping them.
+	if enableWFP2, _ := cmd.Flags().GetBool("enable-wfp2"); enableWFP2 {
+		scanOpts = append(scanOpts, scanoss.WithWFP2())
+	}
 	res, err := client.Scan.WFP(ctx, wfp, scanOpts...)
 	if err != nil {
 		return renderAPIError(fmt.Errorf("scan failed: %w", err))
