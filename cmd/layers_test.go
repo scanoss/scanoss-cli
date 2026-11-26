@@ -120,3 +120,16 @@ func TestServicesForDepsHasNoService(t *testing.T) {
 		t.Errorf("services = %v, want none: deps is sourced from manifests, not fetched", got)
 	}
 }
+
+// remediation is a PURL-keyed layer: enrich can gather it from an inventory alone, and it maps to
+// the Remediation Intelligence service.
+func TestRemediationLayer(t *testing.T) {
+	set, err := ParseLayers([]string{"remediation"}, PurlLayers())
+	if err != nil {
+		t.Fatalf("ParseLayers: %v", err)
+	}
+	got := servicesFor(set)
+	if len(got) != 1 || got[0].Name != scanoss.ServiceRemediation.Name {
+		t.Errorf("services = %v, want only %q", got, scanoss.ServiceRemediation.Name)
+	}
+}

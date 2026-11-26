@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Remediation Intelligence.** `scanoss-cli remediation --purl <purl@version>` queries
+  `/v3/remediation/intelligence`: for each component version, its risk band and what limits it,
+  any hard stop, the advisory findings and the ranked upgrade, replace or remove actions. The SDK
+  has it as `client.Remediation.Components` and `client.Remediation.Component`. Entries come back
+  in request order across chunks, `status` counts the hits of the whole query and `data_as_of`
+  is the oldest date among them, as the API gives them for one request.
+- **`--include remediation`** on `scan`, `scan wfp`, `results` and `enrich` attaches each
+  component's answer as `remediation` in the raw output, raw schema 2.2. CycloneDX and SPDX skip
+  it with a notice. A component without a version comes back `INVALID_PURL`, and a scan match
+  named by its repository (`pkg:github/owner/repo`) comes back `COMPONENT_NOT_FOUND`: Remediation
+  Intelligence indexes Go modules by module path.
+
+### Changed
+
+- `github.com/scanoss/scanoss.api-sdk` v0.31.0 → v0.45.0, which carries the Remediation
+  Intelligence types.
+
 ## [0.19.0] - 2026-11-17
 
 ### Added

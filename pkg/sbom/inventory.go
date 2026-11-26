@@ -28,6 +28,7 @@
 package sbom
 
 import (
+	"encoding/json"
 	"slices"
 	"strings"
 )
@@ -166,6 +167,7 @@ type Component struct {
 	Licenses         []License         `json:"licenses,omitempty"`          // declared and/or concluded licenses (licenses layer)
 	Cryptography     []CryptoAlgorithm `json:"cryptography,omitempty"`      // cryptographic algorithms detected (crypto layer)
 	Geoprovenance    []GeoLocation     `json:"geoprovenance,omitempty"`     // contributor geographic origin (geo layer)
+	Remediation      json.RawMessage   `json:"remediation,omitempty"`       // Remediation Intelligence answer for this version, as the API returns it (remediation layer)
 	DownloadLocation string            `json:"download_location,omitempty"` // download location (defaults to URL)
 	Evidence         []FileEvidence    `json:"evidence,omitempty"`          // where the component came from: scanned files that matched, or the manifest that declared it
 }

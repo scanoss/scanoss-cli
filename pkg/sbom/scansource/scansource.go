@@ -28,6 +28,7 @@
 package scansource
 
 import (
+	"encoding/json"
 	"sort"
 	"strings"
 
@@ -234,6 +235,38 @@ func Geoprovenance(resp *scanossapi.GeoOriginResponse) map[string][]sbom.GeoLoca
 		}
 	}
 	return byPurl
+}
+
+// Remediation maps a Remediation Intelligence response into each entry's answer keyed by
+// Key(purl, requirement), the echo of what was asked. The answer is kept as the API returns it,
+// without the echo: the payload is opaque to the API and so to this SDK, and a miss keeps its
+// info_code and info_message so a reader can tell "not in the corpus" from "not asked".
+func Remediation(resp *scanossapi.RemediationResponse) map[string]json.RawMessage {
+	if resp == nil {
+		return nil
+	}
+	byKey := make(map[string]json.RawMessage, len(resp.Components))
+	for _, ci := range resp.Components {
+		if ci.Purl == "" {
+			continue
+		}
+		raw, err := json.Marshal(ci)
+		if err != nil {
+			continue
+		}
+		var fields map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &fields); err != nil {
+			continue
+		}
+		delete(fields, "purl")
+		delete(fields, "requirement")
+		answer, err := json.Marshal(fields)
+		if err != nil {
+			continue
+		}
+		byKey[Key(ci.Purl, strVal(ci.Requirement))] = answer
+	}
+	return byKey
 }
 
 // Vulnerabilities maps a vulnerabilities decoration response into neutral

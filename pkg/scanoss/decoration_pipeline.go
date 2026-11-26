@@ -58,6 +58,7 @@ type PipelineResult struct {
 	Cryptography    *Layer[scanossapi.CryptoAlgorithmsResponse]
 	Geoprovenance   *Layer[scanossapi.GeoOriginResponse]
 	Vulnerabilities *Layer[scanossapi.VulnerabilitiesResponse]
+	Remediation     *Layer[scanossapi.RemediationResponse]
 
 	Errors map[string]error // service name → it failed outright, or answered unreadably
 }
@@ -125,7 +126,7 @@ func (p *DecorationPipeline) Run(ctx context.Context, components []Component, op
 	// through scanpipeline the error surfaced only as a warning, so a caller with no logger
 	// got an unenriched inventory and no error at all.
 	//
-	// TODO(#76): the type is the real fix. Run takes []Service, of which only four values
+	// TODO(#76): the type is the real fix. Run takes []Service, of which only five values
 	// are valid layers, so this can only be reported and never prevented.
 	layers := make([]Service, 0, len(p.services))
 	for _, svc := range p.services {
@@ -187,7 +188,7 @@ func (p *DecorationPipeline) Run(ctx context.Context, components []Component, op
 func isDecorationLayer(name string) bool {
 	switch name {
 	case ServiceLicenses.Name, ServiceCryptographyAlgorithms.Name,
-		ServiceGeoprovenanceOrigin.Name, ServiceVulnerabilities.Name:
+		ServiceGeoprovenanceOrigin.Name, ServiceVulnerabilities.Name, ServiceRemediation.Name:
 		return true
 	}
 	return false
@@ -197,6 +198,15 @@ func isDecorationLayer(name string) bool {
 // no field here is not a decoration layer: running it would leave its answer unreachable, so it
 // is reported rather than silently dropped.
 func (pr *PipelineResult) setLayer(name string, res *result) error {
+	if name == ServiceRemediation.Name {
+		// Its chunks do not merge generically: see remediationFrom.
+		resp, err := remediationFrom(res.responses)
+		if err != nil {
+			return err
+		}
+		pr.Remediation = &Layer[scanossapi.RemediationResponse]{Response: resp, Failed: res.failed}
+		return nil
+	}
 	raw, err := res.merged()
 	if err != nil {
 		return fmt.Errorf("merging the %s response: %w", name, err)
@@ -229,7 +239,7 @@ func decodeLayer[T any](raw json.RawMessage, failed []ChunkError) (*Layer[T], er
 // MarshalJSON renders the result as {"<service>": <response>, …}, where each value is that
 // service's full response object — the shape callers persisting this document already read.
 func (pr *PipelineResult) MarshalJSON() ([]byte, error) {
-	out := make(map[string]any, 4)
+	out := make(map[string]any, 5)
 	if pr.Licenses != nil {
 		out[ServiceLicenses.Name] = pr.Licenses.Response
 	}
@@ -241,6 +251,9 @@ func (pr *PipelineResult) MarshalJSON() ([]byte, error) {
 	}
 	if pr.Vulnerabilities != nil {
 		out[ServiceVulnerabilities.Name] = pr.Vulnerabilities.Response
+	}
+	if pr.Remediation != nil {
+		out[ServiceRemediation.Name] = pr.Remediation.Response
 	}
 	return json.Marshal(out)
 }

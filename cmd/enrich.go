@@ -38,7 +38,7 @@ var enrichCmd = &cobra.Command{
 	Short: "Decorate an existing inventory/SBOM with purl-keyed layers",
 	Long: `The enrich command takes an existing inventory or SBOM — a scanoss raw inventory
 (the scan raw output), a CycloneDX document, or an SPDX document — and decorates its
-components with the requested purl-keyed layers (vulns, licenses, crypto, geo) through
+components with the requested purl-keyed layers (vulns, licenses, crypto, geo, remediation) through
 the SCANOSS API, then renders the result in the chosen format.
 
 It needs only the inventory: no source tree, no fingerprinting, no re-scan. Because it is
@@ -53,6 +53,9 @@ Examples:
   # Enrich an SPDX document (spdx in, spdx out)
   scanoss-cli enrich sbom.spdx.json --include licenses > enriched.spdx.json
 
+  # Remediation Intelligence for each component version (raw output only)
+  scanoss-cli enrich inv.json --include remediation > enriched.json
+
   # Enrich a CycloneDX document and convert to SPDX in one pass
   scanoss-cli enrich sbom.cdx.json --include licenses --format spdx > enriched.spdx.json`,
 	Args: cobra.MaximumNArgs(1),
@@ -63,7 +66,7 @@ func init() {
 	rootCmd.AddCommand(enrichCmd)
 	addAPIFlags(enrichCmd)
 	enrichCmd.Flags().StringP("format", "f", "", "Output format: raw, spdx, cyclonedx (default: same as input)")
-	enrichCmd.Flags().StringSlice("include", nil, "Layers to gather (comma-separated): vulns, licenses, crypto, geo")
+	enrichCmd.Flags().StringSlice("include", nil, "Layers to gather (comma-separated): vulns, licenses, crypto, geo, remediation")
 }
 
 // runEnrich parses an inventory/SBOM, enriches its components with the requested purl-layers

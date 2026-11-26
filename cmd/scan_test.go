@@ -118,7 +118,7 @@ func TestRenderInventory_UnknownFormat(t *testing.T) {
 func TestUnsupportedLayers(t *testing.T) {
 	all := Set{
 		LayerDeps: true, LayerVulns: true, LayerLicenses: true,
-		LayerCrypto: true, LayerGeo: true,
+		LayerCrypto: true, LayerGeo: true, LayerRemediation: true,
 	}
 	cases := []struct {
 		format string
@@ -126,8 +126,8 @@ func TestUnsupportedLayers(t *testing.T) {
 		want   []Layer
 	}{
 		{"raw", all, nil},
-		{"cyclonedx", all, []Layer{LayerCrypto, LayerGeo}},
-		{"spdx", all, []Layer{LayerVulns, LayerCrypto, LayerGeo}},
+		{"cyclonedx", all, []Layer{LayerCrypto, LayerGeo, LayerRemediation}},
+		{"spdx", all, []Layer{LayerVulns, LayerCrypto, LayerGeo, LayerRemediation}},
 		{"spdx", Set{LayerDeps: true, LayerLicenses: true}, nil},
 	}
 	for _, c := range cases {
@@ -148,7 +148,7 @@ func TestUnsupportedLayers(t *testing.T) {
 func TestEffectiveLayers(t *testing.T) {
 	all := Set{
 		LayerDeps: true, LayerVulns: true, LayerLicenses: true,
-		LayerCrypto: true, LayerGeo: true,
+		LayerCrypto: true, LayerGeo: true, LayerRemediation: true,
 	}
 	// spdx keeps only deps + licenses; the rest are not gathered.
 	eff := effectiveLayers("spdx", all)
@@ -156,12 +156,12 @@ func TestEffectiveLayers(t *testing.T) {
 		t.Errorf("spdx effective = %v, want {deps, licenses}", eff)
 	}
 	// cyclonedx additionally keeps vulns.
-	if eff := effectiveLayers("cyclonedx", all); len(eff) != 3 || eff.Has(LayerCrypto) || eff.Has(LayerGeo) {
+	if eff := effectiveLayers("cyclonedx", all); len(eff) != 3 || eff.Has(LayerCrypto) || eff.Has(LayerGeo) || eff.Has(LayerRemediation) {
 		t.Errorf("cyclonedx effective = %v, want {deps, licenses, vulns}", eff)
 	}
 	// raw keeps everything.
-	if eff := effectiveLayers("raw", all); len(eff) != 5 {
-		t.Errorf("raw effective = %v, want all 5", eff)
+	if eff := effectiveLayers("raw", all); len(eff) != 6 {
+		t.Errorf("raw effective = %v, want all 6", eff)
 	}
 }
 

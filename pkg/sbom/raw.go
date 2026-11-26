@@ -33,7 +33,8 @@ import (
 // handle differently from which merely carry more than it knows about.
 //
 // 2.1 added the `dependencies` roots, `local` on a component and the `transitive` match type.
-const RawSchemaVersion = "2.1"
+// 2.2 added `remediation` on a component.
+const RawSchemaVersion = "2.2"
 
 // RawDocument is the raw output format: an Inventory wrapped in a versioned envelope. The embedded
 // Inventory promotes its `components`/`vulnerabilities` keys to the top level, so the JSON is

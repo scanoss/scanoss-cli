@@ -3,7 +3,8 @@
 Command-line tool and Go SDK for scanning source code and querying the SCANOSS
 platform. It fingerprints a project with WFP (Winnowing FingerPrint), uploads the
 fingerprints to the SCANOSS v3 API, and can decorate results with vulnerabilities,
-licenses, cryptography, geoprovenance, copyright, dependency, and component data.
+licenses, cryptography, geoprovenance, copyright, dependency, component and Remediation
+Intelligence data.
 
 > [!IMPORTANT]
 > This CLI is not compatible with OSSKB.org.
@@ -103,18 +104,19 @@ Stdout stays reserved for results, so logs never corrupt `--output` or piped JSO
 
 | Command | Purpose |
 |---------|---------|
-| `scan <path>` | Fingerprint a folder/file, scan against the SCANOSS v3 API, and output results (`--format raw`/`spdx`/`cyclonedx`; opt into dependency/vuln/license/crypto/geo layers with `--include`; opt into flagging likely false-positive snippet matches with `--classify-snippets`). |
+| `scan <path>` | Fingerprint a folder/file, scan against the SCANOSS v3 API, and output results (`--format raw`/`spdx`/`cyclonedx`; opt into dependency/vuln/license/crypto/geo/remediation layers with `--include`; opt into flagging likely false-positive snippet matches with `--classify-snippets`). |
 | `scan wfp <wfp>` | Scan a pre-generated WFP file (no fingerprinting). |
 | `wfp <path>` | Generate WFP fingerprints only (no upload). |
 | `results <scan-id>` | Resume or poll a scan by its id. |
 | `sbom <input>` | Produce an SBOM from a raw inventory, or convert between formats, offline (cyclonedx/spdx). |
-| `enrich <input>` | Add purl-keyed layers (vulns/licenses/crypto/geo) to a `raw` or SBOM file. |
+| `enrich <input>` | Add purl-keyed layers (vulns/licenses/crypto/geo/remediation) to a `raw` or SBOM file. |
 | `dependencies [path]` | Extract local dependencies (`--format raw`/`cyclonedx`/`spdx` renders the lockfile dependency graph as an SBOM, offline), or query direct/transitive deps for a PURL. |
 | `vulnerabilities` | Known vulnerabilities / CPEs for components. |
 | `cryptography` | Algorithms, library hints, and version ranges. |
 | `licenses` | Declared licenses, attribution files, per-file evidence. |
 | `geoprovenance` | Component origin and contributor countries. |
 | `copyright` | Copyright evidence and holders. |
+| `remediation` | Remediation Intelligence per component version: risk band, what limits it, ranked upgrade/replace/remove actions. |
 | `components` | Search, versions, and lifecycle status. |
 | `config` | Store settings in `~/.scanoss/settings.json` (see [Configuration](#configuration)). |
 

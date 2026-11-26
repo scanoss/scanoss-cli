@@ -39,11 +39,12 @@ type Layer string
 
 // Supported --include values.
 const (
-	LayerDeps     Layer = "deps"
-	LayerVulns    Layer = "vulns"
-	LayerLicenses Layer = "licenses"
-	LayerCrypto   Layer = "crypto"
-	LayerGeo      Layer = "geo"
+	LayerDeps        Layer = "deps"
+	LayerVulns       Layer = "vulns"
+	LayerLicenses    Layer = "licenses"
+	LayerCrypto      Layer = "crypto"
+	LayerGeo         Layer = "geo"
+	LayerRemediation Layer = "remediation"
 )
 
 // layerServices maps each enrichment layer to the API service that gathers it. It is the single
@@ -54,10 +55,11 @@ const (
 // LayerDeps has no entry: declared dependencies are sourced from the parsed manifests during
 // collection, not fetched from a decoration service.
 var layerServices = map[Layer]scanoss.Service{
-	LayerVulns:    scanoss.ServiceVulnerabilities,
-	LayerLicenses: scanoss.ServiceLicenses,
-	LayerCrypto:   scanoss.ServiceCryptographyAlgorithms,
-	LayerGeo:      scanoss.ServiceGeoprovenanceOrigin,
+	LayerVulns:       scanoss.ServiceVulnerabilities,
+	LayerLicenses:    scanoss.ServiceLicenses,
+	LayerCrypto:      scanoss.ServiceCryptographyAlgorithms,
+	LayerGeo:         scanoss.ServiceGeoprovenanceOrigin,
+	LayerRemediation: scanoss.ServiceRemediation,
 }
 
 // Set is a set of requested layers.
