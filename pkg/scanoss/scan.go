@@ -102,10 +102,18 @@ type scanOptions struct {
 	wfpOptions    []wfp.Option             // per-file fingerprinting tuning (WithFingerprintOptions)
 	rankThreshold int                      // drop matches ranked worse than this (WithRankingThreshold)
 	maxComponents ComponentLimit           // components the server reports, sent with every block (WithMaxComponents)
+	enableWFP2    bool                     // send the wfp2 opt-in with every block (WithWFP2)
 	pollInterval  time.Duration            // scan status poll cadence (WithPollInterval)
 	reporter      ScanReporter             // receives this scan's stages (WithScanReporter)
 	onScanID      func(string)             // receives this scan's id once it is resumable (WithScanIDNotify)
 }
+
+// enableWFP2Param is the scan endpoint's query parameter that opts a request into
+// token-aware (wfp2) snippet matching. The name is fixed across the SCANOSS stack — the
+// API (scanoss-services), the engine and batchScanner all agree on it — so it must not
+// change here. The value sent is always "true"; the parameter is omitted entirely when
+// the opt-in is off, keeping a non-opting scan byte-for-byte identical to today.
+const enableWFP2Param = "enable_wfp2"
 
 func resolveScanOptions(opts []ScanOption) scanOptions {
 	o := scanOptions{
@@ -196,6 +204,20 @@ func WithMaxComponents(l ComponentLimit) ScanOption {
 // assembled.
 func WithFingerprintOptions(opts ...wfp.Option) ScanOption {
 	return func(o *scanOptions) { o.wfpOptions = opts }
+}
+
+// WithWFP2 opts this scan into token-aware (wfp2) snippet matching: the request carries
+// the enable_wfp2 parameter, which tells the API to forward the WFP's wfp2= blocks to a
+// wfp2-capable engine instead of stripping them. It does not itself generate wfp2 blocks —
+// Folder and Files must also be given wfp.WithWFP2 via WithFingerprintOptions, and a WFP
+// passed to WFP/WFPReader must already carry them. Off by default; the parameter is sent
+// only when this option is set, so a scan without it is unchanged.
+//
+// The API capability-gates the opt-in: against an engine that is not wfp2-capable the
+// blocks are stripped regardless, so sending the opt-in is safe even when the backend
+// cannot honor it.
+func WithWFP2() ScanOption {
+	return func(o *scanOptions) { o.enableWFP2 = true }
 }
 
 // WithPollInterval sets how often the scan status endpoint is polled while waiting
@@ -349,12 +371,20 @@ func (s scanService) upload(ctx context.Context, r io.ReaderAt, size int64, o sc
 }
 
 // uploadQuery is the query string every block of the upload carries. It is empty unless the
-// caller set something that has to reach the server.
+// caller set something that has to reach the server. The server refuses a session whose
+// blocks disagree, so whatever is set here must be sent with every block identically.
 func (o scanOptions) uploadQuery() url.Values {
-	if !o.maxComponents.IsSet() {
+	q := url.Values{}
+	if o.maxComponents.IsSet() {
+		q.Set(maxComponentsParam, o.maxComponents.String())
+	}
+	if o.enableWFP2 {
+		q.Set(enableWFP2Param, "true")
+	}
+	if len(q) == 0 {
 		return nil
 	}
-	return url.Values{maxComponentsParam: {o.maxComponents.String()}}
+	return q
 }
 
 // uploadChunks uploads all chunks concurrently, bounded by the client's worker

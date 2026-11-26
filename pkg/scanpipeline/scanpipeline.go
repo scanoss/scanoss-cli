@@ -91,6 +91,13 @@ type Options struct {
 	// which drop them; pass wfp.WithoutSkipHeaders to fingerprint files whole.
 	WFPOptions []wfp.Option
 
+	// WFP2 opts the whole scan into token-aware (wfp2) snippet matching: each file's
+	// fingerprint gains a wfp2= block (wfp.WithWFP2) and the scan request carries the
+	// enable_wfp2 opt-in (scanoss.WithWFP2), so the two always travel together — generating
+	// the blocks without sending the opt-in, or the reverse, would be pointless. Off by
+	// default; the WFP and the request are then byte-for-byte unchanged.
+	WFP2 bool
+
 	// WFPWriter, when set, receives the WFP as it is generated, block by block. It is how a
 	// caller keeps the WFP: pass a file to save it, a bytes.Buffer to hold it in memory. Nil
 	// discards it after upload, which costs nothing. Block order is completion order.
@@ -271,7 +278,13 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 		// Buffered so each ~2 KB fingerprint block does not become its own syscall. The flush
 		// must land before Stat sizes the spill.
 		buffered := bufio.NewWriterSize(dest, 64<<10)
-		fileErrs, err := wfp.Stream(files, threads, scanRoot, buffered, r.Fingerprinting, opts.WFPOptions...)
+		// A fresh slice rather than appending to the caller's WFPOptions: append would write
+		// into their backing array when it has spare capacity (see the scanOpts note below).
+		wfpOpts := opts.WFPOptions
+		if opts.WFP2 {
+			wfpOpts = append(append([]wfp.Option{}, opts.WFPOptions...), wfp.WithWFP2())
+		}
+		fileErrs, err := wfp.Stream(files, threads, scanRoot, buffered, r.Fingerprinting, wfpOpts...)
 		procErrors = fileErrs
 		if err == nil {
 			err = buffered.Flush()
@@ -311,9 +324,14 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 		// A fresh slice rather than appending to the caller's: append writes into their array
 		// whenever it has spare capacity, so the caller's Options would sprout an option it never
 		// asked for. Options is exported, so the slice is theirs to reuse.
-		scanOpts := make([]scanoss.ScanOption, 0, len(opts.ScanOptions)+2)
+		scanOpts := make([]scanoss.ScanOption, 0, len(opts.ScanOptions)+3)
 		scanOpts = append(scanOpts, opts.ScanOptions...)
 		scanOpts = append(scanOpts, scanoss.WithScanReporter(r))
+		// The wfp2 opt-in rides the scan request. Paired with wfp.WithWFP2 above, so the
+		// server is told to keep the wfp2= blocks the fingerprinter just wrote.
+		if opts.WFP2 {
+			scanOpts = append(scanOpts, scanoss.WithWFP2())
+		}
 		// The BOM identify verdict cannot ride back on the envelope (an API SDK type), so it is
 		// collected here and handed to the adapter below. Written from this goroutine and read
 		// after wg.Wait, like scanResult itself.

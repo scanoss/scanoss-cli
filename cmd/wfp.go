@@ -64,6 +64,7 @@ func init() {
 	wfpCmd.Flags().Bool("all-folders", false, "Fingerprint every folder: do not apply the built-in directory skip lists")
 	wfpCmd.Flags().Bool("gitignore", true, "Honor .gitignore files when collecting files")
 	wfpCmd.Flags().Bool("all-hidden", false, "Include hidden files and folders, version-control metadata included")
+	wfpCmd.Flags().Bool("enable-wfp2", false, "Also emit token-aware (wfp2) fingerprint blocks alongside the classic ones")
 	addSkipHeaderFlags(wfpCmd)
 }
 
@@ -89,6 +90,7 @@ func runWFP(cmd *cobra.Command, args []string) error {
 	allFolders, _ := cmd.Flags().GetBool("all-folders")
 	applyGitignore, _ := cmd.Flags().GetBool("gitignore")
 	allHidden, _ := cmd.Flags().GetBool("all-hidden")
+	enableWFP2, _ := cmd.Flags().GetBool("enable-wfp2")
 
 	// Validate configuration
 	if threads < 1 {
@@ -149,10 +151,15 @@ func runWFP(cmd *cobra.Command, args []string) error {
 	bar := addBar(p, len(files), "Processing files")
 
 	// Generate the WFP through the shared path (same as `scan`), with paths
-	// relative to the scan root.
+	// relative to the scan root. --enable-wfp2 appends a wfp2= block per file, so the
+	// saved WFP can later be scanned with `scan wfp --enable-wfp2`.
+	wfpOpts := fingerprintOptions(skipHeaders, skipHeadersLimit)
+	if enableWFP2 {
+		wfpOpts = append(wfpOpts, wfp.WithWFP2())
+	}
 	fp := wfp.Files(files, threads, scanRoot, func(done, total int) {
 		bar.SetCurrent(int64(done))
-	}, fingerprintOptions(skipHeaders, skipHeadersLimit)...)
+	}, wfpOpts...)
 	bar.SetCurrent(int64(len(files)))
 	p.Wait()
 
