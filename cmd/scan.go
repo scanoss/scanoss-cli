@@ -188,6 +188,8 @@ func layerLabel(service string) string {
 		return "Cryptography"
 	case scanoss.ServiceGeoprovenanceOrigin.Name:
 		return "Geoprovenance"
+	case scanoss.ServiceRemediation.Name:
+		return "Remediation"
 	case scanoss.ServiceDependencies.Name:
 		return "Resolving dependencies"
 	case scanpipeline.LayerClassify:
@@ -199,9 +201,9 @@ func layerLabel(service string) string {
 
 // formatLayers lists which --include layers each output format can render. deps and licenses are
 // representable everywhere (as components / package licenses); vulnerabilities in raw + cyclonedx;
-// cryptography and geoprovenance only in raw.
+// cryptography, geoprovenance and remediation only in raw.
 var formatLayers = map[string]map[Layer]bool{
-	config.FormatRaw:       {LayerDeps: true, LayerLicenses: true, LayerVulns: true, LayerCrypto: true, LayerGeo: true},
+	config.FormatRaw:       {LayerDeps: true, LayerLicenses: true, LayerVulns: true, LayerCrypto: true, LayerGeo: true, LayerRemediation: true},
 	config.FormatCycloneDX: {LayerDeps: true, LayerLicenses: true, LayerVulns: true},
 	config.FormatSPDX:      {LayerDeps: true, LayerLicenses: true},
 }
@@ -215,6 +217,8 @@ func layerName(l Layer) string {
 		return "cryptography"
 	case LayerGeo:
 		return "geoprovenance"
+	case LayerRemediation:
+		return "remediation intelligence"
 	case LayerDeps:
 		return "dependencies"
 	default:
@@ -226,7 +230,7 @@ func layerName(l Layer) string {
 func unsupportedLayers(format string, layers Set) []Layer {
 	caps := formatLayers[format]
 	var out []Layer
-	for _, l := range []Layer{LayerDeps, LayerLicenses, LayerVulns, LayerCrypto, LayerGeo} {
+	for _, l := range []Layer{LayerDeps, LayerLicenses, LayerVulns, LayerCrypto, LayerGeo, LayerRemediation} {
 		if layers.Has(l) && !caps[l] {
 			out = append(out, l)
 		}
@@ -363,9 +367,9 @@ func init() {
 
 	// --include is declared per command rather than inherited: the two accept different layers, and
 	// an inherited help text would offer `wfp` a layer it cannot gather.
-	scanCmd.Flags().StringSlice("include", nil, "Output layers to gather (comma-separated): deps, vulns, licenses, crypto, geo")
+	scanCmd.Flags().StringSlice("include", nil, "Output layers to gather (comma-separated): deps, vulns, licenses, crypto, geo, remediation")
 	scanCmd.Flags().StringSlice("toolchain", nil, toolchainFlagHelp)
-	scanWFPCmd.Flags().StringSlice("include", nil, "Output layers to gather (comma-separated): vulns, licenses, crypto, geo")
+	scanWFPCmd.Flags().StringSlice("include", nil, "Output layers to gather (comma-separated): vulns, licenses, crypto, geo, remediation")
 
 	// Fingerprinting flags (apply to `scan <path>` only).
 	scanCmd.Flags().IntP("threads", "t", config.DefaultThreads, "Number of parallel fingerprint workers")

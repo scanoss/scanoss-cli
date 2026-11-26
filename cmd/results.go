@@ -60,7 +60,7 @@ func init() {
 	addAPIFlags(resultsCmd)
 	resultsCmd.Flags().Duration("poll-interval", scanoss.DefaultScanPollInterval, "How often to poll for scan status")
 	resultsCmd.Flags().StringP("format", "f", config.DefaultFormat, "Result output format: raw, spdx, cyclonedx")
-	resultsCmd.Flags().StringSlice("include", nil, "Output layers to gather (comma-separated): vulns, licenses, crypto, geo")
+	resultsCmd.Flags().StringSlice("include", nil, "Output layers to gather (comma-separated): vulns, licenses, crypto, geo, remediation")
 	// A resumed scan must reach the same deliverable as a direct one, and the BOM rules are part
 	// of that: without them, `results <id>` reported components the project's settings dismissed.
 	resultsCmd.Flags().String("settings", "", "Path to settings file (scanoss.json/settings.json)")

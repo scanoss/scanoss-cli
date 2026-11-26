@@ -340,6 +340,7 @@ layers, gathered over both detected and declared components:
 | `licenses` | Declared/concluded licenses per component. |
 | `crypto` | Cryptographic algorithms. |
 | `geo` | Contributor geographic provenance. |
+| `remediation` | Remediation Intelligence per component version (risk band, what limits it, ranked actions), as the API returns it. Exact versions only: a component without one comes back `INVALID_PURL`. |
 
 ```bash
 scanoss-cli scan ./my-project --api-key "$SCANOSS_API_KEY" --include deps,vulns,licenses
@@ -347,7 +348,8 @@ scanoss-cli scan ./my-project --api-key "$SCANOSS_API_KEY" --include deps,vulns,
 
 Gathering follows `--include`, narrowed to what the chosen `--format` can render: a layer the
 format can't represent is **skipped** (not gathered) with an up-front `Skipping <layer>` message.
-`raw` renders every layer; `cyclonedx` drops `crypto`/`geo`; `spdx` drops `vulns`/`crypto`/`geo`.
+`raw` renders every layer; `cyclonedx` drops `crypto`/`geo`/`remediation`; `spdx` drops
+`vulns`/`crypto`/`geo`/`remediation`.
 
 ### SBOM output
 
@@ -540,13 +542,13 @@ scanoss-cli enrich sbom.cdx.json --include licenses --format spdx --api-key "$SC
 
 Inputs: a scanoss **raw inventory** (the `scan` raw output), CycloneDX, or SPDX (JSON) —
 detected from the file content. Layers (`--include`): the purl-keyed layers `vulns`,
-`licenses`, `crypto`, `geo`. `deps` is **not** an enrich layer — dependency analysis needs a
+`licenses`, `crypto`, `geo`, `remediation`. `deps` is **not** an enrich layer — dependency analysis needs a
 manifest/source tree and can't be derived from a components list, so `--include deps` errors.
 
 The output format **defaults to the input's** (raw→raw, cyclonedx→cyclonedx, spdx→spdx); use
 `-f, --format` to convert in the same pass. A layer the output format can't represent is
-**skipped** up front with a notice (`spdx` skips vulns/crypto/geo, `cyclonedx` skips
-crypto/geo) — the same capability rules as `scan`. Enrichment is non-fatal: a failed service
+**skipped** up front with a notice (`spdx` skips vulns/crypto/geo/remediation, `cyclonedx` skips
+crypto/geo/remediation) — the same capability rules as `scan`. Enrichment is non-fatal: a failed service
 is logged and skipped, and a partial result is still written.
 
 Flags: `--include`, `-f, --format` (`raw`/`spdx`/`cyclonedx`), `-o, --output`, plus the auth
@@ -652,6 +654,24 @@ scanoss-cli licenses evidence --purl 'pkg:github/scanoss/engine' --api-key "$SCA
 scanoss-cli geoprovenance --purl 'pkg:github/scanoss/engine' --requirement '5.4.7' --api-key "$SCANOSS_API_KEY"
 scanoss-cli geoprovenance countries --purl 'pkg:github/scanoss/engine' --api-key "$SCANOSS_API_KEY"
 ```
+
+### `remediation`
+
+Remediation Intelligence for exact component versions: the risk band and what limits it, any
+hard stop, the advisory findings and the ranked upgrade, replace or remove actions. Each entry
+echoes `purl` and `requirement` and carries the stored `version`; a miss carries `info_code`
+(`COMPONENT_NOT_FOUND`, `VERSION_NOT_FOUND`, `INVALID_PURL`) instead. Entries come back in
+request order, `status` counts the hits over every chunk, and `data_as_of` is the oldest date
+among them.
+
+```bash
+scanoss-cli remediation --purl 'pkg:golang/github.com/gorilla/mux@v1.8.1' --api-key "$SCANOSS_API_KEY"
+scanoss-cli remediation --purl 'pkg:npm/left-pad' --requirement '1.3.0' --api-key "$SCANOSS_API_KEY"
+```
+
+A version range is not resolved (`VERSION_NOT_FOUND`). Go modules are indexed by module path
+(`pkg:golang/github.com/owner/repo`), so a scan match reported as `pkg:github/owner/repo` comes
+back `COMPONENT_NOT_FOUND`.
 
 ### `copyright` — `evidence` (default), `holders`
 

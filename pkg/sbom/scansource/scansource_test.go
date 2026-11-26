@@ -592,3 +592,39 @@ func TestInventory_ComponentOrder(t *testing.T) {
 		t.Errorf("order = %v, want %s", got, want)
 	}
 }
+
+// Remediation keys each answer by the purl and requirement it was asked with, and keeps the answer
+// without that echo, misses included.
+func TestRemediation(t *testing.T) {
+	var resp scanossapi.RemediationResponse
+	if err := json.Unmarshal([]byte(`{"components":[
+		{"purl":"pkg:npm/left-pad","requirement":"1.3.0","version":"1.3.0","risk":{"band":"at_risk"}},
+		{"purl":"pkg:npm/nope@1.0.0","info_code":"COMPONENT_NOT_FOUND","info_message":"not found"}],
+		"status":{"status":"PARTIAL_SUCCESS","message":"Resolved 1 of 2 purls"}}`), &resp); err != nil {
+		t.Fatal(err)
+	}
+	got := Remediation(&resp)
+
+	hit := got[Key("pkg:npm/left-pad", "1.3.0")]
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(hit, &fields); err != nil {
+		t.Fatalf("hit answer is not an object: %s", hit)
+	}
+	if _, ok := fields["risk"]; !ok {
+		t.Errorf("hit answer lost its payload: %s", hit)
+	}
+	if _, ok := fields["purl"]; ok {
+		t.Errorf("hit answer repeats the purl echo: %s", hit)
+	}
+	if _, ok := fields["requirement"]; ok {
+		t.Errorf("hit answer repeats the requirement echo: %s", hit)
+	}
+
+	miss := string(got[Key("pkg:npm/nope@1.0.0", "")])
+	if !strings.Contains(miss, `"COMPONENT_NOT_FOUND"`) {
+		t.Errorf("miss answer = %s, want its info_code", miss)
+	}
+	if Remediation(nil) != nil {
+		t.Error("nil response should map to nil")
+	}
+}

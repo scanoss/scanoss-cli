@@ -460,7 +460,7 @@ type Enricher struct {
 }
 
 // Enrich attaches the requested purl-layers to the inventory's components in place —
-// licenses/cryptography/geoprovenance inline on each component, vulnerabilities as the flat
+// licenses/cryptography/geoprovenance/remediation inline on each component, vulnerabilities as the flat
 // top-level list. It is format-blind, keyed purely by PURL (+ version).
 //
 // Enrichment is non-fatal, so the inventory is usable whatever this returns: a layer that failed
@@ -522,6 +522,15 @@ func (e Enricher) Enrich(ctx context.Context, inv *sbom.Inventory) error {
 		for i := range inv.Components {
 			c := &inv.Components[i]
 			c.Geoprovenance = byPurl[c.Purl]
+		}
+	}
+
+	if rem := res.Remediation; rem != nil {
+		warnPartial(scanoss.ServiceRemediation.Name, rem.Failed)
+		byKey := scansource.Remediation(rem.Response)
+		for i := range inv.Components {
+			c := &inv.Components[i]
+			c.Remediation = byKey[scansource.Key(c.Purl, c.Version)]
 		}
 	}
 

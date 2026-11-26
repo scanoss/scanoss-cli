@@ -24,6 +24,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -45,6 +46,8 @@ func enrichDecorationServer() *httptest.Server {
 		switch {
 		case strings.Contains(r.URL.Path, "/licenses"):
 			_, _ = w.Write([]byte(`{"components":[{"purl":"pkg:npm/lodash","requirement":"4.17.20","licenses":[{"id":"MIT"}]}]}`))
+		case strings.Contains(r.URL.Path, "/remediation/intelligence"):
+			_, _ = w.Write([]byte(`{"components":[{"purl":"pkg:npm/lodash","requirement":"4.17.20","version":"4.17.20","risk":{"band":"at_risk","score":41}}],"data_as_of":{"scored_at":"2026-10-27T21:29:42Z"},"status":{"status":"SUCCESS","message":"Resolved 1 of 1 purls"}}`))
 		case strings.Contains(r.URL.Path, "/vulnerabilities"):
 			_, _ = w.Write([]byte(`{"components":[{"purl":"pkg:npm/lodash","vulnerabilities":[{"id":"CVE-2021-23337","severity":"HIGH","source":"NVD"}]}]}`))
 		default:
@@ -246,4 +249,48 @@ func captureStderr(t *testing.T, fn func()) string {
 	n, _ := r.Read(buf)
 	_ = r.Close()
 	return string(buf[:n])
+}
+
+// The remediation layer attaches the Remediation Intelligence answer to the component it was asked
+// for, joined by purl and version, without repeating the request echo.
+func TestEnrich_RawEnrichesRemediation(t *testing.T) {
+	srv := enrichDecorationServer()
+	defer srv.Close()
+
+	dir := t.TempDir()
+	in := filepath.Join(dir, "inv.json")
+	out := filepath.Join(dir, "out.json")
+	if err := os.WriteFile(in, []byte(rawInput), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := runEnrichTest(t, in, map[string]string{"api-url": srv.URL, "output": out}, "remediation"); err != nil {
+		t.Fatalf("enrich: %v", err)
+	}
+	got, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc struct {
+		SchemaVersion string `json:"schema_version"`
+		Components    []struct {
+			Purl        string                     `json:"purl"`
+			Remediation map[string]json.RawMessage `json:"remediation"`
+		} `json:"components"`
+	}
+	if err := json.Unmarshal(got, &doc); err != nil {
+		t.Fatalf("output is not JSON: %v\n%s", err, got)
+	}
+	if doc.SchemaVersion != "2.2" {
+		t.Errorf("schema_version = %q, want 2.2", doc.SchemaVersion)
+	}
+	if len(doc.Components) != 1 || doc.Components[0].Remediation == nil {
+		t.Fatalf("expected remediation on the component, got:\n%s", got)
+	}
+	rem := doc.Components[0].Remediation
+	if !strings.Contains(string(rem["risk"]), `"at_risk"`) {
+		t.Errorf("risk = %s, want the at_risk band", rem["risk"])
+	}
+	if _, ok := rem["purl"]; ok {
+		t.Error("remediation repeats the purl echo; the component already carries it")
+	}
 }
