@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`ai-usage` reports where source code uses AI.** It matches AI detection rules (`--rules-dir`)
+  against the call graph of Python, JavaScript and TypeScript code and writes an `ai_usage`
+  section in the raw output, whose `schema_version` moves to `2.2` (roadmap #46).
+
 ## [0.20.0] - 2026-11-27
 
 ### Added

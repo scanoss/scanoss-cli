@@ -36,6 +36,9 @@ import (
 	"log/slog"
 	"os"
 	"sync/atomic"
+
+	"github.com/rs/zerolog"
+	zlog "github.com/rs/zerolog/log"
 )
 
 // sink receives every log this module emits. It discards until an application asks for
@@ -82,5 +85,11 @@ func Configure(verbose bool) *slog.Logger {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level}))
 	slog.SetDefault(logger) // for cmd/ and internal/, which log through slog directly
 	Set(logger)             // for pkg/, which logs through this sink
+	// The analysis engine (reach) logs through zerolog's global logger, at info by default.
+	zlevel := zerolog.WarnLevel
+	if verbose {
+		zlevel = zerolog.DebugLevel
+	}
+	zlog.Logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, NoColor: true}).Level(zlevel).With().Timestamp().Logger()
 	return logger
 }

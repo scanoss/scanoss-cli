@@ -33,7 +33,8 @@ import (
 // handle differently from which merely carry more than it knows about.
 //
 // 2.1 added the `dependencies` roots, `local` on a component and the `transitive` match type.
-const RawSchemaVersion = "2.1"
+// 2.2 added the optional `ai_usage` section.
+const RawSchemaVersion = "2.2"
 
 // RawDocument is the raw output format: an Inventory wrapped in a versioned envelope. The embedded
 // Inventory promotes its `components`/`vulnerabilities` keys to the top level, so the JSON is
@@ -44,6 +45,8 @@ type RawDocument struct {
 	SchemaVersion string      `json:"schema_version"`
 	Metadata      RawMetadata `json:"metadata"`
 	Inventory
+	// AIUsage is the AI usage found in source code; nil when the scan did not look for it.
+	AIUsage *AIUsage `json:"ai_usage,omitempty"`
 }
 
 // RawMetadata identifies the tool and project that produced a raw document. Values are supplied by

@@ -1,0 +1,12 @@
+# Invented rule for tests: acme is not a real library.
+format: scanoss-cards/3
+rules:
+  ai.test.acme-load-unsafe:
+    severity: "INFO"
+    message: "acme.load without safe=True"
+    ai: {type: model_load, provider: acme, api: acme.load, risk: high, cwe: [CWE-502], pinned: false, tier: open}
+cards:
+- rule: ai.test.acme-load-unsafe
+  match:
+    call: acme.load
+    not: [{call: acme.load, args: {safe: {literal: 'True'}}}]
