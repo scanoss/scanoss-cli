@@ -404,7 +404,7 @@ func runLocalInventory(cmd *cobra.Command, targetPath, settingsFlag string, deps
 	}
 	infof("Lockfile roots resolved: %d", len(inv.Dependencies))
 	infof("Total dependencies found: %d", len(inv.Components))
-	return emitInventory(cmd, inv, root)
+	return emitInventory(cmd, inv, nil, root)
 }
 
 // runScanMode extracts local dependencies and queries the SCANOSS API

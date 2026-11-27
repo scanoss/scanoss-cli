@@ -101,6 +101,7 @@ func buildCycloneDX(inv Inventory, o options) (string, error) {
 	if vulns := cycloneDXVulnerabilities(inv); len(vulns) > 0 {
 		bom.Vulnerabilities = &vulns
 	}
+	appendAIUsage(bom, o.aiUsage, o.projectName)
 
 	var buf bytes.Buffer
 	enc := cdx.NewBOMEncoder(&buf, cdx.BOMFileFormatJSON)

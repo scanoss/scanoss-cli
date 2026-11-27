@@ -156,6 +156,17 @@ func (cfg Config) httpClient() (*http.Client, error) {
 	})
 }
 
+// NewHTTPClient returns the *http.Client a Client built from cfg sends with: its proxy,
+// TLS and timeout settings, and the API key headers dropped on a cross-host redirect.
+// It is for packages that call API endpoints outside the Client, such as pkg/rulesets.
+func NewHTTPClient(cfg Config) (*http.Client, error) {
+	client, err := cfg.httpClient()
+	if err != nil {
+		return nil, err
+	}
+	return dropOnHostChange(client, []string{"X-Api-Key", "X-Session"}), nil
+}
+
 // net/http strips only its built-in auth and cookie headers on a cross-host redirect and
 // forwards every other header, X-Api-Key included. It also re-copies the original headers
 // on every hop, so a chain that leaves the API and comes back would restore them unless

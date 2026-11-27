@@ -133,5 +133,5 @@ func runEnrich(cmd *cobra.Command, args []string) error {
 		warnf("Enrichment incomplete: %v", enrichErr)
 	}
 
-	return emitInventory(cmd, inv, args[0])
+	return emitInventory(cmd, inv, nil, args[0])
 }

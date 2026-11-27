@@ -39,6 +39,7 @@ import (
 	"github.com/scanoss/scanoss.go/internal/cliconfig"
 	"github.com/scanoss/scanoss.go/internal/config"
 	"github.com/scanoss/scanoss.go/internal/output"
+	"github.com/scanoss/scanoss.go/pkg/aiusage"
 	"github.com/scanoss/scanoss.go/pkg/filter"
 	"github.com/scanoss/scanoss.go/pkg/postprocess"
 	"github.com/scanoss/scanoss.go/pkg/sbom"
@@ -201,8 +202,8 @@ func layerLabel(service string) string {
 // representable everywhere (as components / package licenses); vulnerabilities in raw + cyclonedx;
 // cryptography and geoprovenance only in raw.
 var formatLayers = map[string]map[Layer]bool{
-	config.FormatRaw:       {LayerDeps: true, LayerLicenses: true, LayerVulns: true, LayerCrypto: true, LayerGeo: true},
-	config.FormatCycloneDX: {LayerDeps: true, LayerLicenses: true, LayerVulns: true},
+	config.FormatRaw:       {LayerDeps: true, LayerLicenses: true, LayerVulns: true, LayerCrypto: true, LayerGeo: true, LayerAI: true},
+	config.FormatCycloneDX: {LayerDeps: true, LayerLicenses: true, LayerVulns: true, LayerAI: true},
 	config.FormatSPDX:      {LayerDeps: true, LayerLicenses: true},
 }
 
@@ -217,6 +218,8 @@ func layerName(l Layer) string {
 		return "geoprovenance"
 	case LayerDeps:
 		return "dependencies"
+	case LayerAI:
+		return "AI usage"
 	default:
 		return string(l) // licenses
 	}
@@ -226,7 +229,7 @@ func layerName(l Layer) string {
 func unsupportedLayers(format string, layers Set) []Layer {
 	caps := formatLayers[format]
 	var out []Layer
-	for _, l := range []Layer{LayerDeps, LayerLicenses, LayerVulns, LayerCrypto, LayerGeo} {
+	for _, l := range []Layer{LayerDeps, LayerLicenses, LayerVulns, LayerCrypto, LayerGeo, LayerAI} {
 		if layers.Has(l) && !caps[l] {
 			out = append(out, l)
 		}
@@ -368,7 +371,10 @@ func init() {
 
 	// --include is declared per command rather than inherited: the two accept different layers, and
 	// an inherited help text would offer `wfp` a layer it cannot gather.
-	scanCmd.Flags().StringSlice("include", nil, "Output layers to gather (comma-separated): deps, vulns, licenses, crypto, geo")
+	scanCmd.Flags().StringSlice("include", nil, "Output layers to gather (comma-separated): deps, vulns, licenses, crypto, geo, ai")
+	scanCmd.Flags().String("rules-dir", "", "With --include ai, directory of AI rule card files, one subdirectory per language")
+	addAIRulesFlags(scanCmd)
+	scanCmd.Flags().Bool("reachability", false, "With --include ai, decide for each finding whether it runs from an entry point")
 	scanCmd.Flags().StringSlice("toolchain", nil, toolchainFlagHelp)
 	scanWFPCmd.Flags().StringSlice("include", nil, "Output layers to gather (comma-separated): vulns, licenses, crypto, geo")
 
@@ -431,6 +437,15 @@ func runScan(cmd *cobra.Command, args []string) error {
 	targetPath := args[0]
 	if _, err := os.Stat(targetPath); err != nil {
 		return fmt.Errorf("error accessing path: %w", err)
+	}
+	// The AI rules are resolved before the scan, so a run without them fails before uploading.
+	var ai *sbom.AIUsage
+	var rules *aiRules
+	if layers.Has(LayerAI) {
+		if rules, err = resolveAIRules(cmd); err != nil {
+			return err
+		}
+		defer rules.close()
 	}
 
 	threads, _ := cmd.Flags().GetInt("threads")
@@ -537,7 +552,13 @@ func runScan(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	if err := emitInventory(cmd, result.Inventory, targetPath); err != nil {
+	if rules != nil {
+		withReachability, _ := cmd.Flags().GetBool("reachability")
+		if ai, err = aiusage.Scan(targetPath, aiusage.Options{RulesDir: rules.dir, Rules: rules.info, Reachability: withReachability}); err != nil {
+			return err
+		}
+	}
+	if err := emitInventory(cmd, result.Inventory, ai, targetPath); err != nil {
 		return err
 	}
 	printErrorSummary(result.ProcessErrors)
@@ -716,7 +737,7 @@ func runScanWFP(cmd *cobra.Command, args []string) error {
 	if enrichErr != nil {
 		warnf("Enrichment incomplete: %v", enrichErr)
 	}
-	return emitInventory(cmd, inv, wfpPath)
+	return emitInventory(cmd, inv, nil, wfpPath)
 }
 
 // buildScanClient constructs the SDK client from the shared scan flags. Nothing per-call is
@@ -786,9 +807,9 @@ func fingerprintOptions(skipHeaders bool, limit int) []wfp.Option {
 	return []wfp.Option{wfp.WithSkipHeaders(limit)}
 }
 
-// emitInventory renders inv in the --format and writes it to the --output target. scanPath names
-// the SBOM project.
-func emitInventory(cmd *cobra.Command, inv sbom.Inventory, scanPath string) error {
+// emitInventory renders inv, and the AI usage when there is one, in the --format and writes it to
+// the --output target. scanPath names the SBOM project.
+func emitInventory(cmd *cobra.Command, inv sbom.Inventory, ai *sbom.AIUsage, scanPath string) error {
 	outputFile, _ := cmd.Flags().GetString("output")
 	outputFormat, _ := cmd.Flags().GetString("format")
 
@@ -802,7 +823,7 @@ func emitInventory(cmd *cobra.Command, inv sbom.Inventory, scanPath string) erro
 	if projectName == "." || projectName == "/" {
 		projectName = "" // let the sbom module apply its default
 	}
-	out, err := renderInventory(inv, outputFormat, projectName)
+	out, err := renderInventory(inv, ai, outputFormat, projectName)
 	if err != nil {
 		return err
 	}
@@ -828,18 +849,19 @@ func scanLayers(cmd *cobra.Command) (Set, error) {
 // renderInventory renders a gathered inventory in the requested format. raw wraps the inventory
 // in the versioned envelope (sbom.RawDocument) as JSON; cyclonedx/spdx project it to an SBOM,
 // dropping what they cannot represent.
-func renderInventory(inv sbom.Inventory, format, projectName string) (string, error) {
+func renderInventory(inv sbom.Inventory, ai *sbom.AIUsage, format, projectName string) (string, error) {
 	if format == config.FormatRaw {
 		doc := sbom.NewRawDocument(inv, sbom.RawMetadata{
 			Tool: config.AppName, ToolVersion: config.AppVersion, Project: projectName,
 		})
+		doc.AIUsage = ai
 		raw, err := doc.Marshal()
 		if err != nil {
 			return "", fmt.Errorf("error encoding results: %w", err)
 		}
 		return raw, nil
 	}
-	out, err := sbom.Generate(inv, sbom.Format(format), sbom.WithProjectName(projectName))
+	out, err := sbom.Generate(inv, sbom.Format(format), sbom.WithProjectName(projectName), sbom.WithAIUsage(ai))
 	if err != nil {
 		return "", fmt.Errorf("error generating %s output: %w", format, err)
 	}

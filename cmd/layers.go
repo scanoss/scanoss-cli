@@ -44,6 +44,9 @@ const (
 	LayerLicenses Layer = "licenses"
 	LayerCrypto   Layer = "crypto"
 	LayerGeo      Layer = "geo"
+	// LayerAI is the AI usage in the scanned source, found locally by matching AI rules
+	// against its call graph.
+	LayerAI Layer = "ai"
 )
 
 // layerServices maps each enrichment layer to the API service that gathers it. It is the single
@@ -93,9 +96,10 @@ func ParseLayers(values []string, accepted []Layer) (Set, error) {
 	return set, nil
 }
 
-// AllLayers is every layer a user may request: the PURL-keyed ones plus declared dependencies.
+// AllLayers is every layer a user may request: the PURL-keyed ones plus the two read from the
+// scanned tree, declared dependencies and AI usage.
 func AllLayers() []Layer {
-	return append(PurlLayers(), LayerDeps)
+	return append(PurlLayers(), LayerDeps, LayerAI)
 }
 
 // PurlLayers are the layers gathered from a decoration service keyed by PURL, so they can be

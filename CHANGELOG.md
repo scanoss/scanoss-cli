@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`ai-usage` reports where source code uses AI.** It matches AI detection rules (`--rules-dir`)
+  against the call graph of Python, JavaScript and TypeScript code and writes an `ai_usage`
+  section in the raw output, whose `schema_version` moves to `2.2` (roadmap #46).
+- **`ai-usage` says whether each finding runs.** A finding is `reachable` from a framework route,
+  a `main` or top-level code, with that `entry_point`, and `unreachable` in code nothing calls.
+  `--reachability=false` skips the call-graph walk.
+- **`ai-usage -f cyclonedx` writes an AIBOM, and `--fail-on` gates a build on it.** Providers are
+  services, models are `machine-learning-model` components and risks are vulnerabilities.
+  `--fail-on high` exits with code 2 when a finding has that risk or higher.
+- **`scan --include ai` adds the AI usage report to a scan.** It writes the same `ai_usage` section
+  in raw and the same AIBOM entries in CycloneDX; `--reachability` is off by default here.
+- **AI rules are downloaded from the API when `--rules-dir` is not given.** `ai@latest` with an
+  API key, `ai-open@latest` without, or `--ruleset name@version`; each bundle is verified and
+  cached encrypted. Unavailable rules exit with code 3.
+
 ## [0.20.0] - 2026-11-27
 
 ### Added
