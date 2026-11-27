@@ -62,7 +62,7 @@ func sampleInventory() sbom.Inventory {
 }
 
 func TestRenderInventory_Raw(t *testing.T) {
-	out, err := renderInventory(sampleInventory(), "raw", "proj")
+	out, err := renderInventory(sampleInventory(), nil, "raw", "proj")
 	if err != nil {
 		t.Fatalf("renderInventory: %v", err)
 	}
@@ -81,7 +81,7 @@ func TestRenderInventory_Raw(t *testing.T) {
 }
 
 func TestRenderInventory_SPDXLite(t *testing.T) {
-	out, err := renderInventory(sampleInventory(), "spdx", "proj")
+	out, err := renderInventory(sampleInventory(), nil, "spdx", "proj")
 	if err != nil {
 		t.Fatalf("renderInventory: %v", err)
 	}
@@ -94,7 +94,7 @@ func TestRenderInventory_SPDXLite(t *testing.T) {
 }
 
 func TestRenderInventory_CycloneDX(t *testing.T) {
-	out, err := renderInventory(sampleInventory(), "cyclonedx", "proj")
+	out, err := renderInventory(sampleInventory(), nil, "cyclonedx", "proj")
 	if err != nil {
 		t.Fatalf("renderInventory: %v", err)
 	}
@@ -110,7 +110,7 @@ func TestRenderInventory_CycloneDX(t *testing.T) {
 }
 
 func TestRenderInventory_UnknownFormat(t *testing.T) {
-	if _, err := renderInventory(sampleInventory(), "xml", "proj"); err == nil {
+	if _, err := renderInventory(sampleInventory(), nil, "xml", "proj"); err == nil {
 		t.Error("expected an error for an unsupported format")
 	}
 }
@@ -189,5 +189,31 @@ func TestScanLayers(t *testing.T) {
 
 	if _, err := scanLayers(newCmd("bogus")); err == nil {
 		t.Error("expected an error for an unknown --include layer")
+	}
+}
+
+// The ai layer is read from the scanned tree: scan accepts it, the commands that start from a
+// result or an SBOM do not, and raw and CycloneDX carry the report.
+func TestAILayer(t *testing.T) {
+	if _, err := ParseLayers([]string{"ai"}, AllLayers()); err != nil {
+		t.Fatalf("scan should accept --include ai: %v", err)
+	}
+	if _, err := ParseLayers([]string{"ai"}, PurlLayers()); err == nil {
+		t.Fatal("a command without a scanned tree should refuse --include ai")
+	}
+	if got := unsupportedLayers("spdx", Set{LayerAI: true}); len(got) != 1 {
+		t.Fatalf("spdx should not render the ai layer, got %v", got)
+	}
+	ai := &sbom.AIUsage{Format: sbom.AIUsageFormat, Findings: []sbom.AIUsageFinding{{
+		RuleID: "ai.test.chat", Category: "model_usage", File: "a.py", Line: 1, Reachability: sbom.AIUnknown,
+		Metadata: map[string]any{"ai": map[string]any{"provider": "acme", "model": "m-1", "risk": "info"}},
+	}}}
+	raw, err := renderInventory(sampleInventory(), ai, "raw", "proj")
+	if err != nil || !strings.Contains(raw, `"ai_usage"`) || !strings.Contains(raw, `"ai.test.chat"`) {
+		t.Fatalf("raw output lacks the ai_usage section (err %v)", err)
+	}
+	cdx, err := renderInventory(sampleInventory(), ai, "cyclonedx", "proj")
+	if err != nil || !strings.Contains(cdx, `"machine-learning-model"`) || !strings.Contains(cdx, `"svc:acme"`) {
+		t.Fatalf("cyclonedx output lacks the AI model and service (err %v)", err)
 	}
 }

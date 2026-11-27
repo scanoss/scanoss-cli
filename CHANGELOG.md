@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`ai-usage -f cyclonedx` writes an AIBOM, and `--fail-on` gates a build on it.** Providers are
   services, models are `machine-learning-model` components and risks are vulnerabilities.
   `--fail-on high` exits with code 2 when a finding has that risk or higher.
+- **`scan --include ai` adds the AI usage report to a scan.** It writes the same `ai_usage` section
+  in raw and the same AIBOM entries in CycloneDX; `--reachability` is off by default here.
 
 ## [0.20.0] - 2026-11-27
 
