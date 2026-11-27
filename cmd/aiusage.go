@@ -62,6 +62,7 @@ func init() {
 	fs.StringSlice("languages", nil, "Languages to scan (comma-separated): python, javascript, typescript (default: all)")
 	fs.StringP("format", "f", config.FormatRaw, "Result output format: raw")
 	fs.Bool("include-tests", false, "Also scan test files")
+	fs.Bool("reachability", true, "Decide for each finding whether it runs from an entry point")
 	fs.StringP("output", "o", "", "Output file (default: stdout)")
 }
 
@@ -76,9 +77,10 @@ func runAIUsage(cmd *cobra.Command, args []string) error {
 	}
 	languages, _ := cmd.Flags().GetStringSlice("languages")
 	includeTests, _ := cmd.Flags().GetBool("include-tests")
+	withReachability, _ := cmd.Flags().GetBool("reachability")
 	outputFile, _ := cmd.Flags().GetString("output")
 
-	report, err := aiusage.Scan(args[0], aiusage.Options{RulesDir: rulesDir, Languages: languages, IncludeTests: includeTests})
+	report, err := aiusage.Scan(args[0], aiusage.Options{RulesDir: rulesDir, Languages: languages, IncludeTests: includeTests, Reachability: withReachability})
 	if err != nil {
 		return err
 	}

@@ -56,6 +56,8 @@ type Options struct {
 	Languages []string
 	// IncludeTests also scans test files.
 	IncludeTests bool
+	// Reachability decides for each finding whether it runs from an entry point.
+	Reachability bool
 }
 
 // cardLanguages maps a language name to the card directory and call-graph ecosystem it uses.
@@ -87,7 +89,11 @@ func Scan(target string, opts Options) (*sbom.AIUsage, error) {
 	if len(rules) == 0 {
 		rules = []sbom.AIRuleset{{Source: "local"}}
 	}
-	return newReport(rules, findings), nil
+	report := newReport(rules, findings)
+	if opts.Reachability {
+		report.Reachability = "enabled"
+	}
+	return report, nil
 }
 
 // selectCardLanguages returns the card directories to match, each once.
@@ -144,9 +150,18 @@ func scanLanguage(root, cards string, opts Options) ([]sbom.AIUsageFinding, erro
 	if err != nil {
 		return nil, fmt.Errorf("match cards: %w", err)
 	}
+	var reach *reachability
+	if opts.Reachability {
+		reach = newReachability(root, ecosystem, graph)
+	}
 	out := make([]sbom.AIUsageFinding, 0, len(matched))
 	for _, f := range matched {
-		out = append(out, newFinding(f.RuleID, f.File, f.Line, typedMetadata(f.MetadataFields(), ruleMeta[f.RuleID])))
+		finding := newFinding(f.RuleID, f.File, f.Line, typedMetadata(f.MetadataFields(), ruleMeta[f.RuleID]))
+		if reach != nil {
+			v := reach.of(f.Caller)
+			finding.Reachability, finding.EntryPoint = v.status, v.entry
+		}
+		out = append(out, finding)
 	}
 	return out, nil
 }
