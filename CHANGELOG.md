@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-11-27
+
+### Added
+
+- **Token-aware snippet matching (WFP2), opt-in with `--enable-wfp2`.** The classic fingerprint
+  keys on raw code, so renaming identifiers, adding a prefix or suffix to them, or injecting
+  comments is enough to make a snippet stop matching. WFP2 strips comments and normalises
+  identifiers before winnowing, so detection survives those edits. The flag is available on `scan`,
+  `scan wfp` and `wfp`: `scan` generates a `wfp2=` block alongside the classic one and sends the
+  `enable_wfp2` opt-in with the request, `scan wfp` forwards the `wfp2=` blocks already in a `.wfp`,
+  and `wfp` only generates them. Off by default — without the flag the WFP and the scan request are
+  byte-for-byte unchanged, and the API capability-gates the opt-in, so an older server simply
+  ignores it (#144, roadmap #58).
+
 ## [0.19.0] - 2026-11-17
 
 ### Added
