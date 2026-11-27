@@ -373,6 +373,7 @@ func init() {
 	// an inherited help text would offer `wfp` a layer it cannot gather.
 	scanCmd.Flags().StringSlice("include", nil, "Output layers to gather (comma-separated): deps, vulns, licenses, crypto, geo, ai")
 	scanCmd.Flags().String("rules-dir", "", "With --include ai, directory of AI rule card files, one subdirectory per language")
+	addAIRulesFlags(scanCmd)
 	scanCmd.Flags().Bool("reachability", false, "With --include ai, decide for each finding whether it runs from an entry point")
 	scanCmd.Flags().StringSlice("toolchain", nil, toolchainFlagHelp)
 	scanWFPCmd.Flags().StringSlice("include", nil, "Output layers to gather (comma-separated): vulns, licenses, crypto, geo")
@@ -437,9 +438,14 @@ func runScan(cmd *cobra.Command, args []string) error {
 	if _, err := os.Stat(targetPath); err != nil {
 		return fmt.Errorf("error accessing path: %w", err)
 	}
-	aiRulesDir, _ := cmd.Flags().GetString("rules-dir")
-	if layers.Has(LayerAI) && aiRulesDir == "" {
-		return usageError(cmd, "--include ai needs --rules-dir")
+	// The AI rules are resolved before the scan, so a run without them fails before uploading.
+	var ai *sbom.AIUsage
+	var rules *aiRules
+	if layers.Has(LayerAI) {
+		if rules, err = resolveAIRules(cmd); err != nil {
+			return err
+		}
+		defer rules.close()
 	}
 
 	threads, _ := cmd.Flags().GetInt("threads")
@@ -546,10 +552,9 @@ func runScan(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	var ai *sbom.AIUsage
-	if layers.Has(LayerAI) {
+	if rules != nil {
 		withReachability, _ := cmd.Flags().GetBool("reachability")
-		if ai, err = aiusage.Scan(targetPath, aiusage.Options{RulesDir: aiRulesDir, Reachability: withReachability}); err != nil {
+		if ai, err = aiusage.Scan(targetPath, aiusage.Options{RulesDir: rules.dir, Rules: rules.info, Reachability: withReachability}); err != nil {
 			return err
 		}
 	}

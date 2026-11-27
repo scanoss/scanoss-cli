@@ -46,7 +46,13 @@ An imported SDK alone is not a finding.
 
 Languages: Python, JavaScript and TypeScript.
 
+Without --rules-dir the AI rules are downloaded from the SCANOSS API (--ruleset), verified and
+cached.
+
 Examples:
+  # Report AI usage with the rules the API serves for your key
+  scanoss-cli ai-usage ./my-project --api-key $SCANOSS_API_KEY
+
   # Report AI usage with a local rules directory
   scanoss-cli ai-usage ./my-project --rules-dir ./ai_rules
 
@@ -56,7 +62,7 @@ Examples:
   # CycloneDX AIBOM, failing the build on a high or critical risk
   scanoss-cli ai-usage ./my-project --rules-dir ./ai_rules -f cyclonedx --fail-on high
 
-Exit codes: 0 ok, 1 error, 2 a finding at or above --fail-on.`,
+Exit codes: 0 ok, 1 error, 2 a finding at or above --fail-on, 3 AI rules unavailable.`,
 	Args: cobra.ExactArgs(1),
 	RunE: runAIUsage,
 }
@@ -70,14 +76,11 @@ func init() {
 	fs.String("fail-on", "", "Exit with code 2 when a finding has this risk or higher: critical, high, medium, low")
 	fs.Bool("include-tests", false, "Also scan test files")
 	fs.Bool("reachability", true, "Decide for each finding whether it runs from an entry point")
-	fs.StringP("output", "o", "", "Output file (default: stdout)")
+	addAIRulesFlags(aiUsageCmd)
+	addAPIFlags(aiUsageCmd)
 }
 
 func runAIUsage(cmd *cobra.Command, args []string) error {
-	rulesDir, _ := cmd.Flags().GetString("rules-dir")
-	if rulesDir == "" {
-		return usageError(cmd, "--rules-dir is required")
-	}
 	format, _ := cmd.Flags().GetString("format")
 	if format == "aibom" {
 		format = string(sbom.FormatCycloneDX)
@@ -95,7 +98,12 @@ func runAIUsage(cmd *cobra.Command, args []string) error {
 	withReachability, _ := cmd.Flags().GetBool("reachability")
 	outputFile, _ := cmd.Flags().GetString("output")
 
-	report, err := aiusage.Scan(args[0], aiusage.Options{RulesDir: rulesDir, Languages: languages, IncludeTests: includeTests, Reachability: withReachability})
+	rules, err := resolveAIRules(cmd)
+	if err != nil {
+		return err
+	}
+	defer rules.close()
+	report, err := aiusage.Scan(args[0], aiusage.Options{RulesDir: rules.dir, Rules: rules.info, Languages: languages, IncludeTests: includeTests, Reachability: withReachability})
 	if err != nil {
 		return err
 	}

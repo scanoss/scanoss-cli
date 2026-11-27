@@ -24,7 +24,10 @@
 package cmd
 
 import (
+	"errors"
 	"testing"
+
+	"github.com/spf13/cobra"
 
 	"github.com/scanoss/scanoss.go/pkg/sbom"
 )
@@ -38,5 +41,32 @@ func TestFindingsAtOrAbove(t *testing.T) {
 		if got := findingsAtOrAbove(report, riskRank[level]); got != want {
 			t.Errorf("--fail-on %s: %d findings, want %d", level, got, want)
 		}
+	}
+}
+
+func aiRulesCommand(t *testing.T, args ...string) *cobra.Command {
+	t.Helper()
+	cmd := &cobra.Command{Use: "test"}
+	cmd.Flags().String("rules-dir", "", "")
+	addAIRulesFlags(cmd)
+	addAPIFlags(cmd)
+	if err := cmd.ParseFlags(args); err != nil {
+		t.Fatal(err)
+	}
+	return cmd
+}
+
+// --rules-dir is used as given; without it and with --no-remote-rules there are no rules, which
+// ends the run with exit code 3.
+func TestResolveAIRules(t *testing.T) {
+	rules, err := resolveAIRules(aiRulesCommand(t, "--rules-dir", "some/dir"))
+	if err != nil || rules.dir != "some/dir" || rules.info[0].Source != "local" {
+		t.Fatalf("local rules = %+v, %v", rules, err)
+	}
+	rules.close()
+	_, err = resolveAIRules(aiRulesCommand(t, "--no-remote-rules"))
+	var exit *exitError
+	if !errors.As(err, &exit) || exit.code != 3 {
+		t.Fatalf("--no-remote-rules without --rules-dir: %v, want exit code 3", err)
 	}
 }

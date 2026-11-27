@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--fail-on high` exits with code 2 when a finding has that risk or higher.
 - **`scan --include ai` adds the AI usage report to a scan.** It writes the same `ai_usage` section
   in raw and the same AIBOM entries in CycloneDX; `--reachability` is off by default here.
+- **AI rules are downloaded from the API when `--rules-dir` is not given.** `ai@latest` with an
+  API key, `ai-open@latest` without, or `--ruleset name@version`; each bundle is verified and
+  cached encrypted. Unavailable rules exit with code 3.
 
 ## [0.20.0] - 2026-11-27
 
