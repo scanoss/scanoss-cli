@@ -65,9 +65,24 @@ func Execute() {
 		if !errors.Is(err, errNoAPIKey) {
 			fmt.Fprintln(os.Stderr, err)
 		}
-		os.Exit(1)
+		code := 1
+		var exit *exitError
+		if errors.As(err, &exit) {
+			code = exit.code
+		}
+		os.Exit(code)
 	}
 }
+
+// exitError is an error that ends the process with a code other than 1: 2 when --fail-on
+// trips, 3 when the rules a command needs are unavailable.
+type exitError struct {
+	code int
+	err  error
+}
+
+func (e *exitError) Error() string { return e.err.Error() }
+func (e *exitError) Unwrap() error { return e.err }
 
 func init() {
 	// `scanoss-cli --version` → "scanoss-cli <version>"

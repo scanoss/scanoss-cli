@@ -26,6 +26,7 @@ package cmd
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -50,7 +51,12 @@ Examples:
   scanoss-cli ai-usage ./my-project --rules-dir ./ai_rules
 
   # Python only, written to a file
-  scanoss-cli ai-usage ./my-project --rules-dir ./ai_rules --languages python -o ai.json`,
+  scanoss-cli ai-usage ./my-project --rules-dir ./ai_rules --languages python -o ai.json
+
+  # CycloneDX AIBOM, failing the build on a high or critical risk
+  scanoss-cli ai-usage ./my-project --rules-dir ./ai_rules -f cyclonedx --fail-on high
+
+Exit codes: 0 ok, 1 error, 2 a finding at or above --fail-on.`,
 	Args: cobra.ExactArgs(1),
 	RunE: runAIUsage,
 }
@@ -60,7 +66,8 @@ func init() {
 	fs := aiUsageCmd.Flags()
 	fs.String("rules-dir", "", "Directory of AI rule card files, one subdirectory per language (python/, javascript/)")
 	fs.StringSlice("languages", nil, "Languages to scan (comma-separated): python, javascript, typescript (default: all)")
-	fs.StringP("format", "f", config.FormatRaw, "Result output format: raw")
+	fs.StringP("format", "f", config.FormatRaw, "Result output format: raw, cyclonedx (alias aibom)")
+	fs.String("fail-on", "", "Exit with code 2 when a finding has this risk or higher: critical, high, medium, low")
 	fs.Bool("include-tests", false, "Also scan test files")
 	fs.Bool("reachability", true, "Decide for each finding whether it runs from an entry point")
 	fs.StringP("output", "o", "", "Output file (default: stdout)")
@@ -72,8 +79,16 @@ func runAIUsage(cmd *cobra.Command, args []string) error {
 		return usageError(cmd, "--rules-dir is required")
 	}
 	format, _ := cmd.Flags().GetString("format")
-	if format != config.FormatRaw {
-		return usageError(cmd, "unsupported --format %q for ai-usage (want raw)", format)
+	if format == "aibom" {
+		format = string(sbom.FormatCycloneDX)
+	}
+	if format != config.FormatRaw && format != string(sbom.FormatCycloneDX) {
+		return usageError(cmd, "unsupported --format %q for ai-usage (want raw or cyclonedx)", format)
+	}
+	failOn, _ := cmd.Flags().GetString("fail-on")
+	threshold, ok := riskRank[strings.ToLower(failOn)]
+	if failOn != "" && (!ok || threshold == riskRank["info"]) {
+		return usageError(cmd, "unsupported --fail-on %q (want critical, high, medium or low)", failOn)
 	}
 	languages, _ := cmd.Flags().GetStringSlice("languages")
 	includeTests, _ := cmd.Flags().GetBool("include-tests")
@@ -88,16 +103,56 @@ func runAIUsage(cmd *cobra.Command, args []string) error {
 	if abs, err := filepath.Abs(args[0]); err == nil {
 		project = filepath.Base(abs)
 	}
-	doc := sbom.NewRawDocument(sbom.Inventory{}, sbom.RawMetadata{Tool: config.AppName, ToolVersion: config.AppVersion, Project: project})
-	doc.AIUsage = report
-	raw, err := doc.Marshal()
+	out, err := renderAIUsage(report, format, project)
 	if err != nil {
-		return fmt.Errorf("error encoding results: %w", err)
+		return err
 	}
 	w, err := output.NewWriter(outputFile)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = w.Close() }()
-	return w.Write(raw + "\n")
+	if err := w.Write(out + "\n"); err != nil {
+		return err
+	}
+	if failOn != "" {
+		if n := findingsAtOrAbove(report, threshold); n > 0 {
+			return &exitError{code: 2, err: fmt.Errorf("ai-usage: %d finding(s) at or above %s risk", n, strings.ToLower(failOn))}
+		}
+	}
+	return nil
+}
+
+// renderAIUsage renders a report as a raw document or a CycloneDX AIBOM.
+func renderAIUsage(report *sbom.AIUsage, format, project string) (string, error) {
+	if format == string(sbom.FormatCycloneDX) {
+		out, err := sbom.Generate(sbom.Inventory{}, sbom.FormatCycloneDX, sbom.WithProjectName(project), sbom.WithAIUsage(report))
+		if err != nil {
+			return "", fmt.Errorf("error generating cyclonedx output: %w", err)
+		}
+		return out, nil
+	}
+	doc := sbom.NewRawDocument(sbom.Inventory{}, sbom.RawMetadata{Tool: config.AppName, ToolVersion: config.AppVersion, Project: project})
+	doc.AIUsage = report
+	raw, err := doc.Marshal()
+	if err != nil {
+		return "", fmt.Errorf("error encoding results: %w", err)
+	}
+	return raw, nil
+}
+
+// riskRank orders the risks a finding can carry.
+var riskRank = map[string]int{"info": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
+
+// findingsAtOrAbove counts the findings whose risk ranks at least threshold.
+func findingsAtOrAbove(report *sbom.AIUsage, threshold int) int {
+	n := 0
+	for _, f := range report.Findings {
+		meta, _ := f.Metadata[aiusage.MetadataKey].(map[string]any)
+		risk, _ := meta["risk"].(string)
+		if rank, ok := riskRank[strings.ToLower(risk)]; ok && rank >= threshold {
+			n++
+		}
+	}
+	return n
 }

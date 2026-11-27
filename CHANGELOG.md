@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`ai-usage` says whether each finding runs.** A finding is `reachable` from a framework route,
   a `main` or top-level code, with that `entry_point`, and `unreachable` in code nothing calls.
   `--reachability=false` skips the call-graph walk.
+- **`ai-usage -f cyclonedx` writes an AIBOM, and `--fail-on` gates a build on it.** Providers are
+  services, models are `machine-learning-model` components and risks are vulnerabilities.
+  `--fail-on high` exits with code 2 when a finding has that risk or higher.
 
 ## [0.20.0] - 2026-11-27
 

@@ -39,6 +39,7 @@ type options struct {
 	toolVersion string    // its version, kept apart: CycloneDX has a field for it
 	author      string    // recorded as the author / organization in document metadata
 	timestamp   time.Time // document creation timestamp; zero => resolved to now at render
+	aiUsage     *AIUsage  // AI usage to render (CycloneDX only); nil for none
 }
 
 // Option configures SBOM generation.
@@ -128,4 +129,10 @@ func (o options) resolvedTimestamp() time.Time {
 		return time.Now().UTC()
 	}
 	return o.timestamp
+}
+
+// WithAIUsage adds an AI usage report to a CycloneDX document: providers as services, models as
+// machine-learning-model components and risks as vulnerabilities. SPDX ignores it.
+func WithAIUsage(u *AIUsage) Option {
+	return func(o *options) { o.aiUsage = u }
 }
